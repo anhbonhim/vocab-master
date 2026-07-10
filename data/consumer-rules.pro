@@ -1,0 +1,1 @@
+# Empty consumer Proguard rules
