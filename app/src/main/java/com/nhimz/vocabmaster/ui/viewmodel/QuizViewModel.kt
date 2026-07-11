@@ -113,7 +113,7 @@ class QuizViewModel @Inject constructor(
             // Build standard questions
             val questions = listToUse.take(10).map { card ->
                 val direction = if (Math.random() > 0.5) QuestionDirection.EN_TO_VI else QuestionDirection.VI_TO_EN
-                val distractors = generateDistractorsUseCase.execute(card.vocabulary, allVocabPool, 3)
+                val distractorsPool = generateDistractorsUseCase.execute(card.vocabulary, allVocabPool, 20)
 
                 val prompt: String
                 val options: List<String>
@@ -122,14 +122,14 @@ class QuizViewModel @Inject constructor(
                 if (direction == QuestionDirection.EN_TO_VI) {
                     prompt = card.vocabulary.word
                     val correctText = card.vocabulary.definition
-                    val otherTexts = distractors.map { it.definition }
+                    val otherTexts = distractorsPool.map { it.definition }.filter { it != correctText }.distinct().take(3)
                     val shuffledOptions = (otherTexts + correctText).shuffled()
                     options = shuffledOptions
                     correctIndex = shuffledOptions.indexOf(correctText)
                 } else {
                     prompt = card.vocabulary.definition
                     val correctText = card.vocabulary.word
-                    val otherTexts = distractors.map { it.word }
+                    val otherTexts = distractorsPool.map { it.word }.filter { it != correctText }.distinct().take(3)
                     val shuffledOptions = (otherTexts + correctText).shuffled()
                     options = shuffledOptions
                     correctIndex = shuffledOptions.indexOf(correctText)
@@ -183,8 +183,14 @@ class QuizViewModel @Inject constructor(
 
             val updatedCorrectCount = state.correctAnswersCount + (if (isCorrect) 1 else 0)
             val updatedXpGained = state.xpGained + xpEarned
+            val updatedQuestions = if (isCorrect) {
+                state.questions
+            } else {
+                state.questions + currentQuestion
+            }
 
             _sessionState.value = state.copy(
+                questions = updatedQuestions,
                 selectedOption = optionIndex,
                 isAnswerRevealed = true,
                 correctAnswersCount = updatedCorrectCount,

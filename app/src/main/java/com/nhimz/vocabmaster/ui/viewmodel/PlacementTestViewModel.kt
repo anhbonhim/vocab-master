@@ -103,13 +103,14 @@ class PlacementTestViewModel @Inject constructor(
 
             askedWords.add(selectedWord.word)
 
-            val distractors = generateDistractorsUseCase.execute(
+            val distractorsPool = generateDistractorsUseCase.execute(
                 correctItem = selectedWord,
                 allVocabulary = allVocabularyList,
-                count = 3
+                count = 20
             )
 
-            val optionsList = (distractors.map { it.definition } + selectedWord.definition).shuffled()
+            val otherTexts = distractorsPool.map { it.definition }.filter { it != selectedWord.definition }.distinct().take(3)
+            val optionsList = (otherTexts + selectedWord.definition).shuffled()
             val correctIdx = optionsList.indexOf(selectedWord.definition)
 
             _currentQuestion.value = QuestionState(

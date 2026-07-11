@@ -3,6 +3,7 @@ package com.nhimz.vocabmaster.ui.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.nhimz.vocabmaster.domain.model.SettingsRepository
+import com.nhimz.vocabmaster.domain.model.DifficultyLevel
 import com.nhimz.vocabmaster.ui.navigation.Screen
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -29,6 +30,9 @@ class MainViewModel @Inject constructor(
     val xpTotal: StateFlow<Int> = settingsRepository.xpTotal
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
 
+    val todayStudySeconds: StateFlow<Int> = settingsRepository.todayStudySeconds
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
+
     val currentStreak: StateFlow<Int> = settingsRepository.currentStreak
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
 
@@ -49,6 +53,9 @@ class MainViewModel @Inject constructor(
 
     val badgeStatus: StateFlow<List<String>> = settingsRepository.badgeStatus
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val placementLevel: StateFlow<String?> = settingsRepository.placementLevel
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     init {
         checkOnboardingStatus()
@@ -81,9 +88,21 @@ class MainViewModel @Inject constructor(
         }
     }
 
+    fun savePlacementLevel(level: DifficultyLevel) {
+        viewModelScope.launch {
+            settingsRepository.setPlacementLevel(level.name)
+        }
+    }
+
     fun addXp(xp: Int) {
         viewModelScope.launch {
             settingsRepository.addXp(xp)
+        }
+    }
+
+    fun addStudyTime(seconds: Int) {
+        viewModelScope.launch {
+            settingsRepository.addStudySeconds(seconds)
         }
     }
 

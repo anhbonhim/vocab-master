@@ -16,6 +16,9 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.IOException
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -32,11 +35,14 @@ class SettingsRepositoryImpl @Inject constructor(
         val LONGEST_STREAK = intPreferencesKey("longest_streak")
         val AVAILABLE_FREEZES = intPreferencesKey("available_freezes")
         val LAST_STUDY_DATE = longPreferencesKey("last_study_date")
+        val TODAY_STUDY_SECONDS = intPreferencesKey("today_study_seconds")
+        val TODAY_STUDY_DATE = stringPreferencesKey("today_study_date")
         val XP_TOTAL = intPreferencesKey("xp_total")
         val BADGE_STATUS = stringPreferencesKey("badge_status")
         val DESIRED_RETENTION = doublePreferencesKey("desired_retention")
         val THEME = stringPreferencesKey("theme")
         val LANGUAGE = stringPreferencesKey("language")
+        val PLACEMENT_LEVEL = stringPreferencesKey("placement_level")
     }
 
     private val dataStore = context.dataStore
@@ -123,6 +129,39 @@ class SettingsRepositoryImpl @Inject constructor(
     override suspend fun setLastStudyDate(timestamp: Long) {
         dataStore.edit { preferences ->
             preferences[PreferencesKeys.LAST_STUDY_DATE] = timestamp
+        }
+    }
+
+    override val todayStudySeconds: Flow<Int> = dataStore.data
+        .catch { exception ->
+            if (exception is IOException) {
+                emit(emptyPreferences())
+            } else {
+                throw exception
+            }
+        }.map { preferences ->
+            val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+            val todayStr = sdf.format(Date())
+            val savedDate = preferences[PreferencesKeys.TODAY_STUDY_DATE] ?: ""
+            if (savedDate == todayStr) {
+                preferences[PreferencesKeys.TODAY_STUDY_SECONDS] ?: 0
+            } else {
+                0
+            }
+        }
+
+    override suspend fun addStudySeconds(seconds: Int) {
+        val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+        val todayStr = sdf.format(Date())
+        dataStore.edit { preferences ->
+            val savedDate = preferences[PreferencesKeys.TODAY_STUDY_DATE] ?: ""
+            if (savedDate == todayStr) {
+                val currentSeconds = preferences[PreferencesKeys.TODAY_STUDY_SECONDS] ?: 0
+                preferences[PreferencesKeys.TODAY_STUDY_SECONDS] = currentSeconds + seconds
+            } else {
+                preferences[PreferencesKeys.TODAY_STUDY_DATE] = todayStr
+                preferences[PreferencesKeys.TODAY_STUDY_SECONDS] = seconds
+            }
         }
     }
 
@@ -227,6 +266,23 @@ class SettingsRepositoryImpl @Inject constructor(
     override suspend fun setLanguage(language: String) {
         dataStore.edit { preferences ->
             preferences[PreferencesKeys.LANGUAGE] = language
+        }
+    }
+
+    override val placementLevel: Flow<String?> = dataStore.data
+        .catch { exception ->
+            if (exception is IOException) {
+                emit(emptyPreferences())
+            } else {
+                throw exception
+            }
+        }.map { preferences ->
+            preferences[PreferencesKeys.PLACEMENT_LEVEL]
+        }
+
+    override suspend fun setPlacementLevel(level: String) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.PLACEMENT_LEVEL] = level
         }
     }
 }

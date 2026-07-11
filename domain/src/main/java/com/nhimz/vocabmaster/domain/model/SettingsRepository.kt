@@ -18,6 +18,9 @@ interface SettingsRepository {
     val lastStudyDate: Flow<Long>
     suspend fun setLastStudyDate(timestamp: Long)
 
+    val todayStudySeconds: Flow<Int>
+    suspend fun addStudySeconds(seconds: Int)
+
     val xpTotal: Flow<Int>
     suspend fun addXp(xp: Int)
     suspend fun setXpTotal(xp: Int)
@@ -34,4 +37,7 @@ interface SettingsRepository {
 
     val language: Flow<String>
     suspend fun setLanguage(language: String)
+
+    val placementLevel: Flow<String?>
+    suspend fun setPlacementLevel(level: String)
 }

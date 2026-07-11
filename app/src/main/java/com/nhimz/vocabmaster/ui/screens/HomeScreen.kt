@@ -52,12 +52,12 @@ fun HomeScreen(
     viewModel: MainViewModel
 ) {
     val xpTotal by viewModel.xpTotal.collectAsState()
+    val todayStudySeconds by viewModel.todayStudySeconds.collectAsState()
     val currentStreak by viewModel.currentStreak.collectAsState()
     val freezes by viewModel.availableFreezes.collectAsState()
     val dailyGoal by viewModel.dailyGoalMinutes.collectAsState()
 
-    // We can simulate studied minutes based on XP gained (e.g. 10 XP ≈ 1 minute studied)
-    val minutesStudiedToday = (xpTotal / 10).coerceAtMost(dailyGoal)
+    val minutesStudiedToday = (todayStudySeconds / 60).coerceAtMost(dailyGoal)
     val progressPercent = if (dailyGoal > 0) minutesStudiedToday.toFloat() / dailyGoal.toFloat() else 0f
     val animatedProgress by animateFloatAsState(
         targetValue = progressPercent,

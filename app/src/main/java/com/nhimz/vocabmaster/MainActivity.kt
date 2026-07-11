@@ -111,10 +111,11 @@ class MainActivity : ComponentActivity() {
                                 mainViewModel.navigateTo(Screen.PlacementTest)
                             }
                         )
-                        is Screen.PlacementTest -> PlacementTestScreen(
-                            onTestFinished = { level ->
-                                mainViewModel.navigateTo(Screen.FirstWin)
-                            },
+                         is Screen.PlacementTest -> PlacementTestScreen(
+                             onTestFinished = { level ->
+                                 mainViewModel.savePlacementLevel(level)
+                                 mainViewModel.navigateTo(Screen.FirstWin)
+                             },
                             viewModel = placementTestViewModel
                         )
                         is Screen.FirstWin -> FirstWinScreen(
@@ -124,6 +125,7 @@ class MainActivity : ComponentActivity() {
                         )
                         is Screen.Quiz -> QuizScreen(
                             onSessionCompleted = { xp, duration, correct, total ->
+                                mainViewModel.addStudyTime(duration)
                                 mainViewModel.navigateTo(Screen.Result(xp, duration, correct, total))
                             },
                             onBackToHome = { mainViewModel.navigateTo(Screen.Home) },
@@ -132,6 +134,7 @@ class MainActivity : ComponentActivity() {
                         )
                         is Screen.Flashcard -> FlashcardScreen(
                             onSessionCompleted = { xp, duration, correct, total ->
+                                mainViewModel.addStudyTime(duration)
                                 mainViewModel.navigateTo(Screen.Result(xp, duration, correct, total))
                             },
                             onBackToHome = { mainViewModel.navigateTo(Screen.Home) },

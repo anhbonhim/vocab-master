@@ -9,6 +9,7 @@ import android.content.Intent
 import android.os.Build
 import androidx.core.app.NotificationCompat
 import com.nhimz.vocabmaster.MainActivity
+import com.nhimz.vocabmaster.R
 import com.nhimz.vocabmaster.domain.model.DifficultyLevel
 import com.nhimz.vocabmaster.domain.model.VocabularyRepository
 import dagger.hilt.android.AndroidEntryPoint
@@ -75,7 +76,7 @@ class NotificationReceiver : BroadcastReceiver() {
         )
 
         val notification = NotificationCompat.Builder(context, channelId)
-            .setSmallIcon(android.R.drawable.ic_dialog_info) // System standard fallback icon
+            .setSmallIcon(R.drawable.ic_stat_notification) // App notification vector icon
             .setContentTitle("Từ vựng hôm nay: $word")
             .setContentText(definition)
             .setStyle(NotificationCompat.BigTextStyle().bigText("Từ vựng hôm nay: **$word**\nÝ nghĩa: $definition\n\nBấm để bắt đầu học ngay!"))

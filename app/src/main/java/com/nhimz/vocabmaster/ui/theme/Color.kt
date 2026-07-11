@@ -34,3 +34,17 @@ val GradientGreenEnd = Color(0xFF059669)
 
 val CardBackgroundLight = Color(0xFFFFFFFF)
 val CardBackgroundDark = Color(0xFF1E293B)
+
+// Duolingo Overhaul Solid Colors (Chống viền sẫm màu)
+val SuccessGreen = Color(0xFF58CC02)
+val SuccessGreenLight = Color(0xFFE8F5E9)      // Xanh nhạt cho Light Mode
+val SuccessGreenLightDark = Color(0xFF1B2E1C)  // Xanh nhạt cho Dark Mode
+
+val ErrorRed = Color(0xFFFF4B4B)
+val ErrorRedLight = Color(0xFFFFEBEE)          // Đỏ nhạt cho Light Mode
+val ErrorRedLightDark = Color(0xFF2E1B1B)      // Đỏ nhạt cho Dark Mode
+
+val SelectedBlue = Color(0xFF1CB0F6)
+val SelectedBlueLight = Color(0xFFE0F7FA)      // Xanh lam nhạt cho Light Mode
+val SelectedBlueLightDark = Color(0xFF152A38)  // Xanh lam nhạt cho Dark Mode
+

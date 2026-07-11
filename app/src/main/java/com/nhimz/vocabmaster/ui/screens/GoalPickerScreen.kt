@@ -91,12 +91,9 @@ fun GoalPickerScreen(
             options.forEach { option ->
                 val isSelected = option.minutes == selectedMinutes
                 val cardElevation by animateDpAsState(
-                    targetValue = if (isSelected) 8.dp else 2.dp,
-                    animationSpec = tween(300)
-                )
-                val cardBorderColor by animateColorAsState(
-                    targetValue = if (isSelected) GradientStart else Color.Transparent,
-                    animationSpec = tween(300)
+                    targetValue = if (isSelected) 8.dp else 0.dp,
+                    animationSpec = tween(300),
+                    label = "cardElevation"
                 )
 
                 Card(
@@ -107,10 +104,10 @@ fun GoalPickerScreen(
                         .clickable { selectedMinutes = option.minutes },
                     shape = RoundedCornerShape(16.dp),
                     colors = CardDefaults.cardColors(
-                        containerColor = if (isSelected) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.surface.copy(alpha = 0.5f)
+                        containerColor = MaterialTheme.colorScheme.surface
                     ),
                     elevation = CardDefaults.cardElevation(defaultElevation = cardElevation),
-                    border = BorderStroke(2.dp, cardBorderColor)
+                    border = if (isSelected) BorderStroke(2.dp, GradientStart) else null
                 ) {
                     Row(
                         modifier = Modifier
