@@ -26,13 +26,31 @@ enum class QuestionDirection {
     EN_TO_VI, VI_TO_EN
 }
 
+sealed class QuizType {
+    data class MultipleChoice(
+        val itemWithCard: VocabularyItemWithCard,
+        val direction: QuestionDirection,
+        val prompt: String,
+        val options: List<String>,
+        val correctIndex: Int
+    ) : QuizType()
+
+    data class ScrambledSentence(
+        val itemWithCard: VocabularyItemWithCard,
+        val scrambledWords: List<String>,
+        val correctSentence: String
+    ) : QuizType()
+}
+
 data class QuizQuestion(
-    val itemWithCard: VocabularyItemWithCard,
-    val direction: QuestionDirection,
-    val prompt: String,
-    val options: List<String>,
-    val correctIndex: Int
-)
+    val type: QuizType
+) {
+    val itemWithCard: VocabularyItemWithCard
+        get() = when (type) {
+            is QuizType.MultipleChoice -> type.itemWithCard
+            is QuizType.ScrambledSentence -> type.itemWithCard
+        }
+}
 
 sealed class QuizSessionState {
     object Loading : QuizSessionState()
@@ -77,28 +95,27 @@ class QuizViewModel @Inject constructor(
             sessionStartTime = System.currentTimeMillis()
 
             val nowSec = System.currentTimeMillis() / 1000
-            val dueCards = vocabularyRepository.getDueCards(nowSec, 10).first()
+            val selectedTopic = settingsRepository.selectedTopic.first()
+
+            val dueCards = vocabularyRepository.getDueCardsByTopic(selectedTopic, nowSec, 10).first()
 
             val listToUse = mutableListOf<VocabularyItemWithCard>()
             listToUse.addAll(dueCards)
 
-            // If due cards are less than 10, fill up from A2/B1/B2 levels
+            // If due cards are less than 10, fill up from A2/B1/B2 levels of the selected topic
             if (listToUse.size < 10) {
-                val levelsToTry = listOf(DifficultyLevel.A2, DifficultyLevel.B1, DifficultyLevel.B2)
-                for (level in levelsToTry) {
-                    if (listToUse.size >= 10) break
-                    val levelCards = vocabularyRepository.getCardsByLevel(level).first()
-                    val remaining = 10 - listToUse.size
-                    val toAdd = levelCards.filter { card -> card.vocabulary.id !in listToUse.map { it.vocabulary.id } }.take(remaining)
-                    listToUse.addAll(toAdd)
-                }
+                val topicCards = vocabularyRepository.getCardsByTopic(selectedTopic).first()
+                val remaining = 10 - listToUse.size
+                val toAdd = topicCards.filter { card -> card.vocabulary.id !in listToUse.map { it.vocabulary.id } }.take(remaining)
+                listToUse.addAll(toAdd)
             }
 
-            // If still less than 10, get whatever is available
+            // Fallback to general cards if topic cards are exhausted
             if (listToUse.size < 10) {
-                val allCards = vocabularyRepository.getCardsByLevel(DifficultyLevel.A1).first()
+                val generalCards = vocabularyRepository.getCardsByLevel(DifficultyLevel.A2).first()
                 val remaining = 10 - listToUse.size
-                listToUse.addAll(allCards.take(remaining))
+                val toAdd = generalCards.filter { card -> card.vocabulary.id !in listToUse.map { it.vocabulary.id } }.take(remaining)
+                listToUse.addAll(toAdd)
             }
 
             // If database is completely empty (unlikely because of prepopulation), handle empty
@@ -112,36 +129,64 @@ class QuizViewModel @Inject constructor(
 
             // Build standard questions
             val questions = listToUse.take(10).map { card ->
-                val direction = if (Math.random() > 0.5) QuestionDirection.EN_TO_VI else QuestionDirection.VI_TO_EN
-                val distractorsPool = generateDistractorsUseCase.execute(card.vocabulary, allVocabPool, 20)
+                // Decide question type based on availability of scrambledSentenceData
+                val hasScrambledData = !card.vocabulary.scrambledSentenceData.isNullOrEmpty()
+                val isScrambledType = hasScrambledData && Math.random() > 0.6 // 40% chance for scrambled if available
 
-                val prompt: String
-                val options: List<String>
-                val correctIndex: Int
+                if (isScrambledType) {
+                    val rawData = card.vocabulary.scrambledSentenceData!!
+                    // Basic JSON array parsing "[ \"I\", \"have\" ]" -> List<String>
+                    val parsedWords = rawData
+                        .removePrefix("[")
+                        .removeSuffix("]")
+                        .split(",")
+                        .map { it.trim().removePrefix("\"").removeSuffix("\"") }
+                        .filter { it.isNotEmpty() }
 
-                if (direction == QuestionDirection.EN_TO_VI) {
-                    prompt = card.vocabulary.word
-                    val correctText = card.vocabulary.definition
-                    val otherTexts = distractorsPool.map { it.definition }.filter { it != correctText }.distinct().take(3)
-                    val shuffledOptions = (otherTexts + correctText).shuffled()
-                    options = shuffledOptions
-                    correctIndex = shuffledOptions.indexOf(correctText)
+                    val correctSentence = parsedWords.joinToString(" ")
+                    val shuffledWords = parsedWords.shuffled()
+
+                    QuizQuestion(
+                        type = QuizType.ScrambledSentence(
+                            itemWithCard = card,
+                            scrambledWords = shuffledWords,
+                            correctSentence = correctSentence
+                        )
+                    )
                 } else {
-                    prompt = card.vocabulary.definition
-                    val correctText = card.vocabulary.word
-                    val otherTexts = distractorsPool.map { it.word }.filter { it != correctText }.distinct().take(3)
-                    val shuffledOptions = (otherTexts + correctText).shuffled()
-                    options = shuffledOptions
-                    correctIndex = shuffledOptions.indexOf(correctText)
-                }
+                    val direction = if (Math.random() > 0.5) QuestionDirection.EN_TO_VI else QuestionDirection.VI_TO_EN
+                    val distractorsPool = generateDistractorsUseCase.execute(card.vocabulary, allVocabPool, 20)
 
-                QuizQuestion(
-                    itemWithCard = card,
-                    direction = direction,
-                    prompt = prompt,
-                    options = options,
-                    correctIndex = correctIndex
-                )
+                    val prompt: String
+                    val options: List<String>
+                    val correctIndex: Int
+
+                    if (direction == QuestionDirection.EN_TO_VI) {
+                        prompt = card.vocabulary.word
+                        val correctText = card.vocabulary.definition
+                        val otherTexts = distractorsPool.map { it.definition }.filter { it != correctText }.distinct().take(3)
+                        val shuffledOptions = (otherTexts + correctText).shuffled()
+                        options = shuffledOptions
+                        correctIndex = shuffledOptions.indexOf(correctText)
+                    } else {
+                        prompt = card.vocabulary.definition
+                        val correctText = card.vocabulary.word
+                        val otherTexts = distractorsPool.map { it.word }.filter { it != correctText }.distinct().take(3)
+                        val shuffledOptions = (otherTexts + correctText).shuffled()
+                        options = shuffledOptions
+                        correctIndex = shuffledOptions.indexOf(correctText)
+                    }
+
+                    QuizQuestion(
+                        type = QuizType.MultipleChoice(
+                            itemWithCard = card,
+                            direction = direction,
+                            prompt = prompt,
+                            options = options,
+                            correctIndex = correctIndex
+                        )
+                    )
+                }
             }
 
             _sessionState.value = QuizSessionState.Active(
@@ -156,12 +201,24 @@ class QuizViewModel @Inject constructor(
         }
     }
 
-    fun submitAnswer(optionIndex: Int) {
+    fun submitAnswer(optionIndex: Int? = null, selectedWordsForScrambled: List<String>? = null) {
         val state = _sessionState.value as? QuizSessionState.Active ?: return
         if (state.isAnswerRevealed) return // Prevent multiple submissions
 
         val currentQuestion = state.questions[state.currentIndex]
-        val isCorrect = optionIndex == currentQuestion.correctIndex
+        
+        val isCorrect = when (val type = currentQuestion.type) {
+            is QuizType.MultipleChoice -> {
+                requireNotNull(optionIndex) { "optionIndex must be provided for MultipleChoice" }
+                optionIndex == type.correctIndex
+            }
+            is QuizType.ScrambledSentence -> {
+                requireNotNull(selectedWordsForScrambled) { "selectedWordsForScrambled must be provided for ScrambledSentence" }
+                val userSentence = selectedWordsForScrambled.joinToString(" ")
+                userSentence == type.correctSentence
+            }
+        }
+
         val responseTimeMs = System.currentTimeMillis() - state.startTimeMillis
 
         viewModelScope.launch {

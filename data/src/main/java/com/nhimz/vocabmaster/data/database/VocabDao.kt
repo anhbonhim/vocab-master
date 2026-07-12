@@ -25,6 +25,17 @@ interface VocabDao {
     @Query("SELECT * FROM vocabulary_cards WHERE difficultyLevel = :level")
     fun getCardsByLevel(level: String): Flow<List<VocabularyCardEntity>>
 
+    @Query("SELECT * FROM vocabulary_cards WHERE topic = :topic")
+    fun getCardsByTopic(topic: String): Flow<List<VocabularyCardEntity>>
+
+    @Query("""
+        SELECT * FROM vocabulary_cards 
+        WHERE (state = :state OR due <= :now) AND topic = :topic
+        ORDER BY state ASC, due ASC 
+        LIMIT :limit
+    """)
+    fun getDueAndNewCardsByTopic(state: com.nhimz.vocabmaster.domain.fsrs.State, topic: String, now: java.time.LocalDateTime, limit: Int): Flow<List<VocabularyCardEntity>>
+
     @Query("SELECT * FROM vocabulary_cards WHERE id = :id")
     suspend fun getCardById(id: Long): VocabularyCardEntity?
 

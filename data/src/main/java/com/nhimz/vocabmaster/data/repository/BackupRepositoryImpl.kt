@@ -60,7 +60,10 @@ class BackupRepositoryImpl @Inject constructor(
                 reps = card.reps,
                 lapses = card.lapses,
                 state = card.state.name,
-                lastReview = card.lastReview
+                lastReview = card.lastReview,
+                topic = card.topic,
+                audioUrl = card.audioUrl,
+                scrambledSentenceData = card.scrambledSentenceData
             )
         }
 
@@ -108,7 +111,10 @@ class BackupRepositoryImpl @Inject constructor(
                     reps = card.reps,
                     lapses = card.lapses,
                     state = State.valueOf(card.state),
-                    lastReview = card.lastReview
+                    lastReview = card.lastReview,
+                    topic = card.topic ?: "general",
+                    audioUrl = card.audioUrl,
+                    scrambledSentenceData = card.scrambledSentenceData
                 )
             }
 

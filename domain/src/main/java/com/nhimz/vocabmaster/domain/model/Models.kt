@@ -11,7 +11,10 @@ data class VocabularyItem(
     val partOfSpeech: String,
     val difficultyLevel: DifficultyLevel,
     val example: String? = null,
-    val ipa: String? = null
+    val ipa: String? = null,
+    val topic: String = "general",
+    val audioUrl: String? = null,
+    val scrambledSentenceData: String? = null
 )
 
 data class PlacementTestSession(

@@ -27,7 +27,12 @@ data class VocabularyCardEntity(
     val reps: Int,
     val lapses: Int,
     val state: State,
-    val lastReview: LocalDateTime?
+    val lastReview: LocalDateTime?,
+    
+    // Extended properties
+    val topic: String = "general",
+    val audioUrl: String? = null,
+    val scrambledSentenceData: String? = null
 ) {
     fun toDomain(): VocabularyItemWithCard {
         return VocabularyItemWithCard(
@@ -38,7 +43,10 @@ data class VocabularyCardEntity(
                 partOfSpeech = partOfSpeech,
                 difficultyLevel = DifficultyLevel.valueOf(difficultyLevel),
                 example = example,
-                ipa = ipa
+                ipa = ipa,
+                topic = topic,
+                audioUrl = audioUrl,
+                scrambledSentenceData = scrambledSentenceData
             ),
             card = Card(
                 id = id,
@@ -71,7 +79,10 @@ data class VocabularyCardEntity(
                 reps = card.reps,
                 lapses = card.lapses,
                 state = card.state,
-                lastReview = card.lastReview
+                lastReview = card.lastReview,
+                topic = vocab.topic,
+                audioUrl = vocab.audioUrl,
+                scrambledSentenceData = vocab.scrambledSentenceData
             )
         }
     }

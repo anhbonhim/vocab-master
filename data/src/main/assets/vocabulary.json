@@ -12,7 +12,10 @@
     "exampleIntermediateTranslation": "",
     "exampleAdvanced": "",
     "exampleAdvancedTranslation": "",
-    "sense": 1
+    "sense": 1,
+    "topic": "grammar",
+    "audioUrl": "https://cdn.jsdelivr.net/gh/nhimz/vocab-assets@main/audio/a.ogg",
+    "scrambledSentenceData": "[\"I\",\"have\",\"a\",\"cat.\"]"
   },
   {
     "word": "a.m./A.M./am/AM",
@@ -27,7 +30,10 @@
     "exampleIntermediateTranslation": "",
     "exampleAdvanced": "",
     "exampleAdvancedTranslation": "",
-    "sense": 1
+    "sense": 1,
+    "topic": "time",
+    "audioUrl": "https://cdn.jsdelivr.net/gh/nhimz/vocab-assets@main/audio/am.ogg",
+    "scrambledSentenceData": "[\"The\",\"meeting\",\"is\",\"scheduled\",\"for\",\"9:00\",\"a.m.\"]"
   },
   {
     "word": "abandon",

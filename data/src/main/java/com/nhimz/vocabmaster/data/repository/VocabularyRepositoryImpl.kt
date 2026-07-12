@@ -38,7 +38,10 @@ private data class VocabularyAssetItem(
     val exampleIntermediate: String? = null,
     val exampleIntermediateTranslation: String? = null,
     val exampleAdvanced: String? = null,
-    val exampleAdvancedTranslation: String? = null
+    val exampleAdvancedTranslation: String? = null,
+    val topic: String? = null,
+    val audioUrl: String? = null,
+    val scrambledSentenceData: String? = null
 )
 
 @Singleton
@@ -98,7 +101,10 @@ class VocabularyRepositoryImpl @Inject constructor(
                                 reps = 0,
                                 lapses = 0,
                                 state = State.New,
-                                lastReview = null
+                                lastReview = null,
+                                topic = asset.topic ?: "general",
+                                audioUrl = asset.audioUrl,
+                                scrambledSentenceData = asset.scrambledSentenceData
                             )
                         }
                         vocabDao.insertAllCards(entities)
@@ -124,12 +130,37 @@ class VocabularyRepositoryImpl @Inject constructor(
     }
 
     @OptIn(ExperimentalCoroutinesApi::class)
+    override fun getDueCardsByTopic(topic: String, currentTimestamp: Long, limit: Int): Flow<List<VocabularyItemWithCard>> {
+        val now = LocalDateTime.ofEpochSecond(currentTimestamp, 0, ZoneOffset.UTC)
+        return flow {
+            checkAndPrepopulate()
+            emit(Unit)
+        }.flatMapLatest {
+            vocabDao.getDueAndNewCardsByTopic(State.New, topic, now, limit).map { entities ->
+                entities.map { it.toDomain() }
+            }
+        }.flowOn(Dispatchers.IO)
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
     override fun getCardsByLevel(level: DifficultyLevel): Flow<List<VocabularyItemWithCard>> {
         return flow {
             checkAndPrepopulate()
             emit(Unit)
         }.flatMapLatest {
             vocabDao.getCardsByLevel(level.name).map { entities ->
+                entities.map { it.toDomain() }
+            }
+        }.flowOn(Dispatchers.IO)
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    override fun getCardsByTopic(topic: String): Flow<List<VocabularyItemWithCard>> {
+        return flow {
+            checkAndPrepopulate()
+            emit(Unit)
+        }.flatMapLatest {
+            vocabDao.getCardsByTopic(topic).map { entities ->
                 entities.map { it.toDomain() }
             }
         }.flowOn(Dispatchers.IO)

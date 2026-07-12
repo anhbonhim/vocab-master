@@ -23,7 +23,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.nhimz.vocabmaster.notification.NotificationScheduler
-import com.nhimz.vocabmaster.tts.TTSManager
+import com.nhimz.vocabmaster.audio.CDNAudioPlayer
 import com.nhimz.vocabmaster.ui.navigation.Screen
 import com.nhimz.vocabmaster.ui.screens.FirstWinScreen
 import com.nhimz.vocabmaster.ui.screens.FlashcardScreen
@@ -44,7 +44,7 @@ import javax.inject.Inject
 class MainActivity : ComponentActivity() {
 
     @Inject
-    lateinit var ttsManager: TTSManager
+    lateinit var cdnAudioPlayer: CDNAudioPlayer
 
     @Inject
     lateinit var notificationScheduler: NotificationScheduler
@@ -60,7 +60,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         // Bind TTSManager to the activity lifecycle
-        lifecycle.addObserver(ttsManager)
+        lifecycle.addObserver(cdnAudioPlayer)
 
         // Schedule default daily reminder (e.g. 9:00 AM) if it hasn't been set before
         val sharedPrefs = getSharedPreferences("reminder_prefs", MODE_PRIVATE)
@@ -129,7 +129,7 @@ class MainActivity : ComponentActivity() {
                                 mainViewModel.navigateTo(Screen.Result(xp, duration, correct, total))
                             },
                             onBackToHome = { mainViewModel.navigateTo(Screen.Home) },
-                            ttsManager = ttsManager,
+                            cdnAudioPlayer = cdnAudioPlayer,
                             viewModel = quizViewModel
                         )
                         is Screen.Flashcard -> FlashcardScreen(
@@ -138,7 +138,7 @@ class MainActivity : ComponentActivity() {
                                 mainViewModel.navigateTo(Screen.Result(xp, duration, correct, total))
                             },
                             onBackToHome = { mainViewModel.navigateTo(Screen.Home) },
-                            ttsManager = ttsManager,
+                            cdnAudioPlayer = cdnAudioPlayer,
                             viewModel = flashcardViewModel
                         )
                         is Screen.Result -> {

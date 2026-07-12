@@ -40,9 +40,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.BorderStroke
 import com.nhimz.vocabmaster.domain.fsrs.Rating
-import com.nhimz.vocabmaster.tts.TTSManager
+import com.nhimz.vocabmaster.audio.CDNAudioPlayer
 import com.nhimz.vocabmaster.ui.theme.GradientEnd
 import com.nhimz.vocabmaster.ui.theme.GradientStart
+import com.nhimz.vocabmaster.ui.components.quiz.FSRSTreeProgressBar
 import com.nhimz.vocabmaster.ui.util.FeedbackHelper
 import com.nhimz.vocabmaster.ui.viewmodel.FlashcardSessionState
 import com.nhimz.vocabmaster.ui.viewmodel.FlashcardViewModel
@@ -51,7 +52,7 @@ import com.nhimz.vocabmaster.ui.viewmodel.FlashcardViewModel
 fun FlashcardScreen(
     onSessionCompleted: (xpGained: Int, durationSeconds: Int, correctCount: Int, totalCount: Int) -> Unit,
     onBackToHome: () -> Unit,
-    ttsManager: TTSManager,
+    cdnAudioPlayer: CDNAudioPlayer,
     viewModel: FlashcardViewModel
 ) {
     val context = LocalContext.current
@@ -70,7 +71,7 @@ fun FlashcardScreen(
             val active = sessionState as FlashcardSessionState.Active
             val card = active.cards[active.currentIndex]
             // Play TTS on new card load
-            ttsManager.speak(card.vocabulary.word)
+            cdnAudioPlayer.playAudio(card.vocabulary.audioUrl)
         }
     }
 
@@ -129,7 +130,7 @@ fun FlashcardScreen(
                     )
                 }
 
-                // Progress Bar
+                // Progress Bar and Tree
                 Column(modifier = Modifier.fillMaxWidth()) {
                     val progress = (state.currentIndex.toFloat() / state.cards.size.toFloat())
                     LinearProgressIndicator(
@@ -158,6 +159,12 @@ fun FlashcardScreen(
                             fontWeight = FontWeight.Bold
                         )
                     }
+
+                    // Show FSRS Tree for current card
+                    FSRSTreeProgressBar(
+                        stability = currentCard.card.stability,
+                        modifier = Modifier.padding(top = 16.dp)
+                    )
                 }
 
                 // 3D Flip Card Container
@@ -208,7 +215,7 @@ fun FlashcardScreen(
                                                 color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
                                                 shape = RoundedCornerShape(8.dp)
                                             )
-                                            .clickable { ttsManager.speak(currentCard.vocabulary.word) }
+                                            .clickable { cdnAudioPlayer.playAudio(currentCard.vocabulary.audioUrl) }
                                             .padding(6.dp)
                                     ) {
                                         Text("🔊", fontSize = 14.sp)

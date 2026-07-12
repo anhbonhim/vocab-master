@@ -64,6 +64,10 @@ androidx-lifecycle-viewmodel-navigation3 = { module = "androidx.lifecycle:lifecy
 androidx-datastore-preferences = { module = "androidx.datastore:datastore-preferences", version.ref = "datastore" }
 lottie-compose = { module = "com.airbnb.android:lottie-compose", version.ref = "lottie" }
 
+# Media3 / ExoPlayer for CDN Audio
+androidx-media3-exoplayer = { group = "androidx.media3", name = "media3-exoplayer", version = "1.5.1" }
+androidx-media3-ui = { group = "androidx.media3", name = "media3-ui", version = "1.5.1" }
+
 [plugins]
 android-application = { id = "com.android.application", version.ref = "androidGradlePlugin" }
 android-library = { id = "com.android.library", version.ref = "androidGradlePlugin" }

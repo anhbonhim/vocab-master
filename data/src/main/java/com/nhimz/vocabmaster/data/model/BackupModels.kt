@@ -54,7 +54,10 @@ data class VocabularyCardBackup(
     val reps: Int,
     val lapses: Int,
     val state: String,
-    @Serializable(with = LocalDateTimeSerializer::class) val lastReview: LocalDateTime?
+    @Serializable(with = LocalDateTimeSerializer::class) val lastReview: LocalDateTime?,
+    val topic: String? = "general",
+    val audioUrl: String? = null,
+    val scrambledSentenceData: String? = null
 )
 
 @Serializable

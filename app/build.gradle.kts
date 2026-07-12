@@ -98,4 +98,8 @@ dependencies {
 
   // Lottie Animation
   implementation(libs.lottie.compose)
+
+  // Media3 / ExoPlayer for CDN Audio
+  implementation(libs.androidx.media3.exoplayer)
+  implementation(libs.androidx.media3.ui)
 }

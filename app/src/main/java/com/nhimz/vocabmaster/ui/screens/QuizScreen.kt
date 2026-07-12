@@ -45,9 +45,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.nhimz.vocabmaster.tts.TTSManager
+import com.nhimz.vocabmaster.audio.CDNAudioPlayer
 import com.nhimz.vocabmaster.ui.components.quiz.DuolingoOptionCard
 import com.nhimz.vocabmaster.ui.components.quiz.DuolingoProgressBar
+import com.nhimz.vocabmaster.ui.components.quiz.ScrambledQuizCard
+import com.nhimz.vocabmaster.ui.viewmodel.QuizType
 import com.nhimz.vocabmaster.ui.components.quiz.FeedbackBanner
 import com.nhimz.vocabmaster.ui.theme.GradientEnd
 import com.nhimz.vocabmaster.ui.theme.GradientStart
@@ -55,24 +57,23 @@ import com.nhimz.vocabmaster.ui.viewmodel.QuizSessionState
 import com.nhimz.vocabmaster.ui.viewmodel.QuizViewModel
 import com.nhimz.vocabmaster.ui.viewmodel.QuestionDirection
 import kotlinx.coroutines.launch
-import kotlin.math.roundToInt
 
+import kotlin.math.roundToInt
 @Composable
 fun QuizScreen(
     onSessionCompleted: (xpGained: Int, durationSeconds: Int, correctCount: Int, totalCount: Int) -> Unit,
     onBackToHome: () -> Unit,
-    ttsManager: TTSManager,
-    viewModel: QuizViewModel
+    cdnAudioPlayer: CDNAudioPlayer,
+) {
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+
     val sessionState by viewModel.sessionState.collectAsState()
-
     // Shake offset for incorrect answers
-    val shakeOffset = remember { Animatable(0f) }
 
+    val shakeOffset = remember { Animatable(0f) }
     // Local selection tracking
-    var selectedOptionIndex by remember { mutableStateOf<Int?>(null) }
 
     LaunchedEffect(sessionState) {
         if (sessionState is QuizSessionState.Completed) {
@@ -87,7 +88,7 @@ fun QuizScreen(
             val active = sessionState as QuizSessionState.Active
             val question = active.questions[active.currentIndex]
             // Auto play TTS for the English word
-            ttsManager.speak(question.itemWithCard.vocabulary.word)
+            cdnAudioPlayer.playAudio(question.itemWithCard.vocabulary.audioUrl)
         }
     }
 
@@ -208,9 +209,9 @@ fun QuizScreen(
                                                 color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
                                                 shape = RoundedCornerShape(8.dp)
                                             )
-                                            .clickable { ttsManager.speak(question.itemWithCard.vocabulary.word) }
+                                            .clickable { cdnAudioPlayer.playAudio(question.itemWithCard.vocabulary.audioUrl) }
                                             .padding(6.dp)
-                                    ) {
+    viewModel: QuizViewModel
                                         Text("🔊", fontSize = 14.sp)
                                     }
                                 }

@@ -40,4 +40,7 @@ interface SettingsRepository {
 
     val placementLevel: Flow<String?>
     suspend fun setPlacementLevel(level: String)
+
+    val selectedTopic: Flow<String>
+    suspend fun setSelectedTopic(topic: String)
 }

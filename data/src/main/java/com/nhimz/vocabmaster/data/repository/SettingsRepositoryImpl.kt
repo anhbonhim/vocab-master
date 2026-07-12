@@ -43,6 +43,7 @@ class SettingsRepositoryImpl @Inject constructor(
         val THEME = stringPreferencesKey("theme")
         val LANGUAGE = stringPreferencesKey("language")
         val PLACEMENT_LEVEL = stringPreferencesKey("placement_level")
+        val SELECTED_TOPIC = stringPreferencesKey("selected_topic")
     }
 
     private val dataStore = context.dataStore
@@ -283,6 +284,23 @@ class SettingsRepositoryImpl @Inject constructor(
     override suspend fun setPlacementLevel(level: String) {
         dataStore.edit { preferences ->
             preferences[PreferencesKeys.PLACEMENT_LEVEL] = level
+        }
+    }
+
+    override val selectedTopic: Flow<String> = dataStore.data
+        .catch { exception ->
+            if (exception is IOException) {
+                emit(emptyPreferences())
+            } else {
+                throw exception
+            }
+        }.map { preferences ->
+            preferences[PreferencesKeys.SELECTED_TOPIC] ?: "general"
+        }
+
+    override suspend fun setSelectedTopic(topic: String) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.SELECTED_TOPIC] = topic
         }
     }
 }
