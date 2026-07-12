@@ -21,6 +21,8 @@ import androidx.compose.ui.unit.sp
 import com.nhimz.vocabmaster.audio.CDNAudioPlayer
 import com.nhimz.vocabmaster.notification.NotificationScheduler
 import com.nhimz.vocabmaster.ui.navigation.Screen
+import com.nhimz.vocabmaster.data.database.VocabDatabase
+import com.nhimz.vocabmaster.ui.screens.DebugPanelScreen
 import com.nhimz.vocabmaster.ui.screens.FirstWinScreen
 import com.nhimz.vocabmaster.ui.screens.FlashcardScreen
 import com.nhimz.vocabmaster.ui.screens.GoalPickerScreen
@@ -30,6 +32,7 @@ import com.nhimz.vocabmaster.ui.screens.QuizScreen
 import com.nhimz.vocabmaster.ui.screens.ResultScreen
 import com.nhimz.vocabmaster.ui.screens.SettingsScreen
 import com.nhimz.vocabmaster.ui.screens.StatisticsScreen
+import com.nhimz.vocabmaster.ui.screens.TopicPickerScreen
 import com.nhimz.vocabmaster.ui.screens.WelcomeScreen
 import com.nhimz.vocabmaster.ui.theme.VocabMasterTheme
 import com.nhimz.vocabmaster.ui.viewmodel.FlashcardViewModel
@@ -48,7 +51,8 @@ fun VocabMasterApp(
     statisticsViewModel: StatisticsViewModel,
     settingsViewModel: SettingsViewModel,
     cdnAudioPlayer: CDNAudioPlayer,
-    notificationScheduler: NotificationScheduler
+    notificationScheduler: NotificationScheduler,
+    vocabDatabase: VocabDatabase
 ) {
     val themeMode by mainViewModel.theme.collectAsState()
     val darkTheme = when (themeMode) {
@@ -81,7 +85,7 @@ fun VocabMasterApp(
                         cdnAudioPlayer = cdnAudioPlayer
                     )
                 }
-                is Screen.Home, is Screen.Statistics, is Screen.Settings -> {
+                is Screen.Home, is Screen.Statistics, is Screen.Settings, is Screen.TopicPicker, is Screen.DebugPanel -> {
                     MainAppScaffold(
                         currentScreen = currentScreen,
                         mainViewModel = mainViewModel,
@@ -89,7 +93,9 @@ fun VocabMasterApp(
                         flashcardViewModel = flashcardViewModel,
                         statisticsViewModel = statisticsViewModel,
                         settingsViewModel = settingsViewModel,
-                        notificationScheduler = notificationScheduler
+                        notificationScheduler = notificationScheduler,
+                        cdnAudioPlayer = cdnAudioPlayer,
+                        vocabDatabase = vocabDatabase
                     )
                 }
             }
@@ -154,18 +160,18 @@ private fun StudyFlow(
 ) {
     when (currentScreen) {
         is Screen.Quiz -> QuizScreen(
-            onSessionCompleted = { xp, duration, correct, total ->
+            onSessionCompleted = { xp, duration, correct, total, stability ->
                 mainViewModel.addStudyTime(duration)
-                mainViewModel.navigateTo(Screen.Result(xp, duration, correct, total))
+                mainViewModel.navigateTo(Screen.Result(xp, duration, correct, total, stability))
             },
             onBackToHome = { mainViewModel.navigateTo(Screen.Home) },
             cdnAudioPlayer = cdnAudioPlayer,
             viewModel = quizViewModel
         )
         is Screen.Flashcard -> FlashcardScreen(
-            onSessionCompleted = { xp, duration, correct, total ->
+            onSessionCompleted = { xp, duration, correct, total, stability ->
                 mainViewModel.addStudyTime(duration)
-                mainViewModel.navigateTo(Screen.Result(xp, duration, correct, total))
+                mainViewModel.navigateTo(Screen.Result(xp, duration, correct, total, stability))
             },
             onBackToHome = { mainViewModel.navigateTo(Screen.Home) },
             cdnAudioPlayer = cdnAudioPlayer,
@@ -178,6 +184,7 @@ private fun StudyFlow(
                 durationSeconds = result.durationSeconds,
                 correctCount = result.correctCount,
                 totalCount = result.totalCount,
+                averageStability = result.sessionStability,
                 onBackToHome = {
                     mainViewModel.updateStreak()
                     mainViewModel.navigateTo(Screen.Home)
@@ -196,7 +203,9 @@ private fun MainAppScaffold(
     flashcardViewModel: FlashcardViewModel,
     statisticsViewModel: StatisticsViewModel,
     settingsViewModel: SettingsViewModel,
-    notificationScheduler: NotificationScheduler
+    notificationScheduler: NotificationScheduler,
+    cdnAudioPlayer: CDNAudioPlayer,
+    vocabDatabase: VocabDatabase
 ) {
     Scaffold(
         bottomBar = {
@@ -251,7 +260,18 @@ private fun MainAppScaffold(
                 is Screen.Settings -> SettingsScreen(
                     viewModel = mainViewModel,
                     settingsViewModel = settingsViewModel,
-                    notificationScheduler = notificationScheduler
+                    notificationScheduler = notificationScheduler,
+                    onNavigateToTopicPicker = { mainViewModel.navigateTo(Screen.TopicPicker) },
+                    onNavigateToDebugPanel = { mainViewModel.navigateTo(Screen.DebugPanel) }
+                )
+                is Screen.TopicPicker -> TopicPickerScreen(
+                    viewModel = settingsViewModel,
+                    onBack = { mainViewModel.navigateTo(Screen.Settings) }
+                )
+                is Screen.DebugPanel -> DebugPanelScreen(
+                    onBack = { mainViewModel.navigateTo(Screen.Settings) },
+                    cdnAudioPlayer = cdnAudioPlayer,
+                    vocabDatabase = vocabDatabase
                 )
                 else -> {}
             }

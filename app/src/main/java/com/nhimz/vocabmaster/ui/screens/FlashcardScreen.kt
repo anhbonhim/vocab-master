@@ -50,7 +50,7 @@ import com.nhimz.vocabmaster.ui.viewmodel.FlashcardViewModel
 
 @Composable
 fun FlashcardScreen(
-    onSessionCompleted: (xpGained: Int, durationSeconds: Int, correctCount: Int, totalCount: Int) -> Unit,
+    onSessionCompleted: (xpGained: Int, durationSeconds: Int, correctCount: Int, totalCount: Int, averageStability: Double) -> Unit,
     onBackToHome: () -> Unit,
     cdnAudioPlayer: CDNAudioPlayer,
     viewModel: FlashcardViewModel
@@ -65,7 +65,8 @@ fun FlashcardScreen(
                 completed.xpGained,
                 completed.durationSeconds,
                 completed.correctCount,
-                completed.totalCount
+                completed.totalCount,
+                completed.averageStability
             )
         } else if (sessionState is FlashcardSessionState.Active) {
             val active = sessionState as FlashcardSessionState.Active

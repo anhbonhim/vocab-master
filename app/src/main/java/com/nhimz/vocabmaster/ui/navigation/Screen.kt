@@ -12,8 +12,11 @@ sealed class Screen {
         val xpGained: Int,
         val durationSeconds: Int,
         val correctCount: Int,
-        val totalCount: Int
+        val totalCount: Int,
+        val sessionStability: Double = 0.0
     ) : Screen()
     object Statistics : Screen()
     object Settings : Screen()
+    object TopicPicker : Screen()
+    object DebugPanel : Screen()
 }

@@ -46,6 +46,7 @@ import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import com.nhimz.vocabmaster.notification.NotificationScheduler
+import com.nhimz.vocabmaster.BuildConfig
 import com.nhimz.vocabmaster.ui.theme.GradientEnd
 import com.nhimz.vocabmaster.ui.theme.GradientStart
 import com.nhimz.vocabmaster.ui.viewmodel.MainViewModel
@@ -55,7 +56,9 @@ import com.nhimz.vocabmaster.ui.viewmodel.SettingsViewModel
 fun SettingsScreen(
     viewModel: MainViewModel,
     settingsViewModel: SettingsViewModel,
-    notificationScheduler: NotificationScheduler
+    notificationScheduler: NotificationScheduler,
+    onNavigateToTopicPicker: () -> Unit,
+    onNavigateToDebugPanel: () -> Unit
 ) {
     val context = LocalContext.current
 
@@ -287,6 +290,35 @@ fun SettingsScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
+        // Topic picker setting
+        val selectedTopic by settingsViewModel.selectedTopic.collectAsState()
+        val topicName = com.nhimz.vocabmaster.ui.screens.AVAILABLE_TOPICS.find { it.first == selectedTopic }?.second ?: selectedTopic
+        SettingsCard(title = "Chủ đề học tập") {
+            Row(
+                modifier = Modifier.fillMaxWidth().clickable { onNavigateToTopicPicker() },
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Text(text = "Chủ đề hiện tại", fontSize = 14.sp)
+                    Text(
+                        text = "Các bài kiểm tra sẽ ưu tiên từ vựng trong chủ đề này",
+                        fontSize = 11.sp,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                    )
+                }
+                Text(
+                    text = topicName,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = GradientStart,
+                    textAlign = TextAlign.End
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
         // 4. Theme & Language settings
         SettingsCard(title = "Hệ thống") {
             Column {
@@ -424,6 +456,19 @@ fun SettingsScreen(
                             fontSize = 14.sp
                         )
                     }
+                }
+            }
+        }
+
+        if (BuildConfig.DEBUG) {
+            Spacer(modifier = Modifier.height(16.dp))
+            SettingsCard(title = "Developer") {
+                Button(
+                    onClick = onNavigateToDebugPanel,
+                    modifier = Modifier.fillMaxWidth().height(48.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.errorContainer)
+                ) {
+                    Text("Mở Debug Panel", color = MaterialTheme.colorScheme.onErrorContainer, fontWeight = FontWeight.Bold)
                 }
             }
         }

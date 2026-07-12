@@ -67,7 +67,8 @@ sealed class QuizSessionState {
         val xpGained: Int,
         val correctCount: Int,
         val totalCount: Int,
-        val durationSeconds: Int
+        val durationSeconds: Int,
+        val averageStability: Double = 0.0
     ) : QuizSessionState()
 }
 
@@ -282,7 +283,8 @@ class QuizViewModel @Inject constructor(
                 xpGained = state.xpGained,
                 correctCount = state.correctAnswersCount,
                 totalCount = state.questions.size,
-                durationSeconds = durationSeconds
+                durationSeconds = durationSeconds,
+                averageStability = state.questions.map { it.itemWithCard.card.stability }.average()
             )
         } else {
             _sessionState.value = state.copy(

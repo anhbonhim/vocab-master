@@ -30,7 +30,7 @@ android {
     buildFeatures {
       compose = true
       aidl = false
-      buildConfig = false
+      buildConfig = true
       shaders = false
     }
 
@@ -46,7 +46,7 @@ android {
 }
 
 kotlin {
-    jvmToolchain(17)
+    // jvmToolchain(17)
 }
 
 dependencies {
@@ -95,6 +95,10 @@ dependencies {
   // Hilt Dependency Injection
   implementation(libs.hilt.android)
   ksp(libs.hilt.compiler)
+
+  // Room DB dependency in app module for debug db tools
+  implementation(libs.room.runtime)
+  implementation(libs.room.ktx)
 
   // Lottie Animation
   implementation(libs.lottie.compose)

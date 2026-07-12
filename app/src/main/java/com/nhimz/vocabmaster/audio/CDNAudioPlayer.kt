@@ -14,6 +14,7 @@ import androidx.media3.datasource.cache.LeastRecentlyUsedCacheEvictor
 import androidx.media3.datasource.cache.SimpleCache
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
+import com.nhimz.vocabmaster.util.LocalLogger
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.File
 import javax.inject.Inject
@@ -59,22 +60,32 @@ class CDNAudioPlayer @Inject constructor(
                         override fun onPlayerError(error: PlaybackException) {
                             super.onPlayerError(error)
                             // Silent fallback: Log error but do not crash or show toast
-                            Log.e("CDNAudioPlayer", "Audio playback failed. Silent fallback triggered. Cause: ${error.message}")
+                            LocalLogger.e("CDNAudioPlayer", "Audio playback failed. Silent fallback triggered. Cause: ${error.message}", error)
                         }
                     })
                 }
         } catch (e: Exception) {
-            Log.e("CDNAudioPlayer", "Failed to initialize ExoPlayer/Cache", e)
+            LocalLogger.e("CDNAudioPlayer", "Failed to initialize ExoPlayer/Cache", e)
         }
+    }
+
+    fun isAudioCached(url: String): Boolean {
+        val cache = simpleCache ?: return false
+        val uri = android.net.Uri.parse(url)
+        val cacheKey = androidx.media3.datasource.cache.CacheKeyFactory.DEFAULT.buildCacheKey(androidx.media3.datasource.DataSpec(uri))
+        return cache.getCachedSpans(cacheKey).isNotEmpty()
     }
 
     fun playAudio(url: String?) {
         if (url.isNullOrBlank()) {
-            Log.d("CDNAudioPlayer", "URL is null or blank. Silent fallback.")
+            LocalLogger.d("CDNAudioPlayer", "URL is null or blank. Silent fallback.")
             return
         }
 
         try {
+            val isCached = isAudioCached(url)
+            LocalLogger.i("CDNAudioPlayer", "Requesting play for URL. isCached=$isCached -> $url")
+            
             exoPlayer?.let { player ->
                 val mediaItem = MediaItem.fromUri(url)
                 player.setMediaItem(mediaItem)
@@ -82,7 +93,7 @@ class CDNAudioPlayer @Inject constructor(
                 player.play()
             }
         } catch (e: Exception) {
-            Log.e("CDNAudioPlayer", "Failed to play audio from URL: $url. Silent fallback.", e)
+            LocalLogger.e("CDNAudioPlayer", "Failed to play audio from URL: $url. Silent fallback.", e)
         }
     }
 
@@ -102,9 +113,9 @@ class CDNAudioPlayer @Inject constructor(
         try {
             simpleCache?.release()
         } catch (e: Exception) {
-            Log.e("CDNAudioPlayer", "Error releasing SimpleCache", e)
+            LocalLogger.e("CDNAudioPlayer", "Error releasing SimpleCache", e)
         }
         simpleCache = null
-        Log.d("CDNAudioPlayer", "CDNAudioPlayer shut down and released")
+        LocalLogger.d("CDNAudioPlayer", "CDNAudioPlayer shut down and released")
     }
 }

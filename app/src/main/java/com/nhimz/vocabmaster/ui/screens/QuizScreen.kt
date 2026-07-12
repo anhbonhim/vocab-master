@@ -45,23 +45,26 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.nhimz.vocabmaster.tts.TTSManager
+import com.nhimz.vocabmaster.audio.CDNAudioPlayer
 import com.nhimz.vocabmaster.ui.components.quiz.DuolingoOptionCard
 import com.nhimz.vocabmaster.ui.components.quiz.DuolingoProgressBar
 import com.nhimz.vocabmaster.ui.components.quiz.FeedbackBanner
+import com.nhimz.vocabmaster.ui.components.quiz.ScrambledQuizCard
 import com.nhimz.vocabmaster.ui.theme.GradientEnd
 import com.nhimz.vocabmaster.ui.theme.GradientStart
 import com.nhimz.vocabmaster.ui.viewmodel.QuizSessionState
 import com.nhimz.vocabmaster.ui.viewmodel.QuizViewModel
 import com.nhimz.vocabmaster.ui.viewmodel.QuestionDirection
+import com.nhimz.vocabmaster.ui.viewmodel.QuizType
+import com.nhimz.vocabmaster.ui.viewmodel.QuizQuestion
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
 @Composable
 fun QuizScreen(
-    onSessionCompleted: (xpGained: Int, durationSeconds: Int, correctCount: Int, totalCount: Int) -> Unit,
+    onSessionCompleted: (xpGained: Int, durationSeconds: Int, correctCount: Int, totalCount: Int, averageStability: Double) -> Unit,
     onBackToHome: () -> Unit,
-    ttsManager: TTSManager,
+    cdnAudioPlayer: CDNAudioPlayer,
     viewModel: QuizViewModel
 ) {
     val context = LocalContext.current
@@ -73,6 +76,7 @@ fun QuizScreen(
 
     // Local selection tracking
     var selectedOptionIndex by remember { mutableStateOf<Int?>(null) }
+    var selectedWordsForScrambled by remember { mutableStateOf<List<String>>(emptyList()) }
 
     LaunchedEffect(sessionState) {
         if (sessionState is QuizSessionState.Completed) {
@@ -81,13 +85,14 @@ fun QuizScreen(
                 completed.xpGained,
                 completed.durationSeconds,
                 completed.correctCount,
-                completed.totalCount
+                completed.totalCount,
+                completed.averageStability
             )
         } else if (sessionState is QuizSessionState.Active) {
             val active = sessionState as QuizSessionState.Active
             val question = active.questions[active.currentIndex]
-            // Auto play TTS for the English word
-            ttsManager.speak(question.itemWithCard.vocabulary.word)
+            // Auto play CDN Audio on new card load
+            cdnAudioPlayer.playAudio(question.itemWithCard.vocabulary.audioUrl)
         }
     }
 
@@ -195,20 +200,20 @@ fun QuizScreen(
                                     horizontalArrangement = Arrangement.Center
                                 ) {
                                     Text(
-                                        text = "Dịch nghĩa của từ này",
+                                        text = if (question.type is QuizType.ScrambledSentence) "Sắp xếp lại câu" else "Dịch nghĩa của từ này",
                                         fontSize = 13.sp,
                                         fontWeight = FontWeight.Bold,
                                         color = GradientStart.copy(alpha = 0.8f)
                                     )
                                     Spacer(modifier = Modifier.width(8.dp))
-                                    // TTS Audio play button
+                                    // Audio play button
                                     Box(
                                         modifier = Modifier
                                             .background(
                                                 color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
                                                 shape = RoundedCornerShape(8.dp)
                                             )
-                                            .clickable { ttsManager.speak(question.itemWithCard.vocabulary.word) }
+                                            .clickable { cdnAudioPlayer.playAudio(question.itemWithCard.vocabulary.audioUrl) }
                                             .padding(6.dp)
                                     ) {
                                         Text("🔊", fontSize = 14.sp)
@@ -218,7 +223,10 @@ fun QuizScreen(
                                 Spacer(modifier = Modifier.height(16.dp))
 
                                 Text(
-                                    text = question.prompt,
+                                    text = when (val type = question.type) {
+                                        is QuizType.MultipleChoice -> type.prompt
+                                        is QuizType.ScrambledSentence -> type.itemWithCard.vocabulary.definition // Show VI meaning as prompt to translate to EN
+                                    },
                                     fontSize = 34.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.onSurface,
@@ -249,7 +257,7 @@ fun QuizScreen(
                             Card(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(bottom = 16.dp),
+                                    .padding(bottom = 16.dp, top = 8.dp),
                                 shape = RoundedCornerShape(16.dp),
                                 colors = CardDefaults.cardColors(
                                     containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
@@ -282,40 +290,73 @@ fun QuizScreen(
                             }
                         }
 
-                        // Rendering options using DuolingoOptionCard
-                        question.options.forEachIndexed { index, option ->
-                            val isSelected = selectedOptionIndex == index
-                            val isCorrectState = if (hasAnswered) {
-                                index == question.correctIndex
-                            } else null
+                        // Rendering options based on QuizType
+                        when (val type = question.type) {
+                            is QuizType.MultipleChoice -> {
+                                type.options.forEachIndexed { index, option ->
+                                    val isSelected = selectedOptionIndex == index
+                                    val isCorrectState = if (hasAnswered) {
+                                        index == type.correctIndex
+                                    } else null
 
-                            val isWrongState = if (hasAnswered && isSelected && !isCorrectState!!) {
-                                false
-                            } else null
+                                    val isWrongState = if (hasAnswered && isSelected && !isCorrectState!!) {
+                                        false
+                                    } else null
 
-                            val finalCorrectState = isCorrectState ?: isWrongState
+                                    val finalCorrectState = isCorrectState ?: isWrongState
 
-                            DuolingoOptionCard(
-                                optionText = option,
-                                isSelected = isSelected,
-                                isCorrect = finalCorrectState,
-                                onClick = {
-                                    if (!hasAnswered) {
-                                        selectedOptionIndex = index
+                                    DuolingoOptionCard(
+                                        optionText = option,
+                                        isSelected = isSelected,
+                                        isCorrect = finalCorrectState,
+                                        onClick = {
+                                            if (!hasAnswered) {
+                                                selectedOptionIndex = index
+                                            }
+                                        },
+                                        enabled = !hasAnswered,
+                                        modifier = Modifier.padding(vertical = 6.dp)
+                                    )
+                                }
+                            }
+                            is QuizType.ScrambledSentence -> {
+                                Spacer(modifier = Modifier.height(16.dp))
+                                val isCorrectState = if (hasAnswered) {
+                                    val userSentence = selectedWordsForScrambled.joinToString(" ")
+                                    userSentence == type.correctSentence
+                                } else null
+                                
+                                ScrambledQuizCard(
+                                    scrambledWords = type.scrambledWords,
+                                    selectedWords = selectedWordsForScrambled,
+                                    isAnswerRevealed = hasAnswered,
+                                    isCorrect = isCorrectState,
+                                    onWordSelected = { word, _ ->
+                                        selectedWordsForScrambled = selectedWordsForScrambled + word
+                                    },
+                                    onWordUnselected = { word, _ ->
+                                        val mutableList = selectedWordsForScrambled.toMutableList()
+                                        mutableList.remove(word)
+                                        selectedWordsForScrambled = mutableList
                                     }
-                                },
-                                enabled = !hasAnswered,
-                                modifier = Modifier.padding(vertical = 6.dp)
-                            )
+                                )
+                            }
                         }
                     }
 
                     // Bottom UI Check Button or spacer
                     if (!hasAnswered) {
+                        val isSubmitEnabled = when (question.type) {
+                            is QuizType.MultipleChoice -> selectedOptionIndex != null
+                            is QuizType.ScrambledSentence -> selectedWordsForScrambled.isNotEmpty()
+                        }
                         Button(
                             onClick = {
-                                if (selectedOptionIndex != null) {
-                                    val isCorrect = selectedOptionIndex == question.correctIndex
+                                if (isSubmitEnabled) {
+                                    val isCorrect = when (val type = question.type) {
+                                        is QuizType.MultipleChoice -> selectedOptionIndex == type.correctIndex
+                                        is QuizType.ScrambledSentence -> selectedWordsForScrambled.joinToString(" ") == type.correctSentence
+                                    }
                                     if (!isCorrect) {
                                         scope.launch {
                                             repeat(3) {
@@ -325,10 +366,13 @@ fun QuizScreen(
                                             shakeOffset.animateTo(0f, tween(40))
                                         }
                                     }
-                                    viewModel.submitAnswer(selectedOptionIndex!!)
+                                    viewModel.submitAnswer(
+                                        optionIndex = selectedOptionIndex,
+                                        selectedWordsForScrambled = selectedWordsForScrambled
+                                    )
                                 }
                             },
-                            enabled = selectedOptionIndex != null,
+                            enabled = isSubmitEnabled,
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(54.dp),
@@ -342,7 +386,7 @@ fun QuizScreen(
                                 text = "KIỂM TRA",
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = if (selectedOptionIndex != null) Color.White else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                                color = if (isSubmitEnabled) Color.White else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
                             )
                         }
                     } else {
@@ -353,17 +397,24 @@ fun QuizScreen(
 
                 // Feedback Banner overlays at the bottom
                 if (hasAnswered) {
-                    val isCorrectAnswer = state.selectedOption == question.correctIndex
+                    val isCorrectAnswer = when (val type = question.type) {
+                        is QuizType.MultipleChoice -> state.selectedOption == type.correctIndex
+                        is QuizType.ScrambledSentence -> selectedWordsForScrambled.joinToString(" ") == type.correctSentence
+                    }
                     FeedbackBanner(
                         isCorrect = isCorrectAnswer,
-                        correctAnswerText = if (question.direction == QuestionDirection.EN_TO_VI) {
-                            question.itemWithCard.vocabulary.definition
-                        } else {
-                            question.itemWithCard.vocabulary.word
+                        correctAnswerText = when (val type = question.type) {
+                            is QuizType.MultipleChoice -> if (type.direction == QuestionDirection.EN_TO_VI) {
+                                question.itemWithCard.vocabulary.definition
+                            } else {
+                                question.itemWithCard.vocabulary.word
+                            }
+                            is QuizType.ScrambledSentence -> type.correctSentence
                         },
                         onContinueClick = {
                             viewModel.nextQuestion()
                             selectedOptionIndex = null
+                            selectedWordsForScrambled = emptyList()
                         },
                         modifier = Modifier.align(Alignment.BottomCenter)
                     )

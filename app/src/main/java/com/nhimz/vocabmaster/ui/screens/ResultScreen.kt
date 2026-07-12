@@ -46,6 +46,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.nhimz.vocabmaster.ui.theme.GradientEnd
 import com.nhimz.vocabmaster.ui.theme.GradientStart
+import com.nhimz.vocabmaster.ui.components.quiz.FSRSTreeProgressBar
 import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.random.Random
@@ -69,6 +70,7 @@ fun ResultScreen(
     durationSeconds: Int,
     correctCount: Int,
     totalCount: Int,
+    averageStability: Double,
     onBackToHome: () -> Unit
 ) {
     var animationTriggered by remember { mutableStateOf(false) }
@@ -163,17 +165,21 @@ fun ResultScreen(
         ) {
             Spacer(modifier = Modifier.height(32.dp))
 
-            // Celebration Icon
+            // Celebration Icon or Tree
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Box(
-                    modifier = Modifier
-                        .background(
-                            brush = Brush.linearGradient(listOf(GradientStart, GradientEnd)),
-                            shape = RoundedCornerShape(32.dp)
-                        )
-                        .padding(24.dp)
-                ) {
-                    Text(text = "🎉", fontSize = 48.sp)
+                if (averageStability > 0.0) {
+                    FSRSTreeProgressBar(stability = averageStability, modifier = Modifier.height(180.dp))
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .background(
+                                brush = Brush.linearGradient(listOf(GradientStart, GradientEnd)),
+                                shape = RoundedCornerShape(32.dp)
+                            )
+                            .padding(24.dp)
+                    ) {
+                        Text(text = "🎉", fontSize = 48.sp)
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(24.dp))

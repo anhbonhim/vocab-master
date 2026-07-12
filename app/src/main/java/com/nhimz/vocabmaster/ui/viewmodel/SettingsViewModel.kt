@@ -5,6 +5,10 @@ import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.nhimz.vocabmaster.domain.model.BackupRepository
+import com.nhimz.vocabmaster.domain.model.SettingsRepository
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.launch
@@ -16,8 +20,24 @@ import javax.inject.Inject
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
     private val backupRepository: BackupRepository,
+    private val settingsRepository: SettingsRepository,
     @param:ApplicationContext private val context: Context
 ) : ViewModel() {
+
+    private val _selectedTopic = MutableStateFlow("general")
+    val selectedTopic: StateFlow<String> = _selectedTopic.asStateFlow()
+
+    init {
+        viewModelScope.launch {
+            settingsRepository.selectedTopic.collect { _selectedTopic.value = it }
+        }
+    }
+
+    fun setSelectedTopic(topic: String) {
+        viewModelScope.launch {
+            settingsRepository.setSelectedTopic(topic)
+        }
+    }
 
     fun backupData(uri: Uri, onSuccess: () -> Unit, onError: (String) -> Unit) {
         viewModelScope.launch {

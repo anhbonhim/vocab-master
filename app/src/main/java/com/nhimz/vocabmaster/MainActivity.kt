@@ -14,6 +14,7 @@ import com.nhimz.vocabmaster.ui.viewmodel.PlacementTestViewModel
 import com.nhimz.vocabmaster.ui.viewmodel.QuizViewModel
 import com.nhimz.vocabmaster.ui.viewmodel.SettingsViewModel
 import com.nhimz.vocabmaster.ui.viewmodel.StatisticsViewModel
+import com.nhimz.vocabmaster.data.database.VocabDatabase
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 
@@ -25,6 +26,9 @@ class MainActivity : ComponentActivity() {
 
     @Inject
     lateinit var notificationScheduler: NotificationScheduler
+
+    @Inject
+    lateinit var vocabDatabase: VocabDatabase
 
     private val mainViewModel: MainViewModel by viewModels()
     private val placementTestViewModel: PlacementTestViewModel by viewModels()
@@ -50,7 +54,8 @@ class MainActivity : ComponentActivity() {
                 statisticsViewModel = statisticsViewModel,
                 settingsViewModel = settingsViewModel,
                 cdnAudioPlayer = cdnAudioPlayer,
-                notificationScheduler = notificationScheduler
+                notificationScheduler = notificationScheduler,
+                vocabDatabase = vocabDatabase
             )
         }
     }

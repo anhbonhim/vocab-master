@@ -45,6 +45,9 @@ interface VocabDao {
     @Query("SELECT COUNT(*) FROM vocabulary_cards")
     suspend fun getCardCount(): Int
 
+    @Query("SELECT COUNT(*) FROM vocabulary_cards WHERE state = :stateName")
+    suspend fun getCardCountByState(stateName: String): Int
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertCard(card: VocabularyCardEntity): Long
 

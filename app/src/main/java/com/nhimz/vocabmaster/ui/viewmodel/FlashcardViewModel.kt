@@ -34,7 +34,8 @@ sealed class FlashcardSessionState {
         val xpGained: Int,
         val correctCount: Int,
         val totalCount: Int,
-        val durationSeconds: Int
+        val durationSeconds: Int,
+        val averageStability: Double = 0.0
     ) : FlashcardSessionState()
 }
 
@@ -140,12 +141,13 @@ class FlashcardViewModel @Inject constructor(
                     settingsRepository.setLastStudyDate(today)
                 }
 
-                _sessionState.value = FlashcardSessionState.Completed(
-                    xpGained = updatedXp,
-                    correctCount = updatedCorrectCount,
-                    totalCount = state.cards.size,
-                    durationSeconds = durationSeconds
-                )
+            _sessionState.value = FlashcardSessionState.Completed(
+                xpGained = state.xpGained,
+                correctCount = state.correctCount,
+                totalCount = state.cards.size,
+                durationSeconds = durationSeconds,
+                averageStability = state.cards.map { it.card.stability }.average()
+            )
             } else {
                 _sessionState.value = state.copy(
                     currentIndex = nextIndex,
