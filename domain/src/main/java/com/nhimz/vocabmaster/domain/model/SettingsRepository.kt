@@ -43,4 +43,7 @@ interface SettingsRepository {
 
     val selectedTopic: Flow<String>
     suspend fun setSelectedTopic(topic: String)
+
+    val useLocalDevServer: Flow<Boolean>
+    suspend fun setUseLocalDevServer(enabled: Boolean)
 }

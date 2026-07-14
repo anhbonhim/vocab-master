@@ -14,15 +14,22 @@ import androidx.media3.datasource.cache.LeastRecentlyUsedCacheEvictor
 import androidx.media3.datasource.cache.SimpleCache
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
+import com.nhimz.vocabmaster.domain.model.SettingsRepository
 import com.nhimz.vocabmaster.util.LocalLogger
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.File
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class CDNAudioPlayer @Inject constructor(
-    @ApplicationContext private val context: Context
+    @param:ApplicationContext private val context: Context,
+    private val settingsRepository: SettingsRepository
 ) : DefaultLifecycleObserver {
 
     private val cacheSize: Long = 90 * 1024 * 1024 // 90MB cache for OGG files
@@ -82,18 +89,30 @@ class CDNAudioPlayer @Inject constructor(
             return
         }
 
-        try {
-            val isCached = isAudioCached(url)
-            LocalLogger.i("CDNAudioPlayer", "Requesting play for URL. isCached=$isCached -> $url")
-            
-            exoPlayer?.let { player ->
-                val mediaItem = MediaItem.fromUri(url)
-                player.setMediaItem(mediaItem)
-                player.prepare()
-                player.play()
+        CoroutineScope(Dispatchers.IO).launch {
+            val finalUrl = if (settingsRepository.useLocalDevServer.first()) {
+                // Biến đổi CDN link thành local server: http://localhost:8080/audio/abc.ogg
+                val filename = url.substringAfterLast("/")
+                "http://localhost:8080/$filename"
+            } else {
+                url
             }
-        } catch (e: Exception) {
-            LocalLogger.e("CDNAudioPlayer", "Failed to play audio from URL: $url. Silent fallback.", e)
+
+            withContext(Dispatchers.Main) {
+                try {
+                    val isCached = isAudioCached(finalUrl)
+                    LocalLogger.i("CDNAudioPlayer", "Requesting play for URL. isCached=$isCached -> $finalUrl")
+                    
+                    exoPlayer?.let { player ->
+                        val mediaItem = MediaItem.fromUri(finalUrl)
+                        player.setMediaItem(mediaItem)
+                        player.prepare()
+                        player.play()
+                    }
+                } catch (e: Exception) {
+                    LocalLogger.e("CDNAudioPlayer", "Failed to play audio from URL: $finalUrl. Silent fallback.", e)
+                }
+            }
         }
     }
 

@@ -95,6 +95,23 @@ interface VocabDao {
 
     @Query("DELETE FROM review_logs")
     suspend fun deleteAllReviewLogs()
+
+    // --- Flagged Items ---
+
+    @Query("SELECT * FROM flagged_items ORDER BY timestamp DESC")
+    fun getAllFlaggedItemsFlow(): Flow<List<com.nhimz.vocabmaster.data.database.entity.FlaggedItemEntity>>
+
+    @Query("SELECT * FROM flagged_items ORDER BY timestamp DESC")
+    suspend fun getAllFlaggedItems(): List<com.nhimz.vocabmaster.data.database.entity.FlaggedItemEntity>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertFlaggedItem(item: com.nhimz.vocabmaster.data.database.entity.FlaggedItemEntity)
+
+    @Query("DELETE FROM flagged_items WHERE word = :word")
+    suspend fun deleteFlaggedItem(word: String)
+
+    @Query("DELETE FROM flagged_items")
+    suspend fun deleteAllFlaggedItems()
 }
 
 data class StateCount(val state: Int, val count: Int)

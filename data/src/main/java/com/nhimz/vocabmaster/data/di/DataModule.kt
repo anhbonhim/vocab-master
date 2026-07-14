@@ -59,7 +59,7 @@ abstract class DataModule {
                 context,
                 VocabDatabase::class.java,
                 "vocab_database"
-            ).addMigrations(VocabDatabase.MIGRATION_1_2)
+            ).addMigrations(VocabDatabase.MIGRATION_1_2, VocabDatabase.MIGRATION_2_3)
              .fallbackToDestructiveMigration(dropAllTables = true)
              .build()
         }

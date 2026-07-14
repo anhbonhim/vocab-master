@@ -3,6 +3,7 @@ package com.nhimz.vocabmaster.ui.screens
 import android.os.Environment
 import android.widget.Toast
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,12 +13,15 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -31,6 +35,7 @@ import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.Switch
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -51,11 +56,20 @@ import androidx.compose.ui.unit.sp
 import com.nhimz.vocabmaster.audio.CDNAudioPlayer
 import com.nhimz.vocabmaster.data.database.VocabDao
 import com.nhimz.vocabmaster.data.database.VocabDatabase
+import com.nhimz.vocabmaster.data.database.entity.FlaggedItemEntity
 import com.nhimz.vocabmaster.domain.fsrs.State
+import com.nhimz.vocabmaster.domain.model.BackupRepository
+import com.nhimz.vocabmaster.domain.model.ReviewRepository
+import com.nhimz.vocabmaster.domain.model.SettingsRepository
+import com.nhimz.vocabmaster.domain.model.VocabularyRepository
+import com.nhimz.vocabmaster.ui.screens.debug_components.TestSuitesTab
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import com.nhimz.vocabmaster.util.LocalLogger
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.snapshots.SnapshotStateList
+import kotlinx.coroutines.flow.first
 import java.io.File
 import java.io.FileWriter
 
@@ -64,10 +78,14 @@ import java.io.FileWriter
 fun DebugPanelScreen(
     onBack: () -> Unit,
     cdnAudioPlayer: CDNAudioPlayer,
-    vocabDatabase: VocabDatabase
+    vocabDatabase: VocabDatabase,
+    vocabularyRepository: VocabularyRepository,
+    reviewRepository: ReviewRepository,
+    settingsRepository: SettingsRepository,
+    backupRepository: BackupRepository
 ) {
     var selectedTabIndex by remember { mutableIntStateOf(0) }
-    val tabs = listOf("Audio Cache", "DB & FSRS", "Logs")
+    val tabs = listOf("Audio Cache", "DB & FSRS", "Logs", "Test Suites", "Dataset QA", "Audio QA Studio", "Flagged Items")
 
     Scaffold(
         topBar = {
@@ -95,7 +113,7 @@ fun DebugPanelScreen(
                     Tab(
                         selected = selectedTabIndex == index,
                         onClick = { selectedTabIndex = index },
-                        text = { Text(title) }
+                        text = { Text(title, fontSize = 10.sp) }
                     )
                 }
             }
@@ -109,6 +127,17 @@ fun DebugPanelScreen(
                     0 -> AudioCacheTab(cdnAudioPlayer)
                     1 -> DatabaseFsrsTab(vocabDatabase.vocabDao())
                     2 -> LogsTab()
+                    3 -> TestSuitesTab(
+                        vocabDatabase = vocabDatabase,
+                        settingsRepository = settingsRepository,
+                        vocabularyRepository = vocabularyRepository,
+                        reviewRepository = reviewRepository,
+                        backupRepository = backupRepository,
+                        cdnAudioPlayer = cdnAudioPlayer
+                    )
+                    4 -> DatasetQATab(vocabDatabase.vocabDao())
+                    5 -> AudioQAStudioTab(vocabDatabase.vocabDao(), cdnAudioPlayer, settingsRepository)
+                    6 -> FlaggedItemsTab(vocabDatabase.vocabDao())
                 }
             }
         }
@@ -275,4 +304,386 @@ fun LogsTab() {
             }
         }
     }
+}
+
+@Composable
+fun DatasetQATab(vocabDao: VocabDao) {
+    val scope = rememberCoroutineScope()
+    var isScanning by remember { mutableStateOf(false) }
+    var progressText by remember { mutableStateOf("Chưa thực hiện quét") }
+    val anomalies = remember { mutableStateListOf<String>() }
+    // Fix: cast to SnapshotStateList to resolve type parameter inference
+    val anomaliesList = anomalies as SnapshotStateList<String>
+
+    Column(modifier = Modifier.fillMaxSize()) {
+        Text("Dataset Automated Auditor", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = "Tự động phân tích toàn bộ thẻ từ vựng trong SQLite Database để tìm lỗi logic cấu trúc JSON và dữ liệu rỗng.",
+            fontSize = 12.sp,
+            color = Color.Gray
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Button(
+                onClick = {
+                    isScanning = true
+                    anomaliesList.clear()
+                    scope.launch(Dispatchers.IO) {
+                        try {
+                            val cards = vocabDao.getAllCards()
+                            val total = cards.size
+                            cards.forEachIndexed { index, card ->
+                                if ((index + 1) % 100 == 0 || index == total - 1) {
+                                    withContext(Dispatchers.Main) {
+                                        progressText = "Đang kiểm tra: ${index + 1}/$total từ..."
+                                    }
+                                }
+
+                                // 1. Kiểm tra JSON scrambledSentenceData
+                                val scrambledData = card.scrambledSentenceData
+                                if (scrambledData.isNullOrBlank()) {
+                                    anomaliesList.add("[ERR_JSON_EMPTY] '${card.word}': scrambledSentenceData bị trống hoặc null")
+                                } else {
+                                    try {
+                                        val array = jsonArrayToList(scrambledData)
+                                        if (array.isEmpty()) {
+                                            anomaliesList.add("[WARN_JSON_ARRAY] '${card.word}': scrambledSentenceData là mảng rỗng []")
+                                        }
+                                    } catch (e: Exception) {
+                                        anomaliesList.add("[ERR_JSON_FORMAT] '${card.word}': scrambledSentenceData lỗi cú pháp JSON: ${e.message}")
+                                    }
+                                }
+
+                                // 2. Kiểm tra audioUrl rỗng
+                                if (card.audioUrl.isNullOrBlank()) {
+                                    anomaliesList.add("[ERR_AUDIO_URL] '${card.word}': audioUrl bị trống")
+                                }
+
+                                // 3. Kiểm tra topic
+                                if (card.topic.isBlank()) {
+                                    anomaliesList.add("[ERR_TOPIC] '${card.word}': topic bị trống")
+                                }
+                            }
+                            withContext(Dispatchers.Main) {
+                                isScanning = false
+                                progressText = "Hoàn tất quét! Phát hiện ${anomaliesList.size} cảnh báo."
+                            }
+                        } catch (e: Exception) {
+                            withContext(Dispatchers.Main) {
+                                isScanning = false
+                                progressText = "Lỗi trong quá trình quét: ${e.message}"
+                            }
+                        }
+                    }
+                },
+                enabled = !isScanning
+            ) {
+                Text(if (isScanning) "Đang Quét..." else "Bắt đầu Quét")
+            }
+
+            Button(
+                onClick = { anomaliesList.clear(); progressText = "Đã dọn dẹp kết quả" },
+                enabled = !isScanning && anomaliesList.isNotEmpty(),
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
+            ) {
+                Text("Dọn dẹp")
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+        Text(progressText, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+        Spacer(modifier = Modifier.height(8.dp))
+
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f)
+                .background(Color.Black.copy(alpha = 0.05f), RoundedCornerShape(8.dp))
+                .padding(8.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            items(anomaliesList) { anomaly ->
+                val color = if (anomaly.contains("ERR")) Color(0xFFEF4444) else Color(0xFFF59E0B)
+                Text(
+                    text = anomaly,
+                    fontSize = 12.sp,
+                    fontFamily = FontFamily.Monospace,
+                    color = color,
+                    lineHeight = 16.sp
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun AudioQAStudioTab(vocabDao: VocabDao, cdnAudioPlayer: CDNAudioPlayer, settingsRepository: SettingsRepository) {
+    val scope = rememberCoroutineScope()
+    val context = LocalContext.current
+    var cardsList by remember { mutableStateOf<List<com.nhimz.vocabmaster.data.database.entity.VocabularyCardEntity>>(emptyList()) }
+    var currentIndex by remember { mutableIntStateOf(0) }
+    var useLocalServer by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        scope.launch(Dispatchers.IO) {
+            val list = vocabDao.getAllCards()
+            val localSetting = settingsRepository.useLocalDevServer.first()
+            withContext(Dispatchers.Main) {
+                cardsList = list
+                useLocalServer = localSetting
+            }
+        }
+    }
+
+    Column(modifier = Modifier.fillMaxSize()) {
+        Text("Audio QA Studio", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+        Spacer(modifier = Modifier.height(8.dp))
+        
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text("Stream qua Local Python Server", fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                Text(
+                    text = "Bật khi đang chạy server Termux (port 8080) chứa ogg gốc.",
+                    fontSize = 11.sp,
+                    color = Color.Gray
+                )
+            }
+            Switch(
+                checked = useLocalServer,
+                onCheckedChange = { enabled ->
+                    useLocalServer = enabled
+                    scope.launch { settingsRepository.setUseLocalDevServer(enabled) }
+                }
+            )
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        if (cardsList.isEmpty()) {
+            Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                Text("Đang tải danh sách từ vựng...")
+            }
+        } else {
+            val currentCard = cardsList.getOrNull(currentIndex)
+            if (currentCard != null) {
+                Card(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(24.dp).fillMaxWidth(),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(24.dp)
+                            )
+                            Text(
+                                text = "${currentIndex + 1} / ${cardsList.size}",
+                                fontSize = 12.sp,
+                                color = Color.Gray
+                            )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(
+                            text = currentCard.word,
+                            fontSize = 36.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            text = currentCard.definition,
+                            fontSize = 18.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                        )
+                        Spacer(modifier = Modifier.height(24.dp))
+
+                        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                            Button(
+                                onClick = { cdnAudioPlayer.playAudio(currentCard.audioUrl) },
+                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                            ) {
+                                Text("🔊 Phát Âm Thanh")
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Button(
+                        onClick = {
+                            if (currentIndex > 0) currentIndex--
+                        },
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color.Gray)
+                    ) {
+                        Text("Trước")
+                    }
+
+                    Button(
+                        onClick = {
+                            scope.launch(Dispatchers.IO) {
+                                vocabDao.insertFlaggedItem(
+                                    FlaggedItemEntity(
+                                        word = currentCard.word,
+                                        issueType = "AUDIO_ISSUE",
+                                        details = "Tester phát hiện âm thanh lỗi (rè, méo, hoặc rỗng)",
+                                        timestamp = System.currentTimeMillis()
+                                    )
+                                )
+                                withContext(Dispatchers.Main) {
+                                    Toast.makeText(context, "Đã cắm cờ báo lỗi từ: ${currentCard.word}", Toast.LENGTH_SHORT).show()
+                                    if (currentIndex < cardsList.size - 1) currentIndex++
+                                }
+                            }
+                        },
+                        modifier = Modifier.weight(1.5f),
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                    ) {
+                        Text("🚩 BÁO LỖI (FLAG)")
+                    }
+
+                    Button(
+                        onClick = {
+                            if (currentIndex < cardsList.size - 1) currentIndex++
+                        },
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981))
+                    ) {
+                        Text("Đạt -> Tiếp")
+                    }
+                }
+            } else {
+                Text("Không có dữ liệu thẻ từ")
+            }
+        }
+    }
+}
+
+@Composable
+fun FlaggedItemsTab(vocabDao: VocabDao) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    var flaggedList by remember { mutableStateOf<List<FlaggedItemEntity>>(emptyList()) }
+
+    fun refreshFlagged() {
+        scope.launch(Dispatchers.IO) {
+            val list = vocabDao.getAllFlaggedItems()
+            withContext(Dispatchers.Main) {
+                flaggedList = list
+            }
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        refreshFlagged()
+    }
+
+    Column(modifier = Modifier.fillMaxSize()) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text("Danh sách cắm cờ (${flaggedList.size})", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(
+                    onClick = {
+                        try {
+                            val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+                            val reportFile = File(downloadsDir, "flagged_assets_report_${System.currentTimeMillis()}.json")
+                            val writer = FileWriter(reportFile)
+                            
+                            val finalJson = "[" + flaggedList.joinToString(",") { 
+                                "{\"word\":\"${it.word}\",\"issue\":\"${it.issueType}\",\"details\":\"${it.details}\"}"
+                            } + "]"
+                                
+                            writer.append(finalJson)
+                            writer.flush()
+                            writer.close()
+                            Toast.makeText(context, "Đã xuất báo cáo ra: ${reportFile.absolutePath}", Toast.LENGTH_LONG).show()
+                        } catch (e: Exception) {
+                            Toast.makeText(context, "Lỗi xuất báo cáo: ${e.message}", Toast.LENGTH_LONG).show()
+                        }
+                    },
+                    enabled = flaggedList.isNotEmpty()
+                ) {
+                    Text("Xuất JSON")
+                }
+                
+                Button(
+                    onClick = {
+                        scope.launch(Dispatchers.IO) {
+                            vocabDao.deleteAllFlaggedItems()
+                            refreshFlagged()
+                        }
+                    },
+                    enabled = flaggedList.isNotEmpty(),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Text("Xóa hết")
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        if (flaggedList.isEmpty()) {
+            Box(modifier = Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
+                Text("Chưa phát hiện từ vựng nào bị lỗi", color = Color.Gray)
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier.fillMaxWidth().weight(1f),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                items(flaggedList) { item ->
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(16.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(item.word, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                                Text(item.details, fontSize = 12.sp, color = Color.Gray)
+                            }
+                            Button(
+                                onClick = {
+                                    scope.launch(Dispatchers.IO) {
+                                        vocabDao.deleteFlaggedItem(item.word)
+                                        refreshFlagged()
+                                    }
+                                },
+                                colors = ButtonDefaults.buttonColors(containerColor = Color.LightGray.copy(alpha = 0.5f), contentColor = Color.DarkGray)
+                            ) {
+                                Text("Bỏ cờ", fontSize = 11.sp)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+private fun jsonArrayToList(jsonArrayStr: String): List<String> {
+    return jsonArrayStr
+        .removePrefix("[")
+        .removeSuffix("]")
+        .split(",")
+        .map { it.trim().removePrefix("\"").removeSuffix("\"") }
+        .filter { it.isNotEmpty() }
 }

@@ -44,6 +44,7 @@ class SettingsRepositoryImpl @Inject constructor(
         val LANGUAGE = stringPreferencesKey("language")
         val PLACEMENT_LEVEL = stringPreferencesKey("placement_level")
         val SELECTED_TOPIC = stringPreferencesKey("selected_topic")
+        val USE_LOCAL_DEV_SERVER = androidx.datastore.preferences.core.booleanPreferencesKey("use_local_dev_server")
     }
 
     private val dataStore = context.dataStore
@@ -301,6 +302,23 @@ class SettingsRepositoryImpl @Inject constructor(
     override suspend fun setSelectedTopic(topic: String) {
         dataStore.edit { preferences ->
             preferences[PreferencesKeys.SELECTED_TOPIC] = topic
+        }
+    }
+
+    override val useLocalDevServer: Flow<Boolean> = dataStore.data
+        .catch { exception ->
+            if (exception is IOException) {
+                emit(emptyPreferences())
+            } else {
+                throw exception
+            }
+        }.map { preferences ->
+            preferences[PreferencesKeys.USE_LOCAL_DEV_SERVER] ?: false
+        }
+
+    override suspend fun setUseLocalDevServer(enabled: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.USE_LOCAL_DEV_SERVER] = enabled
         }
     }
 }
