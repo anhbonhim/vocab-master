@@ -4,6 +4,7 @@ plugins {
   alias(libs.plugins.kotlin.serialization)
   alias(libs.plugins.ksp)
   alias(libs.plugins.hilt)
+    alias(libs.plugins.google.services)
 }
 
 android {
@@ -106,4 +107,12 @@ dependencies {
   // Media3 / ExoPlayer for CDN Audio
   implementation(libs.androidx.media3.exoplayer)
   implementation(libs.androidx.media3.ui)
+}
+
+dependencies {
+    
+}
+
+dependencies {
+    implementation(libs.androidx.hilt.navigation.compose)
 }

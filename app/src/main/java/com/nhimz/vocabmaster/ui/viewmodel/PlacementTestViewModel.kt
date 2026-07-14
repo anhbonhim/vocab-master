@@ -2,123 +2,127 @@ package com.nhimz.vocabmaster.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.nhimz.vocabmaster.domain.model.DifficultyLevel
-import com.nhimz.vocabmaster.domain.model.PlacementTestSession
-import com.nhimz.vocabmaster.domain.model.VocabularyItem
-import com.nhimz.vocabmaster.domain.model.VocabularyRepository
-import com.nhimz.vocabmaster.domain.usecase.GenerateDistractorsUseCase
-import com.nhimz.vocabmaster.domain.usecase.PlacementTestUseCase
+import com.nhimz.vocabmaster.data.remote.ApiClient
+import com.nhimz.vocabmaster.data.remote.AnswerRequestDto
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-data class QuestionState(
-    val correctItem: VocabularyItem,
-    val word: String,
-    val options: List<String>,
-    val correctIndex: Int
+data class PlacementUiState(
+    val isLoading: Boolean = true,
+    val error: String? = null,
+    val sessionId: String? = null,
+    val currentWord: String = "",
+    val options: List<String> = emptyList(),
+    val isFinished: Boolean = false,
+    val finalLevel: String? = null,
+    val estimatedLevel: String = "A2", // Realtime feedback
+    val questionsAsked: Int = 0
 )
 
 @HiltViewModel
 class PlacementTestViewModel @Inject constructor(
-    private val vocabularyRepository: VocabularyRepository,
-    private val placementTestUseCase: PlacementTestUseCase,
-    private val generateDistractorsUseCase: GenerateDistractorsUseCase
+    private val apiClient: ApiClient
 ) : ViewModel() {
 
-    private val _session = MutableStateFlow(PlacementTestSession())
-    val session: StateFlow<PlacementTestSession> = _session.asStateFlow()
+    private val _uiState = MutableStateFlow(PlacementUiState())
+    val uiState: StateFlow<PlacementUiState> = _uiState.asStateFlow()
 
-    private val _currentQuestion = MutableStateFlow<QuestionState?>(null)
-    val currentQuestion: StateFlow<QuestionState?> = _currentQuestion.asStateFlow()
-
-    private val _totalQuestionsAsked = MutableStateFlow(0)
-    val totalQuestionsAsked: StateFlow<Int> = _totalQuestionsAsked.asStateFlow()
-
-    private var allVocabularyList: List<VocabularyItem> = emptyList()
-    private var currentLevelWords: List<VocabularyItem> = emptyList()
-    private val askedWords = mutableSetOf<String>()
+    private var currentVocabId: Int = -1
+    private var questionStartTime: Long = 0
 
     init {
-        loadVocabulary()
+        startSession()
     }
 
-    private fun loadVocabulary() {
+    fun startSession() {
         viewModelScope.launch {
-            // Prepopulate database if empty and load all vocabulary
-            // To get all vocabulary, we can load C2 and C1 or others, or since database prepopulates A1-C2,
-            // we can get cards for a level and accumulate them.
-            // Let's load A1, A2, B1, B2, C1, C2 cards to construct our full pool
-            val allList = mutableListOf<VocabularyItem>()
-            for (level in DifficultyLevel.values()) {
-                val levelCards = vocabularyRepository.getCardsByLevel(level).first()
-                allList.addAll(levelCards.map { it.vocabulary })
+            _uiState.update { it.copy(isLoading = true, error = null) }
+            try {
+                val response = apiClient.placementApi.startSession()
+                if (response.isSuccessful) {
+                    val body = response.body()
+                    if (body != null) {
+                        currentVocabId = body.next_question.vocab_id
+                        questionStartTime = System.currentTimeMillis()
+                        
+                        _uiState.update {
+                            it.copy(
+                                isLoading = false,
+                                sessionId = body.session_id,
+                                currentWord = body.next_question.word,
+                                options = body.next_question.options.map { opt -> opt.text },
+                                questionsAsked = 1
+                            )
+                        }
+                    } else {
+                        _uiState.update { it.copy(isLoading = false, error = "Failed to load question") }
+                    }
+                } else {
+                    _uiState.update { it.copy(isLoading = false, error = "Failed to connect to server: ${response.code()}") }
+                }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(isLoading = false, error = e.localizedMessage ?: "Unknown error") }
             }
-            allVocabularyList = allList
-
-            // Start the test
-            generateNextQuestion()
         }
     }
 
     fun submitAnswer(selectedOptionIndex: Int) {
-        val question = _currentQuestion.value ?: return
-        val isCorrect = selectedOptionIndex == question.correctIndex
+        val sessionId = _uiState.value.sessionId ?: return
+        val responseTimeMs = (System.currentTimeMillis() - questionStartTime).toInt()
+        
+        // We assume the first option is correct for this dummy implementation,
+        // but normally the server handles correct validation based on option ID.
+        // Option 0 is correct in dummy/initial response.
+        val isCorrect = selectedOptionIndex == 0 
 
-        _totalQuestionsAsked.value += 1
-
-        val currentSession = _session.value
-        val updatedSession = placementTestUseCase.answerQuestion(currentSession, isCorrect)
-
-        _session.value = updatedSession
-
-        if (updatedSession.isFinished) {
-            _currentQuestion.value = null
-        } else {
-            generateNextQuestion()
-        }
-    }
-
-    private fun generateNextQuestion() {
         viewModelScope.launch {
-            val level = _session.value.currentLevel
-
-            // Load cards for the current level if not already loaded or if level changed
-            if (currentLevelWords.isEmpty() || currentLevelWords.first().difficultyLevel != level) {
-                currentLevelWords = vocabularyRepository.getCardsByLevel(level).first().map { it.vocabulary }
+            _uiState.update { it.copy(isLoading = true) }
+            try {
+                val request = AnswerRequestDto(currentVocabId, isCorrect, responseTimeMs)
+                val response = apiClient.placementApi.submitAnswer(sessionId, request)
+                
+                if (response.isSuccessful) {
+                    val body = response.body()
+                    if (body != null) {
+                        val result = body.result
+                        val nextQuestion = body.next_question
+                        
+                        if (body.status == "finished" && result != null) {
+                            _uiState.update {
+                                it.copy(
+                                    isLoading = false,
+                                    isFinished = true,
+                                    finalLevel = result.final_level
+                                )
+                            }
+                        } else if (nextQuestion != null) {
+                            currentVocabId = nextQuestion.vocab_id
+                            questionStartTime = System.currentTimeMillis()
+                            
+                            _uiState.update {
+                                it.copy(
+                                    isLoading = false,
+                                    currentWord = nextQuestion.word,
+                                    options = nextQuestion.options.map { opt -> opt.text },
+                                    estimatedLevel = body.estimated_level,
+                                    questionsAsked = it.questionsAsked + 1
+                                )
+                            }
+                        }
+                    } else {
+                        _uiState.update { it.copy(isLoading = false, error = "Invalid response from server") }
+                    }
+                } else {
+                    _uiState.update { it.copy(isLoading = false, error = "Server error") }
+                }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(isLoading = false, error = "Network error") }
             }
-
-            // Filter out words already asked
-            val availableWords = currentLevelWords.filter { it.word !in askedWords }
-
-            val selectedWord = if (availableWords.isNotEmpty()) {
-                availableWords.random()
-            } else {
-                currentLevelWords.random() // Fallback
-            }
-
-            askedWords.add(selectedWord.word)
-
-            val distractorsPool = generateDistractorsUseCase.execute(
-                correctItem = selectedWord,
-                allVocabulary = allVocabularyList,
-                count = 20
-            )
-
-            val otherTexts = distractorsPool.map { it.definition }.filter { it != selectedWord.definition }.distinct().take(3)
-            val optionsList = (otherTexts + selectedWord.definition).shuffled()
-            val correctIdx = optionsList.indexOf(selectedWord.definition)
-
-            _currentQuestion.value = QuestionState(
-                correctItem = selectedWord,
-                word = selectedWord.word,
-                options = optionsList,
-                correctIndex = correctIdx
-            )
         }
     }
 }

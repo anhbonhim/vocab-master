@@ -98,8 +98,8 @@ fun SettingsScreen(
     val theme by viewModel.theme.collectAsState()
     val language by viewModel.language.collectAsState()
     val desiredRetention by viewModel.desiredRetention.collectAsState()
+    val settingsState by settingsViewModel.uiState.collectAsState()
 
-    // SharedPreferences to save reminder details
     val sharedPrefs = remember { context.getSharedPreferences("reminder_prefs", Context.MODE_PRIVATE) }
     var hour by remember { mutableIntStateOf(sharedPrefs.getInt("reminder_hour", 9)) }
     var minute by remember { mutableIntStateOf(sharedPrefs.getInt("reminder_minute", 0)) }
@@ -140,7 +140,43 @@ fun SettingsScreen(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // 1. Daily Study Goal minutes slider
+        // Cloud Sync section
+        SettingsCard(title = "Đồng bộ hóa đám mây") {
+            Column {
+                Text(
+                    text = "Sao lưu và tải tiến độ học tập của bạn lên server đám mây cá nhân tự động để đồng bộ đa thiết bị.",
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                    lineHeight = 16.sp
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                
+                if (settingsState.isSyncing) {
+                    Text("Đang đồng bộ hóa...", fontWeight = FontWeight.Bold, color = GradientStart)
+                } else {
+                    Button(
+                        onClick = { settingsViewModel.triggerSync() },
+                        modifier = Modifier.fillMaxWidth().height(48.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = GradientStart),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Text("Đồng bộ ngay bây giờ", color = Color.White, fontWeight = FontWeight.Bold)
+                    }
+                }
+                
+                settingsState.syncError?.let {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(it, color = MaterialTheme.colorScheme.error, fontSize = 12.sp)
+                }
+                if (settingsState.syncSuccess == true) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text("Đồng bộ hóa thành công!", color = Color.Green, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
         SettingsCard(title = "Mục tiêu hàng ngày") {
             Column {
                 Row(
@@ -167,7 +203,6 @@ fun SettingsScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // 2. FSRS Desired Retention slider
         SettingsCard(title = "Thuật toán FSRS Spaced Repetition") {
             Column {
                 Row(
@@ -201,7 +236,6 @@ fun SettingsScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // 3. Daily reminder time picker
         SettingsCard(title = "Nhắc nhở hàng ngày") {
             Column {
                 Row(
@@ -223,7 +257,6 @@ fun SettingsScreen(
                         horizontalArrangement = Arrangement.Center,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        // Hour controls
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Text(
                                 text = "▲",
@@ -257,7 +290,6 @@ fun SettingsScreen(
                             modifier = Modifier.padding(horizontal = 16.dp)
                         )
 
-                        // Minute controls
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Text(
                                 text = "▲",
@@ -290,7 +322,6 @@ fun SettingsScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Topic picker setting
         val selectedTopic by settingsViewModel.selectedTopic.collectAsState()
         val topicName = com.nhimz.vocabmaster.ui.screens.AVAILABLE_TOPICS.find { it.first == selectedTopic }?.second ?: selectedTopic
         SettingsCard(title = "Chủ đề học tập") {
@@ -319,10 +350,8 @@ fun SettingsScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // 4. Theme & Language settings
         SettingsCard(title = "Hệ thống") {
             Column {
-                // Theme selector
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -364,7 +393,6 @@ fun SettingsScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Language selector
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -407,7 +435,6 @@ fun SettingsScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // 5. Backup & Restore settings
         SettingsCard(title = "Sao lưu & Khôi phục") {
             Column {
                 Text(
@@ -478,7 +505,7 @@ fun SettingsScreen(
 }
 
 @Composable
-fun SettingsCard(
+private fun SettingsCard(
     title: String,
     content: @Composable () -> Unit
 ) {

@@ -22,6 +22,10 @@ import com.nhimz.vocabmaster.audio.CDNAudioPlayer
 import com.nhimz.vocabmaster.notification.NotificationScheduler
 import com.nhimz.vocabmaster.ui.navigation.Screen
 import com.nhimz.vocabmaster.data.database.VocabDatabase
+import com.nhimz.vocabmaster.domain.model.BackupRepository
+import com.nhimz.vocabmaster.domain.model.ReviewRepository
+import com.nhimz.vocabmaster.domain.model.SettingsRepository
+import com.nhimz.vocabmaster.domain.model.VocabularyRepository
 import com.nhimz.vocabmaster.ui.screens.DebugPanelScreen
 import com.nhimz.vocabmaster.ui.screens.FirstWinScreen
 import com.nhimz.vocabmaster.ui.screens.FlashcardScreen
@@ -34,6 +38,7 @@ import com.nhimz.vocabmaster.ui.screens.SettingsScreen
 import com.nhimz.vocabmaster.ui.screens.StatisticsScreen
 import com.nhimz.vocabmaster.ui.screens.TopicPickerScreen
 import com.nhimz.vocabmaster.ui.screens.WelcomeScreen
+import com.nhimz.vocabmaster.ui.screens.LoginScreen
 import com.nhimz.vocabmaster.ui.theme.VocabMasterTheme
 import com.nhimz.vocabmaster.ui.viewmodel.FlashcardViewModel
 import com.nhimz.vocabmaster.ui.viewmodel.MainViewModel
@@ -52,7 +57,11 @@ fun VocabMasterApp(
     settingsViewModel: SettingsViewModel,
     cdnAudioPlayer: CDNAudioPlayer,
     notificationScheduler: NotificationScheduler,
-    vocabDatabase: VocabDatabase
+    vocabDatabase: VocabDatabase,
+    vocabularyRepository: VocabularyRepository,
+    reviewRepository: ReviewRepository,
+    settingsRepository: SettingsRepository,
+    backupRepository: BackupRepository
 ) {
     val themeMode by mainViewModel.theme.collectAsState()
     val darkTheme = when (themeMode) {
@@ -69,7 +78,7 @@ fun VocabMasterApp(
             LoadingSplash()
         } else {
             when (currentScreen) {
-                is Screen.Welcome, is Screen.GoalPicker, is Screen.PlacementTest, is Screen.FirstWin -> {
+                is Screen.Welcome, is Screen.GoalPicker, is Screen.PlacementTest, is Screen.FirstWin, is Screen.Login -> {
                     OnboardingFlow(
                         currentScreen = currentScreen,
                         mainViewModel = mainViewModel,
@@ -95,7 +104,11 @@ fun VocabMasterApp(
                         settingsViewModel = settingsViewModel,
                         notificationScheduler = notificationScheduler,
                         cdnAudioPlayer = cdnAudioPlayer,
-                        vocabDatabase = vocabDatabase
+                        vocabDatabase = vocabDatabase,
+                        vocabularyRepository = vocabularyRepository,
+                        reviewRepository = reviewRepository,
+                        settingsRepository = settingsRepository,
+                        backupRepository = backupRepository
                     )
                 }
             }
@@ -128,7 +141,10 @@ private fun OnboardingFlow(
 ) {
     when (currentScreen) {
         is Screen.Welcome -> WelcomeScreen(
-            onStartClick = { mainViewModel.navigateTo(Screen.GoalPicker) }
+            onStartClick = { mainViewModel.navigateTo(Screen.Login) } // Navigate to Login first!
+        )
+        is Screen.Login -> LoginScreen(
+            onLoginSuccess = { mainViewModel.navigateTo(Screen.GoalPicker) }
         )
         is Screen.GoalPicker -> GoalPickerScreen(
             onGoalSelected = { minutes ->
@@ -137,10 +153,18 @@ private fun OnboardingFlow(
             }
         )
         is Screen.PlacementTest -> PlacementTestScreen(
-            onTestFinished = { level ->
-                mainViewModel.savePlacementLevel(level)
+            onFinished = { levelStr ->
+                if (levelStr != null) {
+                    try {
+                        val levelEnum = com.nhimz.vocabmaster.domain.model.DifficultyLevel.valueOf(levelStr)
+                        mainViewModel.savePlacementLevel(levelEnum)
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
+                }
                 mainViewModel.navigateTo(Screen.FirstWin)
             },
+            onBack = { mainViewModel.navigateTo(Screen.Login) },
             viewModel = placementTestViewModel
         )
         is Screen.FirstWin -> FirstWinScreen(
@@ -205,7 +229,11 @@ private fun MainAppScaffold(
     settingsViewModel: SettingsViewModel,
     notificationScheduler: NotificationScheduler,
     cdnAudioPlayer: CDNAudioPlayer,
-    vocabDatabase: VocabDatabase
+    vocabDatabase: VocabDatabase,
+    vocabularyRepository: VocabularyRepository,
+    reviewRepository: ReviewRepository,
+    settingsRepository: SettingsRepository,
+    backupRepository: BackupRepository
 ) {
     Scaffold(
         bottomBar = {
@@ -271,7 +299,11 @@ private fun MainAppScaffold(
                 is Screen.DebugPanel -> DebugPanelScreen(
                     onBack = { mainViewModel.navigateTo(Screen.Settings) },
                     cdnAudioPlayer = cdnAudioPlayer,
-                    vocabDatabase = vocabDatabase
+                    vocabDatabase = vocabDatabase,
+                    vocabularyRepository = vocabularyRepository,
+                    reviewRepository = reviewRepository,
+                    settingsRepository = settingsRepository,
+                    backupRepository = backupRepository
                 )
                 else -> {}
             }

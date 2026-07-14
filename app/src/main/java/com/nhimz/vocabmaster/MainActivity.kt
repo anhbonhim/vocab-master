@@ -15,6 +15,10 @@ import com.nhimz.vocabmaster.ui.viewmodel.QuizViewModel
 import com.nhimz.vocabmaster.ui.viewmodel.SettingsViewModel
 import com.nhimz.vocabmaster.ui.viewmodel.StatisticsViewModel
 import com.nhimz.vocabmaster.data.database.VocabDatabase
+import com.nhimz.vocabmaster.domain.model.BackupRepository
+import com.nhimz.vocabmaster.domain.model.ReviewRepository
+import com.nhimz.vocabmaster.domain.model.SettingsRepository
+import com.nhimz.vocabmaster.domain.model.VocabularyRepository
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 
@@ -29,6 +33,18 @@ class MainActivity : ComponentActivity() {
 
     @Inject
     lateinit var vocabDatabase: VocabDatabase
+
+    @Inject
+    lateinit var vocabularyRepository: VocabularyRepository
+
+    @Inject
+    lateinit var reviewRepository: ReviewRepository
+
+    @Inject
+    lateinit var settingsRepository: SettingsRepository
+
+    @Inject
+    lateinit var backupRepository: BackupRepository
 
     private val mainViewModel: MainViewModel by viewModels()
     private val placementTestViewModel: PlacementTestViewModel by viewModels()
@@ -55,7 +71,11 @@ class MainActivity : ComponentActivity() {
                 settingsViewModel = settingsViewModel,
                 cdnAudioPlayer = cdnAudioPlayer,
                 notificationScheduler = notificationScheduler,
-                vocabDatabase = vocabDatabase
+                vocabDatabase = vocabDatabase,
+                vocabularyRepository = vocabularyRepository,
+                reviewRepository = reviewRepository,
+                settingsRepository = settingsRepository,
+                backupRepository = backupRepository
             )
         }
     }
