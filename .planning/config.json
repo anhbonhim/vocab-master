@@ -72,5 +72,6 @@
   "graphify": {
     "enabled": true,
     "auto_update": false
-  }
+  },
+  "response_language": "vi"
 }
