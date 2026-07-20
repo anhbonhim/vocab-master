@@ -18,7 +18,7 @@ VocabMaster is being refactored and audited to build a robust local persistence 
 ### Phase 1: Security & Database Stabilization
 **Goal**: Establish data safety, secure user database contents from default backups, and ensure mathematical correctness of the FSRS scheduling engine.
 **Depends on**: Nothing (Initial Phase)
-**Requirements**: FSRS-01, FSRS-02, FSRS-03, FSRS-04, PERS-01, PERS-02, PERS-03, PERS-04
+**Requirements**: FSRS-01, FSRS-02, FSRS-03, FSRS-04, FSRS-05, PERS-01, PERS-02, PERS-03, PERS-04
 **Success Criteria** (what must be TRUE):
   1. The app excludes sensitive databases and shared preferences from auto-backup according to XML configurations.
   2. All FSRS tests run successfully without producing negative stability or interval values.

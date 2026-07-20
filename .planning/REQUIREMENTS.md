@@ -13,6 +13,7 @@ Requirements for the refactored and audited application, mapped directly to road
 - [ ] **FSRS-02**: All FSRS computations must prevent out-of-bounds intervals, ensuring computed intervals are positive integers.
 - [ ] **FSRS-03**: FSRS math must be fully localized, removing formatting calls (like `String.format`) that cause decimal separator crashes in non-US locales.
 - [ ] **FSRS-04**: Core FSRS scheduling math must be covered by comprehensive unit tests with golden vectors.
+- [ ] **FSRS-05**: Port the py-fsrs optimizer (parameter training from review logs) to Kotlin so custom FSRS weights can be trained from user review history. (Moved here from Out-of-Scope during Phase 1 discuss-phase on 2026-07-20 — full py-fsrs port was chosen as the FSRS fix strategy.)
 
 ### Database & Local Persistence
 
@@ -58,7 +59,6 @@ Requirements for the refactored and audited application, mapped directly to road
 |---------|--------|
 | Multi-module restructure | gradle module architecture is already modular (`app`, `domain`, `data`) and functional |
 | Full backend rewrite | fastapi backend structure is locked; only adjust endpoints or sync payloads if contracts break |
-| Custom FSRS weights tuning by user | Out of scope for v1 core stability; keep standard FSRS parameters and defer tuning to v2 |
 
 ## Traceability
 
@@ -68,6 +68,7 @@ Requirements for the refactored and audited application, mapped directly to road
 | FSRS-02 | Phase 1 | Pending |
 | FSRS-03 | Phase 1 | Pending |
 | FSRS-04 | Phase 1 | Pending |
+| FSRS-05 | Phase 1 | Pending |
 | PERS-01 | Phase 1 | Pending |
 | PERS-02 | Phase 1 | Pending |
 | PERS-03 | Phase 1 | Pending |
@@ -84,8 +85,8 @@ Requirements for the refactored and audited application, mapped directly to road
 | SYNC-02 | Phase 4 | Pending |
 
 **Coverage:**
-- v1 requirements: 18 total
-- Mapped to phases: 18
+- v1 requirements: 19 total
+- Mapped to phases: 19
 - Unmapped: 0 ✓
 
 ---
