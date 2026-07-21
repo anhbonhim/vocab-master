@@ -7,7 +7,7 @@ VocabMaster is being refactored and audited to build a robust local persistence 
 ## Phases
 
 - [x] **Phase 1: Security & Database Stabilization** - Verify FSRS scheduler calculations with unit tests, configure secure backups, and migrate Room DAOs to Flow/suspend. (completed 2026-07-21)
-- [ ] **Phase 2: Business Logic & ViewModel Refactoring** - Decouple ViewModels by moving domain logic to UseCases and implementing strict Unidirectional Data Flow (UDF).
+- [x] **Phase 2: Business Logic & ViewModel Refactoring** - Decouple ViewModels by moving domain logic to UseCases and implementing strict Unidirectional Data Flow (UDF). (completed 2026-07-21)
 - [ ] **Phase 3: Compose UI Refactoring & Polish** - Disassemble monolithic screen layouts, adopt safe Kotlin casts, and implement a modern design system with rich UX transitions.
 - [ ] **Phase 4: Sync & Integration Verification** - Audit Remote Sync payload logic and verify conflict resolution flow with FastAPI.
 
@@ -63,16 +63,16 @@ Plans:
   2. Presentation states are modeled as single, immutable UiState data classes exposed as StateFlow.
   3. Dynamic asset import errors are safely propagated to UI states instead of swallowing exceptions.
 
-**Plans**: 2 plans
+**Plans**: 2/2 plans executed
 
 Plans:
 **Wave 1**
 
-- [ ] 02-01-PLAN.md — Extract domain UseCases for quiz sessions (Load/Evaluate/SubmitReview/Complete) + quiz types migration to domain.model.quiz
+- [x] 02-01-PLAN.md — Extract domain UseCases for quiz sessions (Load/Evaluate/SubmitReview/Complete) + quiz types migration to domain.model.quiz
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 02-02-PLAN.md — Refactor QuizViewModel to UDF: QuizUiState sealed interface, SavedStateHandle survival, rapid-tap guards
+- [x] 02-02-PLAN.md — Refactor QuizViewModel to UDF: QuizUiState sealed interface, SavedStateHandle survival, rapid-tap guards
 
 ### Phase 3: Compose UI Refactoring & Polish
 
@@ -118,6 +118,6 @@ Plans:
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Security & Database Stabilization | 7/7 | Complete    | 2026-07-21 |
-| 2. Business Logic & ViewModel Refactoring | 0/2 | Not started | - |
+| 2. Business Logic & ViewModel Refactoring | 2/2 | Complete   | 2026-07-21 |
 | 3. Compose UI Refactoring & Polish | 0/3 | Not started | - |
 | 4. Sync & Integration Verification | 0/1 | Not started | - |
