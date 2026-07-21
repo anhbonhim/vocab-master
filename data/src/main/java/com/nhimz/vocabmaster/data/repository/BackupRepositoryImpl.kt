@@ -1,5 +1,6 @@
 package com.nhimz.vocabmaster.data.repository
 
+import android.util.Log
 import androidx.room.withTransaction
 import com.nhimz.vocabmaster.data.database.VocabDao
 import com.nhimz.vocabmaster.data.database.VocabDatabase
@@ -14,17 +15,20 @@ import com.nhimz.vocabmaster.domain.fsrs.v6.Rating
 import com.nhimz.vocabmaster.domain.fsrs.v6.State
 import com.nhimz.vocabmaster.domain.model.BackupRepository
 import com.nhimz.vocabmaster.domain.model.SettingsRepository
+import com.nhimz.vocabmaster.domain.model.VocabDataException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.SerializationException
 import javax.inject.Inject
 import javax.inject.Singleton
 import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
+import java.time.format.DateTimeParseException
 
 @Singleton
 @Suppress("LongMethod", "LabeledExpression", "TooGenericExceptionCaught")
@@ -43,6 +47,11 @@ class BackupRepositoryImpl @Inject constructor(
 
     companion object {
         private const val MIN_SUPPORTED_BACKUP_VERSION = 3
+        private const val TAG = "BackupRepositoryImpl"
+        private const val IMPORT_FAILED_PREFIX = "Backup import failed: "
+        private const val MALFORMED_JSON = "malformed JSON"
+        private const val INVALID_ENUM = "invalid enum or argument value"
+        private const val INVALID_TIMESTAMP = "invalid timestamp format"
     }
 
     override suspend fun exportBackup(): String = withContext(Dispatchers.IO) {
@@ -103,14 +112,14 @@ class BackupRepositoryImpl @Inject constructor(
         json.encodeToString(backup)
     }
 
-    override suspend fun importBackup(backupJson: String): Boolean = withContext(Dispatchers.IO) {
+    override suspend fun importBackup(backupJson: String): Result<Boolean> = withContext(Dispatchers.IO) {
         try {
             val backup = json.decodeFromString<AppBackup>(backupJson)
 
             // Validate that we have the v3 FSRS format.
             if (backup.version < MIN_SUPPORTED_BACKUP_VERSION) {
                 // Reject v2 and earlier: they carry pre-port scheduling data.
-                return@withContext false
+                return@withContext Result.success(false)
             }
 
             database.withTransaction {
@@ -172,10 +181,19 @@ class BackupRepositoryImpl @Inject constructor(
                 }
                 vocabDao.insertAllFlaggedItems(flaggedEntities)
             }
-            true
-        } catch (e: Exception) {
-            e.printStackTrace()
-            false
+            Result.success(true)
+        } catch (e: SerializationException) {
+            val message = "$IMPORT_FAILED_PREFIX$MALFORMED_JSON"
+            Log.e(TAG, message, e)
+            Result.failure(VocabDataException(message, e))
+        } catch (e: IllegalArgumentException) {
+            val message = "$IMPORT_FAILED_PREFIX$INVALID_ENUM"
+            Log.e(TAG, message, e)
+            Result.failure(VocabDataException(message, e))
+        } catch (e: DateTimeParseException) {
+            val message = "$IMPORT_FAILED_PREFIX$INVALID_TIMESTAMP"
+            Log.e(TAG, message, e)
+            Result.failure(VocabDataException(message, e))
         }
     }
 }

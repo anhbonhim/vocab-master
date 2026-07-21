@@ -1,6 +1,7 @@
 package com.nhimz.vocabmaster.data.repository
 
 import android.content.Context
+import android.util.Log
 import com.nhimz.vocabmaster.data.database.VocabDao
 import com.nhimz.vocabmaster.data.database.entity.FsrsCardEntity
 import com.nhimz.vocabmaster.data.database.entity.NodeEntity
@@ -24,8 +25,11 @@ import com.nhimz.vocabmaster.domain.model.QuestionWithCard
 import com.nhimz.vocabmaster.domain.model.Section
 import com.nhimz.vocabmaster.domain.model.Session
 import com.nhimz.vocabmaster.domain.model.UnitGuidebook
+import com.nhimz.vocabmaster.domain.model.VocabDataException
 import com.nhimz.vocabmaster.domain.model.VocabularyRepository
 import com.nhimz.vocabmaster.domain.model.Unit as DomainUnit
+import kotlinx.serialization.SerializationException
+import java.io.IOException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -161,6 +165,13 @@ class VocabularyRepositoryImpl @Inject constructor(
         private const val DEFAULT_TOPIC_FALLBACK_LIMIT = 100
         private const val NEW_CARD_TOPIC_FALLBACK_LIMIT = 10
         private const val MIN_SESSION_CARDS = 5
+        private const val TAG = "VocabularyRepositoryImpl"
+        private const val MALFORMED = "Malformed "
+        private const val JSON_FOR_QUESTION = " JSON for question "
+        private const val JSON_FOR_GUIDEBOOK = " JSON for guidebook "
+        private const val JSON_FOR_SESSION = " JSON for session "
+        private const val FAILED_TO_SEED = "Failed to seed curriculum from lessons_v3.json"
+        private const val FAILED_TO_READ_ASSET = "Failed to read curriculum asset lessons_v3.json"
     }
 
     private suspend fun ensureCurriculumAndFsrsSeeded() = withContext(Dispatchers.IO) {
@@ -171,7 +182,7 @@ class VocabularyRepositoryImpl @Inject constructor(
                     context.assets.open("lessons_v3.json").use { inputStream ->
                         InputStreamReader(inputStream).use { reader ->
                             val assetV2 = json.decodeFromString<LessonsV2Asset>(reader.readText())
-                            
+
                             val sectionEntities = mutableListOf<SectionEntity>()
                             val unitEntities = mutableListOf<UnitEntity>()
                             val guidebookEntities = mutableListOf<UnitGuidebookEntity>()
@@ -199,7 +210,12 @@ class VocabularyRepositoryImpl @Inject constructor(
                                         illustrationSvg = uni.guidebook.illustrationSvg
                                     ))
                                     for (nod in uni.nodes) {
-                                        val nodeType = try { NodeType.valueOf(nod.type) } catch (e: Exception) { NodeType.LESSON }
+                                        val nodeType = try {
+                                            NodeType.valueOf(nod.type)
+                                        } catch (e: IllegalArgumentException) {
+                                            Log.e(TAG, "Unknown node type '${nod.type}' for node ${nod.id}", e)
+                                            throw VocabDataException("Unknown node type '${nod.type}' for node ${nod.id}", e)
+                                        }
                                         nodeEntities.add(NodeEntity(
                                             id = nod.id, unitId = uni.id, index = nod.index,
                                             type = nodeType.ordinal, title = nod.title, scenarioContext = nod.scenarioContext,
@@ -214,7 +230,12 @@ class VocabularyRepositoryImpl @Inject constructor(
                                                     questionIds = json.encodeToString(qIds)
                                                 ))
                                                 for (q in ses.questions) {
-                                                    val qType = try { QuestionType.valueOf(q.type) } catch (e: Exception) { QuestionType.FILL_IN_BLANK }
+                                                    val qType = try {
+                                                        QuestionType.valueOf(q.type)
+                                                    } catch (e: IllegalArgumentException) {
+                                                        Log.e(TAG, "Unknown question type '${q.type}' for question ${q.id}", e)
+                                                        throw VocabDataException("Unknown question type '${q.type}' for question ${q.id}", e)
+                                                    }
                                                     
                                                     // In-memory runtime assertion (Phase L check)
                                                     if (qType == QuestionType.MULTIPLE_CHOICE) {
@@ -277,20 +298,37 @@ class VocabularyRepositoryImpl @Inject constructor(
                             vocabDao.insertAllFsrsCards(fsrsCardEntities)
                         }
                     }
-                } catch (e: Exception) {
-                    e.printStackTrace()
-                    throw e
+                } catch (e: SerializationException) {
+                    Log.e(TAG, FAILED_TO_SEED, e)
+                    throw VocabDataException(FAILED_TO_SEED, e)
+                } catch (e: IOException) {
+                    Log.e(TAG, FAILED_TO_READ_ASSET, e)
+                    throw VocabDataException(FAILED_TO_READ_ASSET, e)
                 }
             }
         }
     }
 
+    private inline fun <reified T> decodeQuestionField(
+        jsonString: String,
+        fieldName: String,
+        questionId: String
+    ): T {
+        return try {
+            json.decodeFromString<T>(jsonString)
+        } catch (e: SerializationException) {
+            Log.e(TAG, "$MALFORMED$fieldName$JSON_FOR_QUESTION$questionId", e)
+            throw VocabDataException("$MALFORMED$fieldName$JSON_FOR_QUESTION$questionId", e)
+        }
+    }
+
     private fun QuestionEntity.toDomainModel(): Question {
         val type = QuestionType.entries.getOrNull(this.type) ?: QuestionType.FILL_IN_BLANK
-        val options = this.options?.let { opt -> try { json.decodeFromString<List<String>>(opt) } catch (e: Exception) { null } }
-        val scrambled = this.scrambledWords?.let { scr -> try { json.decodeFromString<List<String>>(scr) } catch (e: Exception) { null } }
-        val matchPairs = this.matchingPairs?.let { mp -> 
-            try { json.decodeFromString<List<MatchPairAssetItem>>(mp).map { p -> MatchPair(p.left, p.right) } } catch (e: Exception) { null }
+        val options = this.options?.let { decodeQuestionField<List<String>>(it, "options", this.id) }
+        val scrambled = this.scrambledWords?.let { decodeQuestionField<List<String>>(it, "scrambledWords", this.id) }
+        val matchPairs = this.matchingPairs?.let { mp ->
+            decodeQuestionField<List<MatchPairAssetItem>>(mp, "matchingPairs", this.id)
+                .map { p -> MatchPair(p.left, p.right) }
         }
         return Question(
             this.id, this.sessionId, this.word, type, this.prompt, options, this.correctIndex, this.correctSentence,
@@ -454,11 +492,31 @@ class VocabularyRepositoryImpl @Inject constructor(
         }.flowOn(Dispatchers.IO)
     }
 
-    override suspend fun getGuidebook(unitId: String): UnitGuidebook? = withContext(Dispatchers.IO) {
-        val entity = vocabDao.getGuidebook(unitId) ?: return@withContext null
-        val grammarTips = try { json.decodeFromString<List<String>>(entity.grammarTips) } catch (e: Exception) { emptyList() }
-        val keyPhrases = try { json.decodeFromString<List<KeyPhraseAssetItem>>(entity.keyPhrases).map { KeyPhrase(it.phrase, it.translation, it.note) } } catch (e: Exception) { emptyList() }
-        UnitGuidebook(entity.id, entity.unitId, grammarTips, keyPhrases, entity.storyIntro, entity.illustrationSvg)
+    override suspend fun getGuidebook(unitId: String): Result<UnitGuidebook?> = withContext(Dispatchers.IO) {
+        runCatching {
+            val entity = vocabDao.getGuidebook(unitId)
+            if (entity == null) {
+                return@runCatching null
+            }
+            val grammarTips = try {
+                json.decodeFromString<List<String>>(entity.grammarTips)
+            } catch (e: SerializationException) {
+                val fieldName = "grammarTips"
+                val message = "$MALFORMED$fieldName$JSON_FOR_GUIDEBOOK${entity.id}"
+                Log.e(TAG, message, e)
+                throw VocabDataException(message, e)
+            }
+            val keyPhrases = try {
+                json.decodeFromString<List<KeyPhraseAssetItem>>(entity.keyPhrases)
+                    .map { KeyPhrase(it.phrase, it.translation, it.note) }
+            } catch (e: SerializationException) {
+                val fieldName = "keyPhrases"
+                val message = "$MALFORMED$fieldName$JSON_FOR_GUIDEBOOK${entity.id}"
+                Log.e(TAG, message, e)
+                throw VocabDataException(message, e)
+            }
+            UnitGuidebook(entity.id, entity.unitId, grammarTips, keyPhrases, entity.storyIntro, entity.illustrationSvg)
+        }
     }
 
     override fun getNodesByUnit(unitId: String): Flow<List<Node>> {
@@ -470,16 +528,27 @@ class VocabularyRepositoryImpl @Inject constructor(
         }.flowOn(Dispatchers.IO)
     }
 
-    override suspend fun getSessionsByNode(nodeId: String): List<Session> = withContext(Dispatchers.IO) {
-        vocabDao.getSessionsByNode(nodeId).map {
-            val qIds = try { json.decodeFromString<List<String>>(it.questionIds) } catch (e: Exception) { emptyList() }
-            Session(it.id, it.nodeId, it.index, it.title, it.durationMinutes, qIds)
+    override suspend fun getSessionsByNode(nodeId: String): Result<List<Session>> = withContext(Dispatchers.IO) {
+        runCatching {
+            vocabDao.getSessionsByNode(nodeId).map {
+                val qIds = try {
+                    json.decodeFromString<List<String>>(it.questionIds)
+                } catch (e: SerializationException) {
+                    val fieldName = "questionIds"
+                    val message = "$MALFORMED$fieldName$JSON_FOR_SESSION${it.id}"
+                    Log.e(TAG, message, e)
+                    throw VocabDataException(message, e)
+                }
+                Session(it.id, it.nodeId, it.index, it.title, it.durationMinutes, qIds)
+            }
         }
     }
 
-    override suspend fun getQuestionsBySession(sessionId: String): List<Question> = withContext(Dispatchers.IO) {
-        vocabDao.getQuestionsBySession(sessionId).map {
-            it.toDomainModel()
+    override suspend fun getQuestionsBySession(sessionId: String): Result<List<Question>> = withContext(Dispatchers.IO) {
+        runCatching {
+            vocabDao.getQuestionsBySession(sessionId).map {
+                it.toDomainModel()
+            }
         }
     }
 

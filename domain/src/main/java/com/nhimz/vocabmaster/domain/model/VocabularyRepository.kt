@@ -29,10 +29,10 @@ interface VocabularyRepository {
     suspend fun checkAndPrepopulateCurriculum()
     fun getSections(): Flow<List<Section>>
     fun getUnitsBySection(sectionId: String): Flow<List<Unit>>
-    suspend fun getGuidebook(unitId: String): UnitGuidebook?
+    suspend fun getGuidebook(unitId: String): Result<UnitGuidebook?>
     fun getNodesByUnit(unitId: String): Flow<List<Node>>
-    suspend fun getSessionsByNode(nodeId: String): List<Session>
-    suspend fun getQuestionsBySession(sessionId: String): List<Question>
+    suspend fun getSessionsByNode(nodeId: String): Result<List<Session>>
+    suspend fun getQuestionsBySession(sessionId: String): Result<List<Question>>
     
     suspend fun getNodeProgress(nodeId: String): Boolean
     suspend fun getCompletedNodesByUnit(unitId: String): List<String>
