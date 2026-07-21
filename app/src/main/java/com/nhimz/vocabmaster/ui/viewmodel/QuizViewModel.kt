@@ -296,7 +296,7 @@ class QuizViewModel @Inject constructor(
         val responseTimeMs = System.currentTimeMillis() - state.startTimeMillis
 
         val evaluationResult = evaluateAnswerUseCase(
-            question = currentQuestion,
+            type = currentQuestion.type,
             optionIndex = optionIndex,
             textAnswer = textAnswer,
             selectedWordsForScrambled = selectedWordsForScrambled,
