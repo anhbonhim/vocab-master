@@ -1,0 +1,81 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues></ManuallySuppressedIssues>
+  <CurrentIssues>
+    <ID>ComplexCondition:GoldenVectorTest.kt$GoldenVectorTest$stateStr == "Learning" &amp;&amp; step == 0 &amp;&amp; stability == null &amp;&amp; difficulty == null</ID>
+    <ID>ComplexInterface:SettingsRepository.kt$SettingsRepository</ID>
+    <ID>ComplexInterface:VocabularyRepository.kt$VocabularyRepository</ID>
+    <ID>ConstructorParameterNaming:GoldenVectorTest.kt$GoldenVectorTest.ExpectedState$val interval_days: Int</ID>
+    <ID>ConstructorParameterNaming:GoldenVectorTest.kt$GoldenVectorTest.ExpectedState$val last_review: String? = null</ID>
+    <ID>ConstructorParameterNaming:GoldenVectorTest.kt$GoldenVectorTest.GoldenData$val enable_fuzzing: Boolean</ID>
+    <ID>ConstructorParameterNaming:GoldenVectorTest.kt$GoldenVectorTest.GoldenData$val py_fsrs_version: String</ID>
+    <ID>ConstructorParameterNaming:GoldenVectorTest.kt$GoldenVectorTest.InitialCard$val last_review: String? = null</ID>
+    <ID>ConstructorParameterNaming:GoldenVectorTest.kt$GoldenVectorTest.Vector$val expected_after_each: List&lt;ExpectedState&gt;</ID>
+    <ID>ConstructorParameterNaming:GoldenVectorTest.kt$GoldenVectorTest.Vector$val initial_card: InitialCard</ID>
+    <ID>ConstructorParameterNaming:Models.kt$ReviewLog$val elapsed_days: Int</ID>
+    <ID>ConstructorParameterNaming:Models.kt$ReviewLog$val scheduled_days: Int</ID>
+    <ID>CyclomaticComplexMethod:FSRS.kt$FSRS$fun calculate(card: Card, elapsedDays: Double = card.interval.toDouble()): Map&lt;Rating, GradeInfo&gt;</ID>
+    <ID>LargeClass:PyFsrsParityTest.kt$PyFsrsParityTest</ID>
+    <ID>LongMethod:FSRS.kt$FSRS$fun calculate(card: Card, elapsedDays: Double = card.interval.toDouble()): Map&lt;Rating, GradeInfo&gt;</ID>
+    <ID>LongMethod:ReferenceFSRS.kt$ReferenceFSRS$fun calculate(flashCard: FlashCard): List&lt;Grade&gt;</ID>
+    <ID>LongParameterList:PyFsrsParityTest.kt$PyFsrsParityTest$( year: Int, month: Int, day: Int, hour: Int, minute: Int, second: Int = 0, nano: Int = 0 )</ID>
+    <ID>MagicNumber:FSRS.kt$FSRS$0.1</ID>
+    <ID>MagicNumber:FSRS.kt$FSRS$0.95</ID>
+    <ID>MagicNumber:FSRS.kt$FSRS$1.05</ID>
+    <ID>MagicNumber:FSRS.kt$FSRS$10</ID>
+    <ID>MagicNumber:FSRS.kt$FSRS$10.0</ID>
+    <ID>MagicNumber:FSRS.kt$FSRS$1000L</ID>
+    <ID>MagicNumber:FSRS.kt$FSRS$11</ID>
+    <ID>MagicNumber:FSRS.kt$FSRS$12</ID>
+    <ID>MagicNumber:FSRS.kt$FSRS$13</ID>
+    <ID>MagicNumber:FSRS.kt$FSRS$14</ID>
+    <ID>MagicNumber:FSRS.kt$FSRS$15</ID>
+    <ID>MagicNumber:FSRS.kt$FSRS$16</ID>
+    <ID>MagicNumber:FSRS.kt$FSRS$17</ID>
+    <ID>MagicNumber:FSRS.kt$FSRS$18</ID>
+    <ID>MagicNumber:FSRS.kt$FSRS$19</ID>
+    <ID>MagicNumber:FSRS.kt$FSRS$2.5</ID>
+    <ID>MagicNumber:FSRS.kt$FSRS$20</ID>
+    <ID>MagicNumber:FSRS.kt$FSRS$24</ID>
+    <ID>MagicNumber:FSRS.kt$FSRS$3</ID>
+    <ID>MagicNumber:FSRS.kt$FSRS$4</ID>
+    <ID>MagicNumber:FSRS.kt$FSRS$5</ID>
+    <ID>MagicNumber:FSRS.kt$FSRS$5.0</ID>
+    <ID>MagicNumber:FSRS.kt$FSRS$6</ID>
+    <ID>MagicNumber:FSRS.kt$FSRS$60</ID>
+    <ID>MagicNumber:FSRS.kt$FSRS$7</ID>
+    <ID>MagicNumber:FSRS.kt$FSRS$8</ID>
+    <ID>MagicNumber:FSRS.kt$FSRS$9</ID>
+    <ID>MagicNumber:MapRatingUseCase.kt$MapRatingUseCase$10.0</ID>
+    <ID>MagicNumber:MapRatingUseCase.kt$MapRatingUseCase$1000.0</ID>
+    <ID>MagicNumber:MapRatingUseCase.kt$MapRatingUseCase$3.0</ID>
+    <ID>MagicNumber:Models.kt$Rating.Easy$4</ID>
+    <ID>MagicNumber:Models.kt$Rating.Good$3</ID>
+    <ID>MagicNumber:Models.kt$State.Relearning$3</ID>
+    <ID>MagicNumber:PlacementTestUseCase.kt$PlacementTestUseCase$15</ID>
+    <ID>MagicNumber:PlacementTestUseCase.kt$PlacementTestUseCase$8</ID>
+    <ID>MagicNumber:UpdateStreakUseCase.kt$UpdateStreakUseCase$1000L</ID>
+    <ID>MagicNumber:UpdateStreakUseCase.kt$UpdateStreakUseCase$24</ID>
+    <ID>MagicNumber:UpdateStreakUseCase.kt$UpdateStreakUseCase$60</ID>
+    <ID>MagicNumber:UpdateStreakUseCase.kt$UpdateStreakUseCase$7</ID>
+    <ID>MaxLineLength:FSRS.kt$FSRS$return String.format(java.util.Locale.US, "%.2f", if (reverted.isNaN()) 5.0 else reverted.coerceIn(1.0, 10.0)).toDouble()</ID>
+    <ID>MaxLineLength:FSRS.kt$FSRS$return String.format(java.util.Locale.US, "%.2f", if (value.isNaN()) 0.1 else value.coerceAtLeast(0.1)).toDouble()</ID>
+    <ID>MaxLineLength:FSRSTest.kt$FSRSTest$assertEquals("Difficulty mismatch for card $card and rating $rating", refInfo.difficulty, info.difficulty, 0.0001)</ID>
+    <ID>MaxLineLength:FSRSTest.kt$FSRSTest$assertEquals("DurationMillis mismatch for card $card and rating $rating", refInfo.durationMillis, info.durationMillis)</ID>
+    <ID>MaxLineLength:FSRSTest.kt$FSRSTest$assertEquals("Stability mismatch for card $card and rating $rating", refInfo.stability, info.stability, 0.0001)</ID>
+    <ID>MaxLineLength:FSRSTest.kt$FSRSTest$val card2 = Card(state = State.Review, stability = 10.0, difficulty = 5.0, interval = 8, lastReview = now.minusDays(8))</ID>
+    <ID>MaxLineLength:GoldenVectorTest.kt$GoldenVectorTest$assertEquals("Vector ${vector.id} (review $i) difficulty", expected.difficulty, card.difficulty!!, 1e-6)</ID>
+    <ID>MaxLineLength:GoldenVectorTest.kt$GoldenVectorTest$assertEquals("Vector ${vector.id} (review $i) lastReview", expected.last_review?.let { parseDate(it) }, card.lastReview)</ID>
+    <ID>MaxLineLength:GoldenVectorTest.kt$GoldenVectorTest$assertEquals("Vector ${vector.id} (review $i) stability", expected.stability, card.stability!!, 1e-6)</ID>
+    <ID>MaxLineLength:PlacementTestUseCase.kt$PlacementTestUseCase$*</ID>
+    <ID>ReturnCount:FSRS.kt$FSRS$private fun applyFuzz( interval: Double, fuzzFactor: Double, scheduledDays: Int = 0 ): Double</ID>
+    <ID>SwallowedException:PyFsrsParityTest.kt$PyFsrsParityTest$e: IllegalArgumentException</ID>
+    <ID>ThrowsCount:PyFsrsParityTest.kt$PyFsrsParityTest$@Test fun test_scheduler_parameter_validation()</ID>
+    <ID>TooManyFunctions:FSRS.kt$FSRS</ID>
+    <ID>TooManyFunctions:SettingsRepository.kt$SettingsRepository</ID>
+    <ID>TooManyFunctions:VocabularyRepository.kt$VocabularyRepository</ID>
+    <ID>UnusedPrivateProperty:FSRSTest.kt$FSRSTest$val baseTime = LocalDateTime.of(2026, 7, 10, 12, 0)</ID>
+    <ID>UnusedPrivateProperty:UseCasesTest.kt$UseCasesTest$i</ID>
+    <ID>WildcardImport:FSRS.kt$import kotlin.math.*</ID>
+  </CurrentIssues>
+</SmellBaseline>
