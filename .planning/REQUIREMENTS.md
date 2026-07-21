@@ -9,9 +9,9 @@ Requirements for the refactored and audited application, mapped directly to road
 
 ### FSRS Algorithm & Math Engine
 
-- [ ] **FSRS-01**: The FSRS scheduler calculations must be mathematically correct, eliminating negative stability and difficulty values.
-- [ ] **FSRS-02**: All FSRS computations must prevent out-of-bounds intervals, ensuring computed intervals are positive integers.
-- [ ] **FSRS-03**: FSRS math must be fully localized, removing formatting calls (like `String.format`) that cause decimal separator crashes in non-US locales.
+- [x] **FSRS-01**: The FSRS scheduler calculations must be mathematically correct, eliminating negative stability and difficulty values.
+- [x] **FSRS-02**: All FSRS computations must prevent out-of-bounds intervals, ensuring computed intervals are positive integers.
+- [x] **FSRS-03**: FSRS math must be fully localized, removing formatting calls (like `String.format`) that cause decimal separator crashes in non-US locales.
 - [ ] **FSRS-04**: Core FSRS scheduling math must be covered by comprehensive unit tests with golden vectors.
 - [ ] **FSRS-05**: Port the py-fsrs optimizer (parameter training from review logs) to Kotlin so custom FSRS weights can be trained from user review history. (Moved here from Out-of-Scope during Phase 1 discuss-phase on 2026-07-20 — full py-fsrs port was chosen as the FSRS fix strategy.)
 
@@ -19,7 +19,7 @@ Requirements for the refactored and audited application, mapped directly to road
 
 - [ ] **PERS-01**: Configure explicit XML data extraction rules (`data_extraction_rules.xml`) to prevent Room DB and Datastore keys from leaking through default cloud backups.
 - [ ] **PERS-02**: Ensure all Room DAO operations run on appropriate background threads (using `suspend` for writes and `Flow` for reads) to prevent UI blocking.
-- [ ] **PERS-03**: Implement database transaction bounds for atomic cards and review logs updates to prevent desynchronization.
+- [x] **PERS-03**: Implement database transaction bounds for atomic cards and review logs updates to prevent desynchronization.
 - [ ] **PERS-04**: Replace dynamic, unsafe JSON asset parsing fallbacks in repositories with robust error handling and specific exception catching.
 
 ### UI & Presentation Layer Architecture
@@ -64,14 +64,14 @@ Requirements for the refactored and audited application, mapped directly to road
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| FSRS-01 | Phase 1 | Pending |
-| FSRS-02 | Phase 1 | Pending |
-| FSRS-03 | Phase 1 | Pending |
+| FSRS-01 | Phase 1 | Complete |
+| FSRS-02 | Phase 1 | Complete |
+| FSRS-03 | Phase 1 | Complete |
 | FSRS-04 | Phase 1 | Pending |
 | FSRS-05 | Phase 1 | Pending |
 | PERS-01 | Phase 1 | Pending |
 | PERS-02 | Phase 1 | Pending |
-| PERS-03 | Phase 1 | Pending |
+| PERS-03 | Phase 1 | Complete |
 | PERS-04 | Phase 1 | Pending |
 | ARCH-03 | Phase 2 | Pending |
 | ARCH-04 | Phase 2 | Pending |
@@ -85,6 +85,7 @@ Requirements for the refactored and audited application, mapped directly to road
 | SYNC-02 | Phase 4 | Pending |
 
 **Coverage:**
+
 - v1 requirements: 19 total
 - Mapped to phases: 19
 - Unmapped: 0 ✓

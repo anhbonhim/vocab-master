@@ -27,22 +27,22 @@ VocabMaster is being refactored and audited to build a robust local persistence 
   3. String/Locale formats do not cause NumberFormatExceptions in non-US locale runtime tests.
   4. Database operations utilize Kotlin Coroutines/Flows, executing off the main thread.
 
-**Plans**: 7 plans
+**Plans**: 5/7 plans executed
 
 Plans:
 **Wave 1**
 
-- [ ] 01-01-PLAN.md — FSRS v6 core port (py-fsrs 6.3.1) + golden-vector generator & committed JSON + GoldenVectorTest
-- [ ] 01-04-PLAN.md — Secure backup exclusion rules (modern + legacy) + Room threading audit + data test harness
+- [x] 01-01-PLAN.md — FSRS v6 core port (py-fsrs 6.3.1) + golden-vector generator & committed JSON + GoldenVectorTest
+- [x] 01-04-PLAN.md — Secure backup exclusion rules (modern + legacy) + Room threading audit + data test harness
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 01-02-PLAN.md — py-fsrs parity test suite ported to Kotlin JUnit
-- [ ] 01-03-PLAN.md — FSRS optimizer port (parameter training + optimal retention) with property tests
+- [x] 01-02-PLAN.md — py-fsrs parity test suite ported to Kotlin JUnit
+- [x] 01-03-PLAN.md — FSRS optimizer port (parameter training + optimal retention) with property tests
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 01-05-PLAN.md — Room schema v8 cutover to v6 models + atomic recordReview + QuizViewModel swap to v6 Scheduler
+- [x] 01-05-PLAN.md — Room schema v8 cutover to v6 models + atomic recordReview + QuizViewModel swap to v6 Scheduler
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
@@ -113,7 +113,7 @@ Plans:
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Security & Database Stabilization | 0/7 | Not started | - |
+| 1. Security & Database Stabilization | 5/7 | In Progress|  |
 | 2. Business Logic & ViewModel Refactoring | 0/2 | Not started | - |
 | 3. Compose UI Refactoring & Polish | 0/3 | Not started | - |
 | 4. Sync & Integration Verification | 0/1 | Not started | - |
