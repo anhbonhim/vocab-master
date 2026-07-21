@@ -217,12 +217,13 @@ return runCatching {
 | A1 | `VocabDatabase` uses `fallbackToDestructiveMigration(dropAllTables = true)`. | Runtime State | If not, cards may not reset properly or schema mismatches will throw exceptions on app startup. |
 | A2 | Py-fsrs uses a 21 parameter configuration by default for v6. | User Constraints | Planner might implement the older 17 parameter version or incorrectly train the algorithm. |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **How should legacy `FSRS.kt` integration points adapt?**
+1. **How should legacy `FSRS.kt` integration points adapt? (RESOLVED)**
    - What we know: `FSRS.kt` is currently tied to `QuizViewModel` and UseCases.
    - What's unclear: If `FsrsV6` drops in or if `QuizViewModel` undergoes a refactor here.
    - Recommendation: Keep integration minimal, update method calls to `review_card` or `reschedule_card`, but avoid major architecture restructuring of ViewModels (delegated to Phase 2/3).
+   - Resolution: Plan 01-05 explicitly defines the adapter pattern to isolate these changes from the UI layer.
 
 ## Environment Availability
 

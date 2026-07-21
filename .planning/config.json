@@ -4,9 +4,9 @@
   "parallelization": true,
   "search_gitignored": false,
   "brave_search": false,
-  "firecrawl": false,
+  "firecrawl": true,
   "exa_search": false,
-  "tavily_search": false,
+  "tavily_search": true,
   "ref_search": false,
   "perplexity": false,
   "jina": false,
@@ -49,7 +49,8 @@
     "security_block_on": "high",
     "tdd_mode": false,
     "ui_review": true,
-    "use_worktrees": true
+    "use_worktrees": true,
+    "_auto_chain_active": false
   },
   "ship": {
     "pr_body_sections": []

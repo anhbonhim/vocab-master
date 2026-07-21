@@ -1,78 +1,49 @@
----
-phase: 01
-slug: security-database-stabilization
-# status lifecycle: draft (seeded by plan-phase) → validated (set by validate-phase §6)
-# audit-milestone §5.5 distinguishes NOT-VALIDATED (draft) from PARTIAL (validated + nyquist_compliant: false) (#2117)
-status: draft
-nyquist_compliant: false
-wave_0_complete: false
-created: 2026-07-20
----
+# Phase 1: Security & Database Stabilization
+> Nyquist Validation Strategy & Implementation Map
 
-# Phase 01 — Validation Strategy
+## Phase Objectives
 
-> Per-phase validation contract for feedback sampling during execution.
+1. **Security (PERS-01)**: Prevent accidental exposure of user data via ADB backup.
+2. **Architecture (PERS-02, PERS-03)**: Guarantee non-blocking, atomic database operations.
+3. **Logic (FSRS-01..05)**: Mathematically verify FSRS v6 scheduler implementation against canonical reference outputs, ensuring identical repetition intervals and states.
 
----
+## Validation Dimensions
 
-## Test Infrastructure
+### Dimension 1: Feature Complete (UAT)
+- **Goal:** All stated requirements are satisfied.
+- **Implementation Map:**
+  - `PERS-01`: Android manifest modification in Plan 04.
+  - `PERS-02`, `PERS-03`: Room DAO modifications in Plan 04; Verified via Robolectric test in Plan 06.
+  - `FSRS-01`..`FSRS-05`: PyFsrs parity tests in Plan 02, Optimizer tests in Plan 03.
+- **Testing:** Automated unit tests covering both the algorithms and the DAO wrapper.
 
-| Property | Value |
-|----------|-------|
-| **Framework** | {pytest 7.x / jest 29.x / vitest / go test / other} |
-| **Config file** | {path or "none — Wave 0 installs"} |
-| **Quick run command** | `{quick command}` |
-| **Full suite command** | `{full command}` |
-| **Estimated runtime** | ~01 seconds |
+### Dimension 2: Security & Privacy
+- **Goal:** User databases must not be extractable.
+- **Implementation Map:**
+  - `data_extraction_rules.xml` and `backup_rules.xml` specifically exclude `vocab_database`, `-wal`, `-shm` and `sharedpref`.
+- **Testing:** Add assertions in `VocabDatabaseSmokeTest` (Plan 04) to load the rules XML and assert the exclusion of `vocab_database`.
 
----
+### Dimension 3: Resilience & Edge Cases
+- **Goal:** Negative stability or interval values never crash the app.
+- **Implementation Map:**
+  - Strict nullability/bounds checking inside FsrsV6.
+- **Testing:** Boundary conditions supplied by Golden Vector generation script (Plan 01), consumed by unit tests (Plan 01, Plan 02).
 
-## Sampling Rate
+### Dimension 4: State Consistency
+- **Goal:** The database must never contain half-written review records.
+- **Implementation Map:**
+  - Room `@Transaction` over `recordReview` function.
+- **Testing:** DAO suite atomicity test (Plan 06) throws artificial exceptions and asserts rollback.
 
-- **After every task commit:** Run `{quick run command}`
-- **After every plan wave:** Run `{full suite command}`
-- **Before `/gsd-verify-work`:** Full suite must be green
-- **Max feedback latency:** 01 seconds
+### Dimension 5: Performance & Scale
+- **Goal:** DB operations must not block the main thread.
+- **Implementation Map:**
+  - Kotlin Coroutines/Flows applied to all DAO methods.
+- **Testing:** Compiler enforces `suspend`/`Flow` on all `VocabDao` functions (Plan 04).
 
----
-
-## Per-Task Verification Map
-
-| Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
-|---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
-| 01-01-01 | 01 | 1 | REQ-{XX} | T-01-01 / — | {expected secure behavior or "N/A"} | unit | `{command}` | ✅ / ❌ W0 | ⬜ pending |
-
-*Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
-
----
-
-## Wave 0 Requirements
-
-- [ ] `{tests/test_file.py}` — stubs for REQ-{XX}
-- [ ] `{tests/conftest.py}` — shared fixtures
-- [ ] `{framework install}` — if no framework detected
-
-*If none: "Existing infrastructure covers all phase requirements."*
-
----
-
-## Manual-Only Verifications
-
-| Behavior | Requirement | Why Manual | Test Instructions |
-|----------|-------------|------------|-------------------|
-| {behavior} | REQ-{XX} | {reason} | {steps} |
-
-*If none: "All phase behaviors have automated verification."*
-
----
-
-## Validation Sign-Off
-
-- [ ] All tasks have `<automated>` verify or Wave 0 dependencies
-- [ ] Sampling continuity: no 3 consecutive tasks without automated verify
-- [ ] Wave 0 covers all MISSING references
-- [ ] No watch-mode flags
-- [ ] Feedback latency < 01s
-- [ ] `nyquist_compliant: true` set in frontmatter
-
-**Approval:** {pending / approved YYYY-MM-DD}
+### Dimension 8: Nyquist Compliance
+- **Goal:** Automated verification for every single requirement.
+- **Implementation Map:**
+  - `FSRS-01..FSRS-05`: Automated by `PyFsrsParityTest` and `OptimizerTest`.
+  - `PERS-01`: Verified by `VocabDatabaseSmokeTest` parsing XML.
+  - `PERS-02, PERS-03, PERS-04`: Verified by `VocabDaoTest` and `VocabularyRepositoryImplTest`.
