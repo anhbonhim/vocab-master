@@ -29,7 +29,7 @@ import com.nhimz.vocabmaster.ui.theme.GradientStart
 import com.nhimz.vocabmaster.domain.model.quiz.QuestionDirection
 import com.nhimz.vocabmaster.domain.model.quiz.QuizQuestion
 import com.nhimz.vocabmaster.domain.model.quiz.QuizType
-import com.nhimz.vocabmaster.ui.viewmodel.QuizSessionState
+import com.nhimz.vocabmaster.ui.viewmodel.QuizUiState
 import com.nhimz.vocabmaster.ui.viewmodel.QuizViewModel
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
@@ -41,12 +41,12 @@ fun QuizScreen(
     cdnAudioPlayer: CDNAudioPlayer,
     viewModel: QuizViewModel
 ) {
-    val sessionState by viewModel.sessionState.collectAsState()
+    val uiState by viewModel.uiState.collectAsState()
 
     // Pass data out to navigate to ResultScreen when Completed
-    LaunchedEffect(sessionState) {
-        if (sessionState is QuizSessionState.Completed) {
-            val completedState = sessionState as QuizSessionState.Completed
+    LaunchedEffect(uiState) {
+        if (uiState is QuizUiState.Completed) {
+            val completedState = uiState as QuizUiState.Completed
             if (completedState.totalCount > 0) {
                 onSessionCompleted(
                     completedState.xpGained,
@@ -62,11 +62,11 @@ fun QuizScreen(
         }
     }
 
-    when (val state = sessionState) {
-        is QuizSessionState.Loading -> {
+    when (val state = uiState) {
+        is QuizUiState.Loading -> {
             QuizLoadingSkeleton()
         }
-        is QuizSessionState.Active -> {
+        is QuizUiState.Active -> {
             val question = state.questions[state.currentIndex]
             val hasAnswered = state.isAnswerRevealed
             val shakeOffset = remember { Animatable(0f) }
@@ -355,12 +355,12 @@ fun QuizScreen(
                 }
             }
         }
-        is QuizSessionState.Completed -> {
+        is QuizUiState.Completed -> {
             if (state.totalCount == 0) {
                 QuizEmptyState(onBackToHome)
             }
         }
-        is QuizSessionState.Error -> {
+        is QuizUiState.Error -> {
             quizErrorState(message = state.message, onRetry = onBackToHome)
         }
     }

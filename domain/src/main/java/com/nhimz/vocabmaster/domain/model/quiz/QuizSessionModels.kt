@@ -53,8 +53,7 @@ sealed class QuizType {
     ) : QuizType()
 
     data class FSRSTailFlashcard(
-        val itemWithCard: QuestionWithCard,
-        var userRating: Rating? = null
+        val itemWithCard: QuestionWithCard
     ) : QuizType()
 }
 

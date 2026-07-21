@@ -6,6 +6,7 @@ import com.nhimz.vocabmaster.domain.fsrs.v6.State
 import com.nhimz.vocabmaster.domain.model.Question
 import com.nhimz.vocabmaster.domain.model.QuestionType
 import com.nhimz.vocabmaster.domain.model.QuestionWithCard
+import com.nhimz.vocabmaster.domain.model.quiz.QuizQuestion
 import com.nhimz.vocabmaster.domain.model.quiz.QuizType
 import com.nhimz.vocabmaster.domain.usecase.fakes.FakeReviewRepository
 import com.nhimz.vocabmaster.domain.usecase.fakes.FakeSettingsRepository
@@ -26,7 +27,7 @@ class SubmitReviewUseCaseTest {
             Question(id = "q1", sessionId = "s1", word = "w", type = QuestionType.TYPING, prompt = "p", options = null, correctIndex = null, correctSentence = "c", scrambledWords = null, translation = "t", audioUrl = null, audioUrlSlow = null, matchingPairs = null, imagePath = null),
             Card(cardId = "q1", state = State.New)
         )
-        return QuizType.FSRSTailFlashcard(item, userRating = rating)
+        return QuizType.FSRSTailFlashcard(item)
     }
 
     @Test
