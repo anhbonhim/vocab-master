@@ -12,15 +12,15 @@ Requirements for the refactored and audited application, mapped directly to road
 - [x] **FSRS-01**: The FSRS scheduler calculations must be mathematically correct, eliminating negative stability and difficulty values.
 - [x] **FSRS-02**: All FSRS computations must prevent out-of-bounds intervals, ensuring computed intervals are positive integers.
 - [x] **FSRS-03**: FSRS math must be fully localized, removing formatting calls (like `String.format`) that cause decimal separator crashes in non-US locales.
-- [ ] **FSRS-04**: Core FSRS scheduling math must be covered by comprehensive unit tests with golden vectors.
-- [ ] **FSRS-05**: Port the py-fsrs optimizer (parameter training from review logs) to Kotlin so custom FSRS weights can be trained from user review history. (Moved here from Out-of-Scope during Phase 1 discuss-phase on 2026-07-20 — full py-fsrs port was chosen as the FSRS fix strategy.)
+- [x] **FSRS-04**: Core FSRS scheduling math must be covered by comprehensive unit tests with golden vectors.
+- [x] **FSRS-05**: Port the py-fsrs optimizer (parameter training from review logs) to Kotlin so custom FSRS weights can be trained from user review history. (Moved here from Out-of-Scope during Phase 1 discuss-phase on 2026-07-20 — full py-fsrs port was chosen as the FSRS fix strategy.)
 
 ### Database & Local Persistence
 
-- [ ] **PERS-01**: Configure explicit XML data extraction rules (`data_extraction_rules.xml`) to prevent Room DB and Datastore keys from leaking through default cloud backups.
-- [ ] **PERS-02**: Ensure all Room DAO operations run on appropriate background threads (using `suspend` for writes and `Flow` for reads) to prevent UI blocking.
+- [x] **PERS-01**: Configure explicit XML data extraction rules (`data_extraction_rules.xml`) to prevent Room DB and Datastore keys from leaking through default cloud backups.
+- [x] **PERS-02**: Ensure all Room DAO operations run on appropriate background threads (using `suspend` for writes and `Flow` for reads) to prevent UI blocking.
 - [x] **PERS-03**: Implement database transaction bounds for atomic cards and review logs updates to prevent desynchronization.
-- [ ] **PERS-04**: Replace dynamic, unsafe JSON asset parsing fallbacks in repositories with robust error handling and specific exception catching.
+- [x] **PERS-04**: Replace dynamic, unsafe JSON asset parsing fallbacks in repositories with robust error handling and specific exception catching.
 
 ### UI & Presentation Layer Architecture
 
@@ -67,12 +67,12 @@ Requirements for the refactored and audited application, mapped directly to road
 | FSRS-01 | Phase 1 | Complete |
 | FSRS-02 | Phase 1 | Complete |
 | FSRS-03 | Phase 1 | Complete |
-| FSRS-04 | Phase 1 | Pending |
-| FSRS-05 | Phase 1 | Pending |
-| PERS-01 | Phase 1 | Pending |
-| PERS-02 | Phase 1 | Pending |
+| FSRS-04 | Phase 1 | Complete |
+| FSRS-05 | Phase 1 | Complete |
+| PERS-01 | Phase 1 | Complete |
+| PERS-02 | Phase 1 | Complete |
 | PERS-03 | Phase 1 | Complete |
-| PERS-04 | Phase 1 | Pending |
+| PERS-04 | Phase 1 | Complete |
 | ARCH-03 | Phase 2 | Pending |
 | ARCH-04 | Phase 2 | Pending |
 | ARCH-01 | Phase 3 | Pending |

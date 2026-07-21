@@ -6,7 +6,7 @@ VocabMaster is being refactored and audited to build a robust local persistence 
 
 ## Phases
 
-- [ ] **Phase 1: Security & Database Stabilization** - Verify FSRS scheduler calculations with unit tests, configure secure backups, and migrate Room DAOs to Flow/suspend.
+- [x] **Phase 1: Security & Database Stabilization** - Verify FSRS scheduler calculations with unit tests, configure secure backups, and migrate Room DAOs to Flow/suspend. (completed 2026-07-21)
 - [ ] **Phase 2: Business Logic & ViewModel Refactoring** - Decouple ViewModels by moving domain logic to UseCases and implementing strict Unidirectional Data Flow (UDF).
 - [ ] **Phase 3: Compose UI Refactoring & Polish** - Disassemble monolithic screen layouts, adopt safe Kotlin casts, and implement a modern design system with rich UX transitions.
 - [ ] **Phase 4: Sync & Integration Verification** - Audit Remote Sync payload logic and verify conflict resolution flow with FastAPI.
@@ -113,7 +113,7 @@ Plans:
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Security & Database Stabilization | 7/7 | In Progress|  |
+| 1. Security & Database Stabilization | 7/7 | Complete    | 2026-07-21 |
 | 2. Business Logic & ViewModel Refactoring | 0/2 | Not started | - |
 | 3. Compose UI Refactoring & Polish | 0/3 | Not started | - |
 | 4. Sync & Integration Verification | 0/1 | Not started | - |
