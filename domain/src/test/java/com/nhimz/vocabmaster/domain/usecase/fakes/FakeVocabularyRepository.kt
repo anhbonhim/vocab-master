@@ -13,7 +13,7 @@ import com.nhimz.vocabmaster.domain.model.VocabularyRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 
-class FakeVocabularyRepository : VocabularyRepository {
+open class FakeVocabularyRepository : VocabularyRepository {
     var getSessionsByNodeResult: Result<List<Session>> = Result.success(emptyList())
     var getQuestionsBySessionResult: Result<List<Question>> = Result.success(emptyList())
     var getCardByQuestionIdResult: Card? = null
