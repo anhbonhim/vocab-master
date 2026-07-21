@@ -11,6 +11,7 @@ import androidx.core.app.NotificationCompat
 import com.nhimz.vocabmaster.MainActivity
 import com.nhimz.vocabmaster.R
 import com.nhimz.vocabmaster.domain.model.DifficultyLevel
+import com.nhimz.vocabmaster.domain.model.displayTitle
 import com.nhimz.vocabmaster.domain.model.VocabularyRepository
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
@@ -33,12 +34,12 @@ class NotificationReceiver : BroadcastReceiver() {
                 var wordText = "persistent"
                 var definitionText = "kiên trì, bền bỉ"
 
-                val dueCards = vocabularyRepository.getDueCards(System.currentTimeMillis() / 1000, 5).firstOrNull()
+                val dueCards = vocabularyRepository.getDueCards(System.currentTimeMillis(), 5).firstOrNull()
                 val card = dueCards?.randomOrNull() ?: vocabularyRepository.getCardsByLevel(DifficultyLevel.A2).firstOrNull()?.randomOrNull()
 
                 if (card != null) {
-                    wordText = card.vocabulary.word
-                    definitionText = card.vocabulary.definition
+                    wordText = card.question.displayTitle()
+                    definitionText = card.question.translation ?: "Bấm vào để làm bài ôn tập"
                 }
 
                 showNotification(context, wordText, definitionText)

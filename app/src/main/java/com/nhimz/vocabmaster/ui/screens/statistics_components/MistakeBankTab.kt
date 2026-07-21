@@ -25,14 +25,18 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.nhimz.vocabmaster.domain.model.VocabularyItemWithCard
+import com.nhimz.vocabmaster.domain.model.QuestionWithCard
+import com.nhimz.vocabmaster.domain.model.displayTitle
 
 @Composable
-fun MistakeBankTab(mistakeCards: List<VocabularyItemWithCard>) {
+fun MistakeBankTab(
+    mistakeCards: List<QuestionWithCard>,
+    onReviewMistakes: (List<String>) -> Unit
+) {
     if (mistakeCards.isEmpty()) {
         EmptyMistakeState()
     } else {
-        MistakeList(mistakeCards)
+        MistakeList(mistakeCards, onReviewMistakes)
     }
 }
 
@@ -66,7 +70,10 @@ private fun EmptyMistakeState() {
 }
 
 @Composable
-private fun MistakeList(mistakeCards: List<VocabularyItemWithCard>) {
+private fun MistakeList(
+    mistakeCards: List<QuestionWithCard>,
+    onReviewMistakes: (List<String>) -> Unit
+) {
     LazyColumn(modifier = Modifier.fillMaxSize()) {
         item {
             Card(
@@ -85,6 +92,25 @@ private fun MistakeList(mistakeCards: List<VocabularyItemWithCard>) {
             }
         }
 
+        item {
+            androidx.compose.material3.Button(
+                onClick = { onReviewMistakes(mistakeCards.map { it.card.cardId }) },
+                colors = androidx.compose.material3.ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.error
+                ),
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp)
+            ) {
+                Text(
+                    text = "💪 Luyện tập các từ sai này",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 15.sp
+                )
+            }
+        }
+
         items(mistakeCards) { card ->
             val errorPercent = calculateErrorPercentage(card)
             MistakeCardItem(card = card, errorPercent = errorPercent)
@@ -93,7 +119,7 @@ private fun MistakeList(mistakeCards: List<VocabularyItemWithCard>) {
 }
 
 @Composable
-private fun MistakeCardItem(card: VocabularyItemWithCard, errorPercent: Int) {
+private fun MistakeCardItem(card: QuestionWithCard, errorPercent: Int) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -111,13 +137,13 @@ private fun MistakeCardItem(card: VocabularyItemWithCard, errorPercent: Int) {
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "${card.vocabulary.word} (${card.vocabulary.partOfSpeech.lowercase()})",
+                    text = "${card.question.displayTitle()} (${card.question.type.name.lowercase()})",
                     fontWeight = FontWeight.Bold,
                     fontSize = 16.sp,
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
-                    text = card.vocabulary.definition,
+                    text = card.question.translation ?: "",
                     fontSize = 13.sp,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                 )
@@ -145,7 +171,7 @@ private fun MistakeCardItem(card: VocabularyItemWithCard, errorPercent: Int) {
 /**
  * Calculates the percentage of mistakes based on lapses over total reps.
  */
-fun calculateErrorPercentage(card: VocabularyItemWithCard): Int {
+fun calculateErrorPercentage(card: QuestionWithCard): Int {
     if (card.card.reps == 0) return 0
     return ((card.card.lapses.toFloat() / card.card.reps.toFloat()) * 100).toInt()
 }
