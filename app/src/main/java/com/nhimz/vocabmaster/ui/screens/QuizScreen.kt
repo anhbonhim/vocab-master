@@ -26,10 +26,10 @@ import com.nhimz.vocabmaster.audio.CDNAudioPlayer
 import com.nhimz.vocabmaster.domain.fsrs.v6.Rating
 import com.nhimz.vocabmaster.ui.components.quiz.*
 import com.nhimz.vocabmaster.ui.theme.GradientStart
-import com.nhimz.vocabmaster.ui.viewmodel.QuestionDirection
-import com.nhimz.vocabmaster.ui.viewmodel.QuizQuestion
+import com.nhimz.vocabmaster.domain.model.quiz.QuestionDirection
+import com.nhimz.vocabmaster.domain.model.quiz.QuizQuestion
+import com.nhimz.vocabmaster.domain.model.quiz.QuizType
 import com.nhimz.vocabmaster.ui.viewmodel.QuizSessionState
-import com.nhimz.vocabmaster.ui.viewmodel.QuizType
 import com.nhimz.vocabmaster.ui.viewmodel.QuizViewModel
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt

@@ -10,6 +10,9 @@ import com.nhimz.vocabmaster.domain.model.QuestionWithCard
 import com.nhimz.vocabmaster.domain.model.VocabularyRepository
 import com.nhimz.vocabmaster.domain.model.ReviewRepository
 import com.nhimz.vocabmaster.domain.model.SettingsRepository
+import com.nhimz.vocabmaster.domain.model.quiz.QuestionDirection
+import com.nhimz.vocabmaster.domain.model.quiz.QuizQuestion
+import com.nhimz.vocabmaster.domain.model.quiz.QuizType
 import com.nhimz.vocabmaster.domain.usecase.MapRatingUseCase
 import com.nhimz.vocabmaster.domain.usecase.UpdateStreakUseCase
 import com.nhimz.vocabmaster.domain.model.Question
@@ -23,75 +26,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import javax.inject.Inject
-
-enum class QuestionDirection {
-    EN_TO_VI, VI_TO_EN
-}
-
-sealed class QuizType {
-    data class Introduction(
-        val itemWithCard: QuestionWithCard?,
-        val prompt: String,
-        val audioUrl: String?
-    ) : QuizType()
-
-    data class MultipleChoice(
-        val itemWithCard: QuestionWithCard?, // Can be null if testing generic phrase
-        val direction: QuestionDirection,
-        val prompt: String,
-        val options: List<String>,
-        val correctIndex: Int
-    ) : QuizType()
-
-    data class ScrambledSentence(
-        val itemWithCard: QuestionWithCard?,
-        val scrambledWords: List<String>,
-        val correctSentence: String
-    ) : QuizType()
-
-    data class Listening(
-        val itemWithCard: QuestionWithCard?,
-        val prompt: String,
-        val audioUrl: String?,
-        val audioUrlSlow: String?,
-        val options: List<String>?,
-        val correctIndex: Int?
-    ) : QuizType()
-
-    data class Matching(
-        val itemWithCard: QuestionWithCard?,
-        val prompt: String,
-        val pairs: List<MatchPair>
-    ) : QuizType()
-
-    data class Typing(
-        val itemWithCard: QuestionWithCard?,
-        val prompt: String,
-        val correctSentence: String,
-        val audioUrl: String?,
-        val audioUrlSlow: String?
-    ) : QuizType()
-
-    data class FSRSTailFlashcard(
-        val itemWithCard: QuestionWithCard,
-        var userRating: Rating? = null
-    ) : QuizType()
-}
-
-data class QuizQuestion(
-    val type: QuizType
-) {
-    val itemWithCard: QuestionWithCard?
-        get() = when (type) {
-            is QuizType.Introduction -> type.itemWithCard
-            is QuizType.MultipleChoice -> type.itemWithCard
-            is QuizType.ScrambledSentence -> type.itemWithCard
-            is QuizType.Listening -> type.itemWithCard
-            is QuizType.Matching -> type.itemWithCard
-            is QuizType.Typing -> type.itemWithCard
-            is QuizType.FSRSTailFlashcard -> type.itemWithCard
-        }
-}
 
 sealed class QuizSessionState {
     object Loading : QuizSessionState()
