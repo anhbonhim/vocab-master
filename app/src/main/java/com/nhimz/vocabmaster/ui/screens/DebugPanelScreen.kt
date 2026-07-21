@@ -57,12 +57,11 @@ import com.nhimz.vocabmaster.audio.CDNAudioPlayer
 import com.nhimz.vocabmaster.data.database.VocabDao
 import com.nhimz.vocabmaster.data.database.VocabDatabase
 import com.nhimz.vocabmaster.data.database.entity.FlaggedItemEntity
-import com.nhimz.vocabmaster.domain.fsrs.State
+import com.nhimz.vocabmaster.domain.fsrs.v6.State
 import com.nhimz.vocabmaster.domain.model.BackupRepository
 import com.nhimz.vocabmaster.domain.model.ReviewRepository
 import com.nhimz.vocabmaster.domain.model.SettingsRepository
 import com.nhimz.vocabmaster.domain.model.VocabularyRepository
-import com.nhimz.vocabmaster.ui.screens.debug_components.TestSuitesTab
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -85,7 +84,7 @@ fun DebugPanelScreen(
     backupRepository: BackupRepository
 ) {
     var selectedTabIndex by remember { mutableIntStateOf(0) }
-    val tabs = listOf("Audio Cache", "DB & FSRS", "Logs", "Test Suites", "Dataset QA", "Audio QA Studio", "Flagged Items")
+    val tabs = listOf("Audio Cache", "DB & FSRS", "Logs", "Dataset QA", "Audio QA Studio", "Flagged Items")
 
     Scaffold(
         topBar = {
@@ -127,17 +126,9 @@ fun DebugPanelScreen(
                     0 -> AudioCacheTab(cdnAudioPlayer)
                     1 -> DatabaseFsrsTab(vocabDatabase.vocabDao())
                     2 -> LogsTab()
-                    3 -> TestSuitesTab(
-                        vocabDatabase = vocabDatabase,
-                        settingsRepository = settingsRepository,
-                        vocabularyRepository = vocabularyRepository,
-                        reviewRepository = reviewRepository,
-                        backupRepository = backupRepository,
-                        cdnAudioPlayer = cdnAudioPlayer
-                    )
-                    4 -> DatasetQATab(vocabDatabase.vocabDao())
-                    5 -> AudioQAStudioTab(vocabDatabase.vocabDao(), cdnAudioPlayer, settingsRepository)
-                    6 -> FlaggedItemsTab(vocabDatabase.vocabDao())
+                    3 -> DatasetQATab(vocabDatabase.vocabDao())
+                    4 -> AudioQAStudioTab(vocabDatabase.vocabDao(), cdnAudioPlayer, settingsRepository)
+                    5 -> FlaggedItemsTab(vocabDatabase.vocabDao())
                 }
             }
         }
@@ -205,10 +196,10 @@ fun DatabaseFsrsTab(vocabDao: VocabDao) {
     LaunchedEffect(Unit) {
         scope.launch(Dispatchers.IO) {
             totalCards = vocabDao.getCardCount()
-            val newCards = vocabDao.getCardCountByState(State.New.name)
-            val learningCards = vocabDao.getCardCountByState(State.Learning.name)
-            val reviewCards = vocabDao.getCardCountByState(State.Review.name)
-            val relearningCards = vocabDao.getCardCountByState(State.Relearning.name)
+            val newCards = vocabDao.getCardCountByState(State.New.value)
+            val learningCards = vocabDao.getCardCountByState(State.Learning.value)
+            val reviewCards = vocabDao.getCardCountByState(State.Review.value)
+            val relearningCards = vocabDao.getCardCountByState(State.Relearning.value)
             
             withContext(Dispatchers.Main) {
                 statsMap = mapOf(
@@ -332,7 +323,7 @@ fun DatasetQATab(vocabDao: VocabDao) {
                     anomaliesList.clear()
                     scope.launch(Dispatchers.IO) {
                         try {
-                            val cards = vocabDao.getAllCards()
+                            val cards = vocabDao.getAllQuestions()
                             val total = cards.size
                             cards.forEachIndexed { index, card ->
                                 if ((index + 1) % 100 == 0 || index == total - 1) {
@@ -342,29 +333,25 @@ fun DatasetQATab(vocabDao: VocabDao) {
                                 }
 
                                 // 1. Kiểm tra JSON scrambledSentenceData
-                                val scrambledData = card.scrambledSentenceData
+                                val scrambledData = card.scrambledWords
                                 if (scrambledData.isNullOrBlank()) {
-                                    anomaliesList.add("[ERR_JSON_EMPTY] '${card.word}': scrambledSentenceData bị trống hoặc null")
+                                    anomaliesList.add("[ERR_JSON_EMPTY] '${card.id}': scrambledSentenceData bị trống hoặc null")
                                 } else {
                                     try {
                                         val array = jsonArrayToList(scrambledData)
                                         if (array.isEmpty()) {
-                                            anomaliesList.add("[WARN_JSON_ARRAY] '${card.word}': scrambledSentenceData là mảng rỗng []")
+                                            anomaliesList.add("[WARN_JSON_ARRAY] '${card.id}': scrambledSentenceData là mảng rỗng []")
                                         }
                                     } catch (e: Exception) {
-                                        anomaliesList.add("[ERR_JSON_FORMAT] '${card.word}': scrambledSentenceData lỗi cú pháp JSON: ${e.message}")
+                                        anomaliesList.add("[ERR_JSON_FORMAT] '${card.id}': scrambledSentenceData lỗi cú pháp JSON: ${e.message}")
                                     }
                                 }
 
                                 // 2. Kiểm tra audioUrl rỗng
                                 if (card.audioUrl.isNullOrBlank()) {
-                                    anomaliesList.add("[ERR_AUDIO_URL] '${card.word}': audioUrl bị trống")
+                                    anomaliesList.add("[ERR_AUDIO_URL] '${card.id}': audioUrl bị trống")
                                 }
 
-                                // 3. Kiểm tra topic
-                                if (card.topic.isBlank()) {
-                                    anomaliesList.add("[ERR_TOPIC] '${card.word}': topic bị trống")
-                                }
                             }
                             withContext(Dispatchers.Main) {
                                 isScanning = false
@@ -422,13 +409,13 @@ fun DatasetQATab(vocabDao: VocabDao) {
 fun AudioQAStudioTab(vocabDao: VocabDao, cdnAudioPlayer: CDNAudioPlayer, settingsRepository: SettingsRepository) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
-    var cardsList by remember { mutableStateOf<List<com.nhimz.vocabmaster.data.database.entity.VocabularyCardEntity>>(emptyList()) }
+    var cardsList by remember { mutableStateOf<List<com.nhimz.vocabmaster.data.database.entity.QuestionEntity>>(emptyList()) }
     var currentIndex by remember { mutableIntStateOf(0) }
     var useLocalServer by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         scope.launch(Dispatchers.IO) {
-            val list = vocabDao.getAllCards()
+            val list = vocabDao.getAllQuestions()
             val localSetting = settingsRepository.useLocalDevServer.first()
             withContext(Dispatchers.Main) {
                 cardsList = list
@@ -491,13 +478,13 @@ fun AudioQAStudioTab(vocabDao: VocabDao, cdnAudioPlayer: CDNAudioPlayer, setting
                             )
                         Spacer(modifier = Modifier.height(16.dp))
                         Text(
-                            text = currentCard.word,
+                            text = currentCard.id,
                             fontSize = 36.sp,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Text(
-                            text = currentCard.definition,
+                            text = currentCard.translation ?: "",
                             fontSize = 18.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                         )
@@ -535,14 +522,15 @@ fun AudioQAStudioTab(vocabDao: VocabDao, cdnAudioPlayer: CDNAudioPlayer, setting
                             scope.launch(Dispatchers.IO) {
                                 vocabDao.insertFlaggedItem(
                                     FlaggedItemEntity(
-                                        word = currentCard.word,
+                                        questionId = currentCard.id,
+                                        word = currentCard.prompt,
                                         issueType = "AUDIO_ISSUE",
                                         details = "Tester phát hiện âm thanh lỗi (rè, méo, hoặc rỗng)",
                                         timestamp = System.currentTimeMillis()
                                     )
                                 )
                                 withContext(Dispatchers.Main) {
-                                    Toast.makeText(context, "Đã cắm cờ báo lỗi từ: ${currentCard.word}", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(context, "Đã cắm cờ báo lỗi từ: ${currentCard.id}", Toast.LENGTH_SHORT).show()
                                     if (currentIndex < cardsList.size - 1) currentIndex++
                                 }
                             }
@@ -605,7 +593,7 @@ fun FlaggedItemsTab(vocabDao: VocabDao) {
                             val writer = FileWriter(reportFile)
                             
                             val finalJson = "[" + flaggedList.joinToString(",") { 
-                                "{\"word\":\"${it.word}\",\"issue\":\"${it.issueType}\",\"details\":\"${it.details}\"}"
+                                "{\"word\":\"${it.questionId}\",\"issue\":\"${it.issueType}\",\"details\":\"${it.details}\"}"
                             } + "]"
                                 
                             writer.append(finalJson)
@@ -657,13 +645,13 @@ fun FlaggedItemsTab(vocabDao: VocabDao) {
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
-                                Text(item.word, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                                Text(item.questionId, fontWeight = FontWeight.Bold, fontSize = 16.sp)
                                 Text(item.details, fontSize = 12.sp, color = Color.Gray)
                             }
                             Button(
                                 onClick = {
                                     scope.launch(Dispatchers.IO) {
-                                        vocabDao.deleteFlaggedItem(item.word)
+                                        vocabDao.deleteFlaggedItem(item.questionId)
                                         refreshFlagged()
                                     }
                                 },

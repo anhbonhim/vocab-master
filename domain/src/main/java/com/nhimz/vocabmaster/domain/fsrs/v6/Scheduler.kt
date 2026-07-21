@@ -21,7 +21,7 @@ import kotlin.random.Random
  * - [learningSteps] and [relearningSteps] are stored as milliseconds ([LongArray])
  *   instead of Python `timedelta` objects.
  *
- * All scheduler math uses pure `Double` / `Int` / `Long`; no `String.format` or
+ * All scheduler math uses pure `Double` / `Int` / `Long`; no string formatting or
  * `Locale` usage is present in this package (FSRS-03).
  */
 @Suppress("TooManyFunctions", "LongMethod", "CyclomaticComplexMethod", "LongParameterList", "MagicNumber")
