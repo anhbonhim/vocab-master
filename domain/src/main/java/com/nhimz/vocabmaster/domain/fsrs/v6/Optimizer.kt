@@ -264,9 +264,16 @@ class Optimizer @Inject constructor(reviewLogs: List<ReviewLog>) {
         val gradient = DoubleArray(parameters.size)
         for (i in parameters.indices) {
             val h = FINITE_DIFF_STEP * maxOf(kotlin.math.abs(parameters[i]), 0.01)
-            val plus = parameters.copyOf().apply { this[i] += h }
-            val minus = parameters.copyOf().apply { this[i] -= h }
-            gradient[i] = (computeMiniBatchLoss(plus, batch) - computeMiniBatchLoss(minus, batch)) / (2.0 * h)
+            val lower = Scheduler.LOWER_BOUNDS_PARAMETERS[i]
+            val upper = Scheduler.UPPER_BOUNDS_PARAMETERS[i]
+            val plus = parameters.copyOf().apply { this[i] = min(upper, this[i] + h) }
+            val minus = parameters.copyOf().apply { this[i] = max(lower, this[i] - h) }
+            val denominator = plus[i] - minus[i]
+            gradient[i] = if (denominator > 0.0) {
+                (computeMiniBatchLoss(plus, batch) - computeMiniBatchLoss(minus, batch)) / denominator
+            } else {
+                0.0
+            }
         }
         return gradient
     }
