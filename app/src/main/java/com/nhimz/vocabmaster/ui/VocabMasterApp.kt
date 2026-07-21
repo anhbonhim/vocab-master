@@ -19,6 +19,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.nhimz.vocabmaster.audio.CDNAudioPlayer
+import com.nhimz.vocabmaster.ui.screens.UnitGuidebookScreen
+import com.nhimz.vocabmaster.ui.screens.JumpTestScreen
+import com.nhimz.vocabmaster.ui.screens.SectionCheckpointScreen
+import com.nhimz.vocabmaster.ui.screens.UnitCheckpointScreen
+import androidx.compose.runtime.produceState
 import com.nhimz.vocabmaster.notification.NotificationScheduler
 import com.nhimz.vocabmaster.ui.navigation.Screen
 import com.nhimz.vocabmaster.data.database.VocabDatabase
@@ -26,33 +31,30 @@ import com.nhimz.vocabmaster.domain.model.BackupRepository
 import com.nhimz.vocabmaster.domain.model.ReviewRepository
 import com.nhimz.vocabmaster.domain.model.SettingsRepository
 import com.nhimz.vocabmaster.domain.model.VocabularyRepository
+import com.nhimz.vocabmaster.ui.screens.SettingsScreen
+import com.nhimz.vocabmaster.ui.screens.StatisticsScreen
+import com.nhimz.vocabmaster.ui.screens.WelcomeScreen
+import com.nhimz.vocabmaster.ui.screens.LoginScreen
 import com.nhimz.vocabmaster.ui.screens.DebugPanelScreen
 import com.nhimz.vocabmaster.ui.screens.FirstWinScreen
-import com.nhimz.vocabmaster.ui.screens.FlashcardScreen
 import com.nhimz.vocabmaster.ui.screens.GoalPickerScreen
 import com.nhimz.vocabmaster.ui.screens.HomeScreen
 import com.nhimz.vocabmaster.ui.screens.PlacementTestScreen
 import com.nhimz.vocabmaster.ui.screens.QuizScreen
 import com.nhimz.vocabmaster.ui.screens.ResultScreen
-import com.nhimz.vocabmaster.ui.screens.SettingsScreen
-import com.nhimz.vocabmaster.ui.screens.StatisticsScreen
-import com.nhimz.vocabmaster.ui.screens.TopicPickerScreen
-import com.nhimz.vocabmaster.ui.screens.WelcomeScreen
-import com.nhimz.vocabmaster.ui.screens.LoginScreen
 import com.nhimz.vocabmaster.ui.theme.VocabMasterTheme
-import com.nhimz.vocabmaster.ui.viewmodel.FlashcardViewModel
 import com.nhimz.vocabmaster.ui.viewmodel.MainViewModel
 import com.nhimz.vocabmaster.ui.viewmodel.PlacementTestViewModel
 import com.nhimz.vocabmaster.ui.viewmodel.QuizViewModel
 import com.nhimz.vocabmaster.ui.viewmodel.SettingsViewModel
 import com.nhimz.vocabmaster.ui.viewmodel.StatisticsViewModel
+import com.nhimz.vocabmaster.util.LocalLogger
 
 @Composable
 fun VocabMasterApp(
     mainViewModel: MainViewModel,
     placementTestViewModel: PlacementTestViewModel,
     quizViewModel: QuizViewModel,
-    flashcardViewModel: FlashcardViewModel,
     statisticsViewModel: StatisticsViewModel,
     settingsViewModel: SettingsViewModel,
     cdnAudioPlayer: CDNAudioPlayer,
@@ -63,7 +65,17 @@ fun VocabMasterApp(
     settingsRepository: SettingsRepository,
     backupRepository: BackupRepository
 ) {
-    val themeMode by mainViewModel.theme.collectAsState()
+    val themeMode = settingsViewModel.theme.collectAsState().value
+    val badgeUnlocked by mainViewModel.badgeUnlockedEvent.collectAsState()
+    val context = androidx.compose.ui.platform.LocalContext.current
+
+    if (badgeUnlocked != null) {
+        androidx.compose.runtime.LaunchedEffect(badgeUnlocked) {
+            android.widget.Toast.makeText(context, "🏆 Chúc mừng! Bạn đã mở khoá huy hiệu: $badgeUnlocked", android.widget.Toast.LENGTH_LONG).show()
+            mainViewModel.clearBadgeUnlockedEvent()
+        }
+    }
+
     val darkTheme = when (themeMode) {
         "DARK" -> true
         "LIGHT" -> false
@@ -82,24 +94,23 @@ fun VocabMasterApp(
                     OnboardingFlow(
                         currentScreen = currentScreen,
                         mainViewModel = mainViewModel,
-                        placementTestViewModel = placementTestViewModel
+                        placementTestViewModel = placementTestViewModel,
+                        settingsViewModel = settingsViewModel
                     )
                 }
-                is Screen.Quiz, is Screen.Flashcard, is Screen.Result -> {
+                is Screen.Quiz, is Screen.Result -> {
                     StudyFlow(
                         currentScreen = currentScreen,
                         mainViewModel = mainViewModel,
                         quizViewModel = quizViewModel,
-                        flashcardViewModel = flashcardViewModel,
                         cdnAudioPlayer = cdnAudioPlayer
                     )
                 }
-                is Screen.Home, is Screen.Statistics, is Screen.Settings, is Screen.TopicPicker, is Screen.DebugPanel -> {
+                is Screen.Home, is Screen.Statistics, is Screen.Settings, is Screen.DebugPanel, is Screen.Guidebook, is Screen.JumpTest, is Screen.SectionCheckpoint, is Screen.UnitCheckpoint -> {
                     MainAppScaffold(
                         currentScreen = currentScreen,
                         mainViewModel = mainViewModel,
                         quizViewModel = quizViewModel,
-                        flashcardViewModel = flashcardViewModel,
                         statisticsViewModel = statisticsViewModel,
                         settingsViewModel = settingsViewModel,
                         notificationScheduler = notificationScheduler,
@@ -137,7 +148,8 @@ private fun LoadingSplash() {
 private fun OnboardingFlow(
     currentScreen: Screen,
     mainViewModel: MainViewModel,
-    placementTestViewModel: PlacementTestViewModel
+    placementTestViewModel: PlacementTestViewModel,
+    settingsViewModel: SettingsViewModel
 ) {
     when (currentScreen) {
         is Screen.Welcome -> WelcomeScreen(
@@ -148,19 +160,14 @@ private fun OnboardingFlow(
         )
         is Screen.GoalPicker -> GoalPickerScreen(
             onGoalSelected = { minutes ->
-                mainViewModel.setDailyGoal(minutes)
+                settingsViewModel.setDailyGoal(minutes)
                 mainViewModel.navigateTo(Screen.PlacementTest)
             }
         )
         is Screen.PlacementTest -> PlacementTestScreen(
             onFinished = { levelStr ->
                 if (levelStr != null) {
-                    try {
-                        val levelEnum = com.nhimz.vocabmaster.domain.model.DifficultyLevel.valueOf(levelStr)
-                        mainViewModel.savePlacementLevel(levelEnum)
-                    } catch (e: Exception) {
-                        e.printStackTrace()
-                    }
+                    mainViewModel.savePlacementLevel(levelStr)
                 }
                 mainViewModel.navigateTo(Screen.FirstWin)
             },
@@ -179,27 +186,17 @@ private fun StudyFlow(
     currentScreen: Screen,
     mainViewModel: MainViewModel,
     quizViewModel: QuizViewModel,
-    flashcardViewModel: FlashcardViewModel,
     cdnAudioPlayer: CDNAudioPlayer
 ) {
     when (currentScreen) {
         is Screen.Quiz -> QuizScreen(
-            onSessionCompleted = { xp, duration, correct, total, stability ->
+            onSessionCompleted = { xp, duration, correct, total, stability, incorrectCardIds, isLevelTest, isPassedLevelTest ->
                 mainViewModel.addStudyTime(duration)
-                mainViewModel.navigateTo(Screen.Result(xp, duration, correct, total, stability))
+                mainViewModel.navigateTo(Screen.Result(xp, duration, correct, total, stability, incorrectCardIds, isLevelTest, isPassedLevelTest))
             },
             onBackToHome = { mainViewModel.navigateTo(Screen.Home) },
             cdnAudioPlayer = cdnAudioPlayer,
             viewModel = quizViewModel
-        )
-        is Screen.Flashcard -> FlashcardScreen(
-            onSessionCompleted = { xp, duration, correct, total, stability ->
-                mainViewModel.addStudyTime(duration)
-                mainViewModel.navigateTo(Screen.Result(xp, duration, correct, total, stability))
-            },
-            onBackToHome = { mainViewModel.navigateTo(Screen.Home) },
-            cdnAudioPlayer = cdnAudioPlayer,
-            viewModel = flashcardViewModel
         )
         is Screen.Result -> {
             val result = currentScreen as Screen.Result
@@ -209,9 +206,16 @@ private fun StudyFlow(
                 correctCount = result.correctCount,
                 totalCount = result.totalCount,
                 averageStability = result.sessionStability,
+                incorrectCardIds = result.incorrectCardIds,
+                isLevelTest = result.isLevelTest,
+                isPassedLevelTest = result.isPassedLevelTest,
                 onBackToHome = {
                     mainViewModel.updateStreak()
                     mainViewModel.navigateTo(Screen.Home)
+                },
+                onReviewMistakes = { ids ->
+                    // Fallback using old review mechanics, could be updated if ReviewGym changed
+                    mainViewModel.navigateTo(Screen.Quiz(ids))
                 }
             )
         }
@@ -219,12 +223,12 @@ private fun StudyFlow(
     }
 }
 
+
 @Composable
 private fun MainAppScaffold(
     currentScreen: Screen,
     mainViewModel: MainViewModel,
     quizViewModel: QuizViewModel,
-    flashcardViewModel: FlashcardViewModel,
     statisticsViewModel: StatisticsViewModel,
     settingsViewModel: SettingsViewModel,
     notificationScheduler: NotificationScheduler,
@@ -248,15 +252,6 @@ private fun MainAppScaffold(
                     label = { Text("Trang chủ", fontSize = 11.sp, fontWeight = FontWeight.Bold) }
                 )
                 NavigationBarItem(
-                    selected = false,
-                    onClick = {
-                        quizViewModel.startNewSession()
-                        mainViewModel.navigateTo(Screen.Quiz)
-                    },
-                    icon = { Text("✍️", fontSize = 20.sp) },
-                    label = { Text("Luyện tập", fontSize = 11.sp, fontWeight = FontWeight.Bold) }
-                )
-                NavigationBarItem(
                     selected = currentScreen is Screen.Statistics,
                     onClick = { mainViewModel.navigateTo(Screen.Statistics) },
                     icon = { Text("📊", fontSize = 20.sp) },
@@ -275,26 +270,100 @@ private fun MainAppScaffold(
             when (currentScreen) {
                 is Screen.Home -> HomeScreen(
                     onStartQuiz = {
-                        quizViewModel.startNewSession()
-                        mainViewModel.navigateTo(Screen.Quiz)
+                        quizViewModel.startMistakeReview(null)
+                        mainViewModel.navigateTo(Screen.Quiz())
                     },
-                    onStartFlashcard = {
-                        flashcardViewModel.startNewSession()
-                        mainViewModel.navigateTo(Screen.Flashcard)
+                    onStartFlashcard = { ids ->
+                        quizViewModel.startMistakeReview(ids)
+                        mainViewModel.navigateTo(Screen.Quiz(ids))
+                    },
+                    onStartCustomQuiz = { stage, topic, index, isLevelTest, isReviewGym ->
+                        quizViewModel.startMistakeReview(null)
+                        mainViewModel.navigateTo(Screen.Quiz())
+                    },
+                    onStartNodeSession = { nodeId ->
+                        quizViewModel.startNodeSession(nodeId, 0)
+                        mainViewModel.navigateTo(Screen.Quiz())
+                    },
+                    onStartReviewNode = { nodeId, unitId, sectionId ->
+                        quizViewModel.startReviewNode(nodeId, unitId, sectionId)
+                        mainViewModel.navigateTo(Screen.Quiz())
+                    },
+                    onStartJumpTest = { unitId ->
+                        mainViewModel.navigateTo(Screen.JumpTest(unitId))
+                    },
+                    onStartSectionCheckpoint = { sectionId ->
+                        mainViewModel.navigateTo(Screen.SectionCheckpoint(sectionId))
+                    },
+                    onStartUnitCheckpoint = { unitId ->
+                        mainViewModel.navigateTo(Screen.UnitCheckpoint(unitId))
+                    },
+                    onStartGuidebook = { unitId ->
+                        mainViewModel.navigateTo(Screen.Guidebook(unitId))
                     },
                     viewModel = mainViewModel
                 )
-                is Screen.Statistics -> StatisticsScreen(viewModel = statisticsViewModel)
+                is Screen.Guidebook -> {
+                    val unitId = (currentScreen as Screen.Guidebook).unitId
+                    val guidebook by produceState<com.nhimz.vocabmaster.domain.model.UnitGuidebook?>(initialValue = null, unitId) {
+                        value = vocabularyRepository.getGuidebook(unitId)
+                            .onFailure { LocalLogger.e("VocabMasterApp", "Failed to load guidebook for $unitId", it) }
+                            .getOrNull()
+                    }
+                    if (guidebook != null) {
+                        UnitGuidebookScreen(
+                            guidebook = guidebook!!,
+                            unitTitle = "Sổ tay ngữ pháp", // Could pass unitTitle if needed, simplified here
+                            onBack = { mainViewModel.navigateTo(Screen.Home) }
+                        )
+                    } else {
+                        // Loading state placeholder if needed
+                    }
+                }
+                is Screen.JumpTest -> {
+                    val unitId = (currentScreen as Screen.JumpTest).unitId
+                    JumpTestScreen(
+                        onBack = { mainViewModel.navigateTo(Screen.Home) },
+                        onStartTest = {
+                            quizViewModel.startJumpTest(unitId)
+                            mainViewModel.navigateTo(Screen.Quiz())
+                        }
+                    )
+                }
+                is Screen.SectionCheckpoint -> {
+                    val sectionId = (currentScreen as Screen.SectionCheckpoint).sectionId
+                    SectionCheckpointScreen(
+                        title = "Bài thi cuối chặng",
+                        onBack = { mainViewModel.navigateTo(Screen.Home) },
+                        onStartTest = {
+                            quizViewModel.startSectionCheckpoint(sectionId, null)
+                            mainViewModel.navigateTo(Screen.Quiz())
+                        }
+                    )
+                }
+                is Screen.UnitCheckpoint -> {
+                    val unitId = (currentScreen as Screen.UnitCheckpoint).unitId
+                    UnitCheckpointScreen(
+                        title = "Bài thi cuối chủ đề",
+                        onBack = { mainViewModel.navigateTo(Screen.Home) },
+                        onStartTest = {
+                            quizViewModel.startUnitCheckpoint(unitId)
+                            mainViewModel.navigateTo(Screen.Quiz())
+                        }
+                    )
+                }
+                is Screen.Statistics -> StatisticsScreen(
+                    viewModel = statisticsViewModel,
+                    onReviewMistakes = { ids ->
+                        quizViewModel.startMistakeReview(ids)
+                        mainViewModel.navigateTo(Screen.Quiz(ids))
+                    }
+                )
                 is Screen.Settings -> SettingsScreen(
                     viewModel = mainViewModel,
                     settingsViewModel = settingsViewModel,
                     notificationScheduler = notificationScheduler,
-                    onNavigateToTopicPicker = { mainViewModel.navigateTo(Screen.TopicPicker) },
                     onNavigateToDebugPanel = { mainViewModel.navigateTo(Screen.DebugPanel) }
-                )
-                is Screen.TopicPicker -> TopicPickerScreen(
-                    viewModel = settingsViewModel,
-                    onBack = { mainViewModel.navigateTo(Screen.Settings) }
                 )
                 is Screen.DebugPanel -> DebugPanelScreen(
                     onBack = { mainViewModel.navigateTo(Screen.Settings) },

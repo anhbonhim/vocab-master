@@ -141,8 +141,10 @@ suspend fun testBackupRestoreRoundtrip(
 
         // 3. Restore backup
         log.appendLine("3. Importing backup...")
-        val importSuccess = backupRepository.importBackup(json)
-        assertions.add(AssertionResult("Import operation returned success", importSuccess))
+        val importResult = backupRepository.importBackup(json)
+        val importSuccess = importResult.getOrDefault(false)
+        assertions.add(AssertionResult("Import operation returned success", importResult.isSuccess))
+        assertions.add(AssertionResult("Import operation returned true", importSuccess))
 
         // 4. Verify post-backup state
         log.appendLine("4. Recording post-restore snapshot...")

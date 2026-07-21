@@ -7,9 +7,11 @@ import androidx.lifecycle.viewModelScope
 import com.nhimz.vocabmaster.data.sync.SyncManager
 import com.nhimz.vocabmaster.domain.model.BackupRepository
 import com.nhimz.vocabmaster.domain.model.SettingsRepository
+import com.nhimz.vocabmaster.util.LocalLogger
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.stateIn
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.update
@@ -38,6 +40,30 @@ class SettingsViewModel @Inject constructor(
 
     private val _uiState = MutableStateFlow(SettingsUiState())
     val uiState: StateFlow<SettingsUiState> = _uiState.asStateFlow()
+
+    val dailyGoalXp: StateFlow<Int> = settingsRepository.dailyGoalXp
+        .stateIn(viewModelScope, kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(5000), 100)
+
+    val theme: StateFlow<String> = settingsRepository.theme
+        .stateIn(viewModelScope, kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(5000), "SYSTEM")
+
+    val language: StateFlow<String> = settingsRepository.language
+        .stateIn(viewModelScope, kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(5000), "EN")
+
+    val desiredRetention: StateFlow<Double> = settingsRepository.desiredRetention
+        .stateIn(viewModelScope, kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(5000), 0.90)
+
+    fun setDailyGoal(xp: Int) {
+        viewModelScope.launch { settingsRepository.updateDailyGoal(xp) }
+    }
+
+    fun setTheme(t: String) {
+        viewModelScope.launch { settingsRepository.setTheme(t) }
+    }
+
+    fun setDesiredRetention(r: Double) {
+        viewModelScope.launch { settingsRepository.setDesiredRetention(r) }
+    }
 
     init {
         viewModelScope.launch {
@@ -96,14 +122,20 @@ class SettingsViewModel @Inject constructor(
                     }
                 }
                 val jsonString = jsonStringBuilder.toString()
-                val success = backupRepository.importBackup(jsonString)
-                if (success) {
-                    onSuccess()
-                } else {
-                    onError("Dữ liệu sao lưu không hợp lệ hoặc bị lỗi.")
-                }
-            } catch (e: Exception) {
-                e.printStackTrace();
+                backupRepository.importBackup(jsonString)
+                    .onSuccess { success ->
+                        if (success) {
+                            onSuccess()
+                        } else {
+                            onError("Dữ liệu sao lưu không hợp lệ hoặc bị lỗi.")
+                        }
+                    }
+                    .onFailure { error ->
+                        LocalLogger.e("SettingsViewModel", "Backup restore failed", error)
+                        onError(error.localizedMessage ?: "Lỗi không xác định khi khôi phục.")
+                    }
+            } catch (e: java.io.IOException) {
+                LocalLogger.e("SettingsViewModel", "Failed to read backup file", e)
                 onError(e.localizedMessage ?: "Lỗi không xác định khi khôi phục.")
             }
         }

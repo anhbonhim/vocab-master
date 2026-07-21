@@ -360,6 +360,43 @@ fun QuizScreen(
                 QuizEmptyState(onBackToHome)
             }
         }
+        is QuizSessionState.Error -> {
+            quizErrorState(message = state.message, onRetry = onBackToHome)
+        }
+    }
+}
+
+@Composable
+private fun quizErrorState(message: String, onRetry: () -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+            .padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Text(text = "⚠️", fontSize = 48.sp)
+        Spacer(modifier = Modifier.height(16.dp))
+        Text(
+            text = message,
+            fontSize = 16.sp,
+            color = MaterialTheme.colorScheme.onBackground,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(horizontal = 16.dp)
+        )
+        Spacer(modifier = Modifier.height(24.dp))
+        Button(
+            onClick = onRetry,
+            modifier = Modifier.fillMaxWidth().height(56.dp),
+            shape = RoundedCornerShape(28.dp)
+        ) {
+            Text(text = "Thử lại", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+        }
+        Spacer(modifier = Modifier.height(12.dp))
+        TextButton(onClick = onRetry) {
+            Text(text = "Quay lại trang chủ", fontSize = 14.sp)
+        }
     }
 }
 

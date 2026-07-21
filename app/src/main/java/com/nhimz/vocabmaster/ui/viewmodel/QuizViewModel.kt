@@ -15,6 +15,7 @@ import com.nhimz.vocabmaster.domain.usecase.UpdateStreakUseCase
 import com.nhimz.vocabmaster.domain.model.Question
 import com.nhimz.vocabmaster.domain.model.QuestionType
 import com.nhimz.vocabmaster.domain.model.MatchPair
+import com.nhimz.vocabmaster.util.LocalLogger
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -124,6 +125,8 @@ sealed class QuizSessionState {
         val incorrectCardIds: List<String> = emptyList(),
         val isCheckpointOrJumpTest: Boolean = false
     ) : QuizSessionState()
+
+    data class Error(val message: String) : QuizSessionState()
 }
 
 @HiltViewModel
@@ -135,6 +138,11 @@ class QuizViewModel @Inject constructor(
     private val updateStreakUseCase: UpdateStreakUseCase
 ) : ViewModel() {
 
+    companion object {
+        private const val TAG = "QuizViewModel"
+        private const val DEFAULT_LOAD_ERROR = "Không tải được nội dung bài học"
+    }
+
     private val _sessionState = MutableStateFlow<QuizSessionState>(QuizSessionState.Loading)
     val sessionState: StateFlow<QuizSessionState> = _sessionState.asStateFlow()
 
@@ -145,15 +153,27 @@ class QuizViewModel @Inject constructor(
             _sessionState.value = QuizSessionState.Loading
             sessionStartTime = System.currentTimeMillis()
 
-            val sessions = vocabularyRepository.getSessionsByNode(nodeId)
+            val sessions = vocabularyRepository.getSessionsByNode(nodeId).getOrElse { error ->
+                LocalLogger.e(TAG, "Failed to load sessions for node $nodeId", error)
+                _sessionState.value = QuizSessionState.Error(
+                    error.message ?: DEFAULT_LOAD_ERROR
+                )
+                return@launch
+            }
             val sessionToRun = sessions.getOrNull(sessionIndex)
-            
+
             if (sessionToRun == null) {
                 _sessionState.value = QuizSessionState.Completed(0, 0, 0, 0)
                 return@launch
             }
 
-            val rawQuestions = vocabularyRepository.getQuestionsBySession(sessionToRun.id)
+            val rawQuestions = vocabularyRepository.getQuestionsBySession(sessionToRun.id).getOrElse { error ->
+                LocalLogger.e(TAG, "Failed to load questions for session ${sessionToRun.id}", error)
+                _sessionState.value = QuizSessionState.Error(
+                    error.message ?: DEFAULT_LOAD_ERROR
+                )
+                return@launch
+            }
             val questionsList = mutableListOf<QuizQuestion>()
 
             for (q in rawQuestions) {
@@ -285,9 +305,21 @@ class QuizViewModel @Inject constructor(
 
             val questionsList = mutableListOf<QuizQuestion>()
             for (node in quizNodes) {
-                val sessions = vocabularyRepository.getSessionsByNode(node.id)
+                val sessions = vocabularyRepository.getSessionsByNode(node.id).getOrElse { error ->
+                    LocalLogger.e(TAG, "Failed to load sessions for node ${node.id}", error)
+                    _sessionState.value = QuizSessionState.Error(
+                        error.message ?: DEFAULT_LOAD_ERROR
+                    )
+                    return@launch
+                }
                 for (session in sessions) {
-                    val rawQuestions = vocabularyRepository.getQuestionsBySession(session.id)
+                    val rawQuestions = vocabularyRepository.getQuestionsBySession(session.id).getOrElse { error ->
+                        LocalLogger.e(TAG, "Failed to load questions for session ${session.id}", error)
+                        _sessionState.value = QuizSessionState.Error(
+                            error.message ?: DEFAULT_LOAD_ERROR
+                        )
+                        return@launch
+                    }
                     for (q in rawQuestions) {
                         val card = vocabularyRepository.getCardByQuestionId(q.id)?.let { QuestionWithCard(q, it) }
                         val quizType = when (q.type) {
