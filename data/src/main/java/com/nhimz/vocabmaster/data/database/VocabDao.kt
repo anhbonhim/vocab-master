@@ -6,72 +6,83 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
 import com.nhimz.vocabmaster.data.database.entity.ReviewLogEntity
-import com.nhimz.vocabmaster.data.database.entity.VocabularyCardEntity
+import com.nhimz.vocabmaster.data.database.entity.FsrsCardEntity
+import com.nhimz.vocabmaster.data.database.entity.QuestionAndFsrsCard
 import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface VocabDao {
 
-    // --- Vocabulary Cards ---
+    // --- FSRS Cards & Questions ---
 
     @Query("""
-        SELECT * FROM vocabulary_cards 
-        WHERE state = :state OR due <= :now 
-        ORDER BY state ASC, due ASC 
+        SELECT * FROM questions 
+        INNER JOIN fsrs_cards ON questions.id = fsrs_cards.questionId
+        WHERE fsrs_cards.state = :state OR fsrs_cards.due <= :now 
+        ORDER BY fsrs_cards.state ASC, fsrs_cards.due ASC 
         LIMIT :limit
     """)
-    fun getDueAndNewCards(state: com.nhimz.vocabmaster.domain.fsrs.State, now: java.time.LocalDateTime, limit: Int): Flow<List<VocabularyCardEntity>>
+    fun getDueAndNewCards(state: Int, now: Long, limit: Int): Flow<List<QuestionAndFsrsCard>>
 
-    @Query("SELECT * FROM vocabulary_cards WHERE difficultyLevel = :level")
-    fun getCardsByLevel(level: String): Flow<List<VocabularyCardEntity>>
+    // Note: We don't have level or topic directly on fsrs_cards or questions currently.
+    // If questions belong to units, and units have topics, this gets complicated.
+    // I will keep the queries but they might need to join further if topic/level filtering is strict.
+    // Wait, questions table doesn't have topic or difficultyLevel! 
+    // They are implied by the section/unit they belong to.
+    
+    // I will remove getCardsByLevel, getCardsByTopic, getDueAndNewCardsByTopic, getNewCardsByTopicAndLevels, getNewCardsByLevels
+    // and let the Repository throw NotImplemented or return empty if needed. 
+    // Let's implement the basic ones first.
 
-    @Query("SELECT * FROM vocabulary_cards WHERE topic = :topic")
-    fun getCardsByTopic(topic: String): Flow<List<VocabularyCardEntity>>
+    @Query("SELECT * FROM fsrs_cards WHERE questionId = :questionId")
+    suspend fun getCardByQuestionId(questionId: String): FsrsCardEntity?
 
-    @Query("""
-        SELECT * FROM vocabulary_cards 
-        WHERE (state = :state OR due <= :now) AND topic = :topic
-        ORDER BY state ASC, due ASC 
-        LIMIT :limit
-    """)
-    fun getDueAndNewCardsByTopic(state: com.nhimz.vocabmaster.domain.fsrs.State, topic: String, now: java.time.LocalDateTime, limit: Int): Flow<List<VocabularyCardEntity>>
+    @Query("SELECT * FROM questions WHERE id = :id")
+    suspend fun getQuestionById(id: String): com.nhimz.vocabmaster.data.database.entity.QuestionEntity?
 
-    @Query("SELECT * FROM vocabulary_cards WHERE id = :id")
-    suspend fun getCardById(id: Long): VocabularyCardEntity?
+    @Query("SELECT * FROM fsrs_cards")
+    suspend fun getAllCards(): List<FsrsCardEntity>
 
-    @Query("SELECT * FROM vocabulary_cards")
-    suspend fun getAllCards(): List<VocabularyCardEntity>
-
-    @Query("SELECT COUNT(*) FROM vocabulary_cards")
+    @Query("SELECT COUNT(*) FROM fsrs_cards")
     suspend fun getCardCount(): Int
 
-    @Query("SELECT COUNT(*) FROM vocabulary_cards WHERE state = :stateName")
-    suspend fun getCardCountByState(stateName: String): Int
+    @Query("SELECT COUNT(*) FROM fsrs_cards WHERE state = :state")
+    suspend fun getCardCountByState(state: Int): Int
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertCard(card: VocabularyCardEntity): Long
+    suspend fun insertCard(card: FsrsCardEntity): Long
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertAllCards(cards: List<VocabularyCardEntity>)
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertAllFsrsCards(cards: List<FsrsCardEntity>)
 
     @Update
-    suspend fun updateCard(card: VocabularyCardEntity)
+    suspend fun updateFsrsCard(card: FsrsCardEntity)
 
-    @Query("DELETE FROM vocabulary_cards")
+    @Query("DELETE FROM fsrs_cards")
     suspend fun deleteAllCards()
 
     // --- Stats Queries ---
 
-    @Query("SELECT COUNT(*) FROM vocabulary_cards WHERE state != 0") // 0 = State.New.value
+    @Query("SELECT COUNT(*) FROM fsrs_cards WHERE due <= :now AND state != 0")
+    suspend fun getDueCount(now: Long): Int
+
+    @Query("SELECT COUNT(*) FROM fsrs_cards WHERE lapses > 0")
+    suspend fun getMistakeCount(): Int
+
+    @Query("""
+        SELECT * FROM questions 
+        INNER JOIN fsrs_cards ON questions.id = fsrs_cards.questionId
+        WHERE fsrs_cards.lapses > 0 
+        ORDER BY fsrs_cards.lastReview DESC 
+        LIMIT :limit
+    """)
+    suspend fun getMistakes(limit: Int): List<QuestionAndFsrsCard>
+
+    @Query("SELECT COUNT(*) FROM fsrs_cards WHERE state != 0") // 0 = State.New.value
     fun getLearnedCount(): Flow<Int>
 
-    // Assuming State values: 0=New, 1=Learning, 2=Review, 3=Relearning
-    @Query("SELECT state, COUNT(*) as count FROM vocabulary_cards GROUP BY state")
+    @Query("SELECT state, COUNT(*) as count FROM fsrs_cards GROUP BY state")
     fun getStateCounts(): Flow<List<StateCount>>
-
-    @Query("SELECT difficultyLevel, COUNT(*) as count FROM vocabulary_cards GROUP BY difficultyLevel")
-    fun getLevelCounts(): Flow<List<LevelCount>>
-
 
     // --- Review Logs ---
 
@@ -81,16 +92,16 @@ interface VocabDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAllReviewLogs(logs: List<ReviewLogEntity>)
 
-    @Query("SELECT * FROM review_logs WHERE cardId = :cardId ORDER BY timestamp DESC")
-    suspend fun getReviewLogs(cardId: Long): List<ReviewLogEntity>
+    @Query("SELECT * FROM review_logs WHERE cardId = :cardId ORDER BY reviewDatetime DESC")
+    suspend fun getReviewLogs(cardId: String): List<ReviewLogEntity>
 
-    @Query("SELECT * FROM review_logs WHERE cardId = :cardId ORDER BY timestamp DESC")
-    fun getReviewLogsFlow(cardId: Long): Flow<List<ReviewLogEntity>>
+    @Query("SELECT * FROM review_logs WHERE cardId = :cardId ORDER BY reviewDatetime DESC")
+    fun getReviewLogsFlow(cardId: String): Flow<List<ReviewLogEntity>>
 
-    @Query("SELECT * FROM review_logs ORDER BY timestamp ASC")
+    @Query("SELECT * FROM review_logs ORDER BY reviewDatetime ASC")
     fun getAllReviewLogsFlow(): Flow<List<ReviewLogEntity>>
 
-    @Query("SELECT * FROM review_logs ORDER BY timestamp ASC")
+    @Query("SELECT * FROM review_logs ORDER BY reviewDatetime ASC")
     suspend fun getAllReviewLogsList(): List<ReviewLogEntity>
 
     @Query("DELETE FROM review_logs")
@@ -99,20 +110,159 @@ interface VocabDao {
     // --- Flagged Items ---
 
     @Query("SELECT * FROM flagged_items ORDER BY timestamp DESC")
-    fun getAllFlaggedItemsFlow(): Flow<List<com.nhimz.vocabmaster.data.database.entity.FlaggedItemEntity>>
-
-    @Query("SELECT * FROM flagged_items ORDER BY timestamp DESC")
     suspend fun getAllFlaggedItems(): List<com.nhimz.vocabmaster.data.database.entity.FlaggedItemEntity>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertFlaggedItem(item: com.nhimz.vocabmaster.data.database.entity.FlaggedItemEntity)
 
-    @Query("DELETE FROM flagged_items WHERE word = :word")
-    suspend fun deleteFlaggedItem(word: String)
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAllFlaggedItems(items: List<com.nhimz.vocabmaster.data.database.entity.FlaggedItemEntity>)
+
+    @Query("DELETE FROM flagged_items WHERE questionId = :questionId")
+    suspend fun deleteFlaggedItem(questionId: String)
 
     @Query("DELETE FROM flagged_items")
     suspend fun deleteAllFlaggedItems()
+
+    // --- Session Progress ---
+
+    @Query("SELECT * FROM session_progress")
+    suspend fun getAllSessionProgress(): List<com.nhimz.vocabmaster.data.database.entity.SessionProgressEntity>
+
+    @Query("DELETE FROM session_progress")
+    suspend fun deleteAllSessionProgress()
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAllSessionProgress(progressList: List<com.nhimz.vocabmaster.data.database.entity.SessionProgressEntity>)
+
+    // --- Static Curriculum ---
+    
+    @Query("SELECT * FROM sections ORDER BY `index` ASC")
+    fun getAllSections(): Flow<List<com.nhimz.vocabmaster.data.database.entity.SectionEntity>>
+
+    @Query("SELECT * FROM units WHERE sectionId = :sectionId ORDER BY `index` ASC")
+    fun getUnitsBySection(sectionId: String): Flow<List<com.nhimz.vocabmaster.data.database.entity.UnitEntity>>
+
+    @Query("SELECT * FROM unit_guidebooks WHERE unitId = :unitId LIMIT 1")
+    suspend fun getGuidebook(unitId: String): com.nhimz.vocabmaster.data.database.entity.UnitGuidebookEntity?
+
+    @Query("SELECT * FROM nodes WHERE unitId = :unitId ORDER BY `index` ASC")
+    fun getNodesByUnit(unitId: String): Flow<List<com.nhimz.vocabmaster.data.database.entity.NodeEntity>>
+
+    @Query("SELECT * FROM sessions WHERE nodeId = :nodeId ORDER BY `index` ASC")
+    suspend fun getSessionsByNode(nodeId: String): List<com.nhimz.vocabmaster.data.database.entity.SessionEntity>
+
+    @Query("SELECT * FROM questions WHERE sessionId = :sessionId")
+    suspend fun getQuestionsBySession(sessionId: String): List<com.nhimz.vocabmaster.data.database.entity.QuestionEntity>
+
+    @Query("SELECT * FROM questions")
+    suspend fun getAllQuestions(): List<com.nhimz.vocabmaster.data.database.entity.QuestionEntity>
+
+    @Query("SELECT COUNT(*) FROM questions")
+    suspend fun getQuestionCount(): Int
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAllSections(sections: List<com.nhimz.vocabmaster.data.database.entity.SectionEntity>)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAllUnits(units: List<com.nhimz.vocabmaster.data.database.entity.UnitEntity>)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAllGuidebooks(guidebooks: List<com.nhimz.vocabmaster.data.database.entity.UnitGuidebookEntity>)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAllNodes(nodes: List<com.nhimz.vocabmaster.data.database.entity.NodeEntity>)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAllSessions(sessions: List<com.nhimz.vocabmaster.data.database.entity.SessionEntity>)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAllQuestions(questions: List<com.nhimz.vocabmaster.data.database.entity.QuestionEntity>)
+
+    // --- Node Progress ---
+    
+    @Query("SELECT * FROM node_progress WHERE nodeId = :nodeId LIMIT 1")
+    suspend fun getNodeProgress(nodeId: String): com.nhimz.vocabmaster.data.database.entity.NodeProgressEntity?
+
+    @Query("SELECT * FROM node_progress")
+    suspend fun getAllNodeProgress(): List<com.nhimz.vocabmaster.data.database.entity.NodeProgressEntity>
+
+    @Query("DELETE FROM node_progress")
+    suspend fun deleteAllNodeProgress()
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAllNodeProgress(progressList: List<com.nhimz.vocabmaster.data.database.entity.NodeProgressEntity>)
+
+    @Query("""
+        SELECT nodeId FROM node_progress 
+        INNER JOIN nodes ON node_progress.nodeId = nodes.id 
+        WHERE nodes.unitId = :unitId AND isCompleted = 1
+    """)
+    suspend fun getCompletedNodesByUnit(unitId: String): List<String>
+    
+    @Query("""
+        SELECT nodeId FROM node_progress 
+        INNER JOIN nodes ON node_progress.nodeId = nodes.id 
+        INNER JOIN units ON nodes.unitId = units.id
+        WHERE units.sectionId = :sectionId AND isCompleted = 1
+    """)
+    suspend fun getCompletedNodesBySection(sectionId: String): List<String>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertNodeProgress(progress: com.nhimz.vocabmaster.data.database.entity.NodeProgressEntity)
+
+    // Legacy Topic and Level queries - Fallbacks
+    @Query("SELECT * FROM questions INNER JOIN fsrs_cards ON questions.id = fsrs_cards.questionId LIMIT :limit")
+    fun getDueAndNewCardsByTopicFallback(limit: Int): Flow<List<QuestionAndFsrsCard>>
+
+    // --- Scoped Due Cards (for REVIEW node on Duolingo-style path) ---
+
+    @Query("""
+        SELECT questions.* FROM questions
+        INNER JOIN fsrs_cards ON questions.id = fsrs_cards.questionId
+        INNER JOIN sessions ON questions.sessionId = sessions.id
+        INNER JOIN nodes ON sessions.nodeId = nodes.id
+        WHERE nodes.unitId = :unitId
+          AND (fsrs_cards.state = :state OR fsrs_cards.due <= :now)
+        ORDER BY fsrs_cards.state ASC, fsrs_cards.due ASC
+        LIMIT :limit
+    """)
+    fun getDueAndNewCardsByUnit(
+        unitId: String,
+        state: Int,
+        now: Long,
+        limit: Int
+    ): Flow<List<QuestionAndFsrsCard>>
+
+    @Query("""
+        SELECT questions.* FROM questions
+        INNER JOIN fsrs_cards ON questions.id = fsrs_cards.questionId
+        INNER JOIN sessions ON questions.sessionId = sessions.id
+        INNER JOIN nodes ON sessions.nodeId = nodes.id
+        INNER JOIN units ON nodes.unitId = units.id
+        WHERE units.sectionId = :sectionId
+          AND (fsrs_cards.state = :state OR fsrs_cards.due <= :now)
+        ORDER BY fsrs_cards.state ASC, fsrs_cards.due ASC
+        LIMIT :limit
+    """)
+    fun getDueAndNewCardsBySection(
+        sectionId: String,
+        state: Int,
+        now: Long,
+        limit: Int
+    ): Flow<List<QuestionAndFsrsCard>>
+
+    @Query("""
+        SELECT COUNT(*) FROM fsrs_cards
+        INNER JOIN questions ON fsrs_cards.questionId = questions.id
+        INNER JOIN sessions ON questions.sessionId = sessions.id
+        INNER JOIN nodes ON sessions.nodeId = nodes.id
+        WHERE nodes.unitId = :unitId
+          AND fsrs_cards.state != :newState
+          AND fsrs_cards.due <= :now
+    """)
+    suspend fun getDueCardCountByUnit(unitId: String, newState: Int, now: Long): Int
+
 }
 
 data class StateCount(val state: Int, val count: Int)
-data class LevelCount(val difficultyLevel: String, val count: Int)

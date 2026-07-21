@@ -4,10 +4,14 @@ import androidx.room.withTransaction
 import com.nhimz.vocabmaster.data.database.VocabDao
 import com.nhimz.vocabmaster.data.database.VocabDatabase
 import com.nhimz.vocabmaster.data.database.entity.ReviewLogEntity
-import com.nhimz.vocabmaster.data.database.entity.VocabularyCardEntity
-import com.nhimz.vocabmaster.data.model.*
-import com.nhimz.vocabmaster.domain.fsrs.Rating
-import com.nhimz.vocabmaster.domain.fsrs.State
+import com.nhimz.vocabmaster.data.database.entity.FsrsCardEntity
+import com.nhimz.vocabmaster.data.model.AppBackup
+import com.nhimz.vocabmaster.data.model.FlaggedItemBackup
+import com.nhimz.vocabmaster.data.model.FsrsCardBackup
+import com.nhimz.vocabmaster.data.model.ReviewLogBackup
+import com.nhimz.vocabmaster.data.model.UserSettingsBackup
+import com.nhimz.vocabmaster.domain.fsrs.v6.Rating
+import com.nhimz.vocabmaster.domain.fsrs.v6.State
 import com.nhimz.vocabmaster.domain.model.BackupRepository
 import com.nhimz.vocabmaster.domain.model.SettingsRepository
 import kotlinx.coroutines.Dispatchers
@@ -17,8 +21,13 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import javax.inject.Inject
 import javax.inject.Singleton
+import java.time.Instant
+import java.time.LocalDateTime
+import java.time.ZoneOffset
+import java.time.format.DateTimeFormatter
 
 @Singleton
+@Suppress("LongMethod", "LabeledExpression", "TooGenericExceptionCaught")
 class BackupRepositoryImpl @Inject constructor(
     private val database: VocabDatabase,
     private val vocabDao: VocabDao,
@@ -30,6 +39,12 @@ class BackupRepositoryImpl @Inject constructor(
         ignoreUnknownKeys = true
     }
 
+    private val formatter = DateTimeFormatter.ISO_LOCAL_DATE_TIME
+
+    companion object {
+        private const val MIN_SUPPORTED_BACKUP_VERSION = 3
+    }
+
     override suspend fun exportBackup(): String = withContext(Dispatchers.IO) {
         val userSettings = UserSettingsBackup(
             currentStreak = settingsRepository.currentStreak.first(),
@@ -38,121 +53,125 @@ class BackupRepositoryImpl @Inject constructor(
             lastStudyDate = settingsRepository.lastStudyDate.first(),
             xpTotal = settingsRepository.xpTotal.first(),
             badgeStatus = settingsRepository.badgeStatus.first(),
-            dailyGoalMinutes = settingsRepository.dailyGoalMinutes.first(),
+            dailyGoalXp = settingsRepository.dailyGoalXp.first(),
             desiredRetention = settingsRepository.desiredRetention.first(),
             theme = settingsRepository.theme.first(),
             language = settingsRepository.language.first()
         )
 
         val cards = vocabDao.getAllCards().map { card ->
-            VocabularyCardBackup(
-                id = card.id,
-                word = card.word,
-                definition = card.definition,
-                partOfSpeech = card.partOfSpeech,
-                difficultyLevel = card.difficultyLevel,
-                example = card.example,
-                ipa = card.ipa,
-                due = card.due,
+            FsrsCardBackup(
+                questionId = card.questionId,
+                state = card.state,
+                step = card.step,
                 stability = card.stability,
                 difficulty = card.difficulty,
-                interval = card.interval,
-                reps = card.reps,
-                lapses = card.lapses,
-                state = card.state.name,
+                due = card.due,
                 lastReview = card.lastReview,
-                topic = card.topic,
-                audioUrl = card.audioUrl,
-                scrambledSentenceData = card.scrambledSentenceData
+                reps = card.reps,
+                lapses = card.lapses
             )
         }
 
         val logs = vocabDao.getAllReviewLogsList().map { log ->
             ReviewLogBackup(
-                id = log.id,
                 cardId = log.cardId,
-                rating = log.rating.name,
-                elapsed_days = log.elapsed_days,
-                scheduled_days = log.scheduled_days,
-                stability = log.stability,
-                difficulty = log.difficulty,
-                state = log.state.name,
-                timestamp = log.timestamp
+                rating = Rating.entries.firstOrNull { it.value == log.rating }?.name ?: Rating.Good.name,
+                reviewDatetime = Instant.ofEpochMilli(log.reviewDatetime).atOffset(ZoneOffset.UTC).format(formatter),
+                reviewDuration = log.reviewDuration
             )
         }
 
-        val payload = BackupPayload(
-            userSettings = userSettings,
-            vocabularyCards = cards,
-            reviewLogs = logs
+        val flagged = vocabDao.getAllFlaggedItems().map { flag ->
+            FlaggedItemBackup(
+                questionId = flag.questionId,
+                issueType = flag.issueType,
+                details = flag.details,
+                timestamp = flag.timestamp
+            )
+        }
+
+        val backup = AppBackup(
+            version = 3,
+            timestamp = System.currentTimeMillis(),
+            settings = userSettings,
+            cards = cards,
+            reviewLogs = logs,
+            flaggedItems = flagged
         )
 
-        json.encodeToString(payload)
+        json.encodeToString(backup)
     }
 
-    override suspend fun importBackup(jsonString: String): Boolean = withContext(Dispatchers.IO) {
+    override suspend fun importBackup(backupJson: String): Boolean = withContext(Dispatchers.IO) {
         try {
-            val payload = json.decodeFromString<BackupPayload>(jsonString)
+            val backup = json.decodeFromString<AppBackup>(backupJson)
 
-            // Convert backup items back to Room entities
-            val cardEntities = payload.vocabularyCards.map { card ->
-                VocabularyCardEntity(
-                    id = card.id,
-                    word = card.word,
-                    definition = card.definition,
-                    partOfSpeech = card.partOfSpeech,
-                    difficultyLevel = card.difficultyLevel,
-                    example = card.example,
-                    ipa = card.ipa,
-                    due = card.due,
-                    stability = card.stability,
-                    difficulty = card.difficulty,
-                    interval = card.interval,
-                    reps = card.reps,
-                    lapses = card.lapses,
-                    state = State.valueOf(card.state),
-                    lastReview = card.lastReview,
-                    topic = card.topic ?: "general",
-                    audioUrl = card.audioUrl,
-                    scrambledSentenceData = card.scrambledSentenceData
-                )
+            // Validate that we have the v3 FSRS format.
+            if (backup.version < MIN_SUPPORTED_BACKUP_VERSION) {
+                // Reject v2 and earlier: they carry pre-port scheduling data.
+                return@withContext false
             }
 
-            val logEntities = payload.reviewLogs.map { log ->
-                ReviewLogEntity(
-                    id = log.id,
-                    cardId = log.cardId,
-                    rating = Rating.valueOf(log.rating),
-                    elapsed_days = log.elapsed_days,
-                    scheduled_days = log.scheduled_days,
-                    stability = log.stability,
-                    difficulty = log.difficulty,
-                    state = State.valueOf(log.state),
-                    timestamp = log.timestamp
-                )
-            }
-
-            // Perform Database operations in a transaction
             database.withTransaction {
-                vocabDao.deleteAllReviewLogs()
+                // 1. Clear existing user data (Keep curriculum data!)
                 vocabDao.deleteAllCards()
-                vocabDao.insertAllCards(cardEntities)
+                vocabDao.deleteAllReviewLogs()
+                vocabDao.deleteAllFlaggedItems()
+
+                // 2. Restore settings
+                settingsRepository.setCurrentStreak(backup.settings.currentStreak)
+                settingsRepository.setLongestStreak(backup.settings.longestStreak)
+                settingsRepository.setAvailableFreezes(backup.settings.availableFreezes)
+                settingsRepository.setLastStudyDate(backup.settings.lastStudyDate)
+                settingsRepository.setXpTotal(backup.settings.xpTotal)
+                settingsRepository.setBadgeStatus(backup.settings.badgeStatus)
+                settingsRepository.updateDailyGoal(backup.settings.dailyGoalXp)
+                settingsRepository.setDesiredRetention(backup.settings.desiredRetention)
+                settingsRepository.setTheme(backup.settings.theme)
+                settingsRepository.setLanguage(backup.settings.language)
+
+                // 3. Restore cards
+                val cardEntities = backup.cards.map { card ->
+                    FsrsCardEntity(
+                        questionId = card.questionId,
+                        state = card.state,
+                        step = card.step,
+                        stability = card.stability,
+                        difficulty = card.difficulty,
+                        due = card.due,
+                        lastReview = card.lastReview,
+                        reps = card.reps,
+                        lapses = card.lapses
+                    )
+                }
+                vocabDao.insertAllFsrsCards(cardEntities)
+
+                // 4. Restore logs
+                val logEntities = backup.reviewLogs.map { log ->
+                    ReviewLogEntity(
+                        id = 0, // Let autoGenerate assign a new ID to avoid PK conflict
+                        cardId = log.cardId,
+                        rating = Rating.valueOf(log.rating).value,
+                        reviewDatetime = LocalDateTime.parse(log.reviewDatetime, formatter)
+                            .toInstant(ZoneOffset.UTC).toEpochMilli(),
+                        reviewDuration = log.reviewDuration
+                    )
+                }
                 vocabDao.insertAllReviewLogs(logEntities)
+
+                // 5. Restore flagged items
+                val flaggedEntities = backup.flaggedItems.map { flag ->
+                    com.nhimz.vocabmaster.data.database.entity.FlaggedItemEntity(
+                        questionId = flag.questionId,
+                        word = null,
+                        issueType = flag.issueType,
+                        details = flag.details,
+                        timestamp = flag.timestamp
+                    )
+                }
+                vocabDao.insertAllFlaggedItems(flaggedEntities)
             }
-
-            // Update user settings in DataStore
-            val settings = payload.userSettings
-            settingsRepository.setCurrentStreak(settings.currentStreak)
-            settingsRepository.setLongestStreak(settings.longestStreak)
-            settingsRepository.setAvailableFreezes(settings.availableFreezes)
-            settingsRepository.setLastStudyDate(settings.lastStudyDate)
-            settingsRepository.setXpTotal(settings.xpTotal)
-            settingsRepository.setBadgeStatus(settings.badgeStatus)
-            settingsRepository.setDailyGoalMinutes(settings.dailyGoalMinutes)
-            settingsRepository.setDesiredRetention(settings.desiredRetention)
-            settingsRepository.setTheme(settings.theme)
-            settingsRepository.setLanguage(settings.language)
-
             true
         } catch (e: Exception) {
             e.printStackTrace()

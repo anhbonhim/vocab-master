@@ -4,21 +4,34 @@ import android.content.Context
 import android.util.Log
 import com.nhimz.vocabmaster.data.database.VocabDao
 import com.nhimz.vocabmaster.data.database.entity.ReviewLogEntity
-import com.nhimz.vocabmaster.data.database.entity.VocabularyCardEntity
+import com.nhimz.vocabmaster.data.database.entity.FsrsCardEntity
 import com.nhimz.vocabmaster.data.remote.ApiClient
 import com.nhimz.vocabmaster.data.remote.ReviewLogDto
 import com.nhimz.vocabmaster.data.remote.SyncPayload
 import com.nhimz.vocabmaster.data.remote.UserSettingsDto
 import com.nhimz.vocabmaster.data.remote.VocabularyCardDto
+import com.nhimz.vocabmaster.domain.fsrs.v6.Rating
+import com.nhimz.vocabmaster.domain.fsrs.v6.State
 import com.nhimz.vocabmaster.domain.model.SettingsRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.first
+import java.time.Instant
 import java.time.LocalDateTime
+import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
+@Suppress(
+    "LongMethod",
+    "CyclomaticComplexMethod",
+    "NestedBlockDepth",
+    "StringLiteralDuplication",
+    "LabeledExpression",
+    "TooGenericExceptionCaught",
+    "VariableNaming"
+)
 class SyncManager @Inject constructor(
     @ApplicationContext private val context: Context,
     private val vocabDao: VocabDao,
@@ -33,7 +46,7 @@ class SyncManager @Inject constructor(
         return try {
             val lastSync = syncPrefs.getLong(LAST_SYNC_KEY, 0L)
             
-            val dailyGoal = settingsRepository.dailyGoalMinutes.first()
+            val dailyGoal = settingsRepository.dailyGoalXp.first()
             val currentStreak = settingsRepository.currentStreak.first()
             val longestStreak = settingsRepository.longestStreak.first()
             val freezes = settingsRepository.availableFreezes.first()
@@ -46,7 +59,7 @@ class SyncManager @Inject constructor(
             val topic = settingsRepository.selectedTopic.first()
             
             val userSettingsDto = UserSettingsDto(
-                dailyGoalMinutes = dailyGoal,
+                dailyGoalXp = dailyGoal,
                 currentStreak = currentStreak,
                 longestStreak = longestStreak,
                 availableFreezes = freezes,
@@ -62,15 +75,18 @@ class SyncManager @Inject constructor(
             val activeCards = vocabDao.getAllCards().filter { it.reps > 0 }
             val cardsDtos = activeCards.map {
                 VocabularyCardDto(
-                    word = it.word,
-                    due = it.due.format(formatter),
-                    stability = it.stability,
-                    difficulty = it.difficulty,
-                    interval = it.interval,
+                    questionId = it.questionId,
+                    due = Instant.ofEpochMilli(it.due).atOffset(ZoneOffset.UTC).format(formatter),
+                    stability = it.stability ?: 0.0,
+                    difficulty = it.difficulty ?: 0.0,
+                    // TODO(SYNC-02, Phase 4): server contract for v3 card shape; interval removed from v8 schema.
+                    interval = 0,
                     reps = it.reps,
                     lapses = it.lapses,
-                    state = it.state.value,
-                    lastReview = it.lastReview?.format(formatter),
+                    state = it.state,
+                    lastReview = it.lastReview?.let { millis ->
+                        Instant.ofEpochMilli(millis).atOffset(ZoneOffset.UTC).format(formatter)
+                    },
                     lastModified = System.currentTimeMillis()
                 )
             }
@@ -78,16 +94,18 @@ class SyncManager @Inject constructor(
             // Map review logs safely resolving word from DB
             val logs = vocabDao.getAllReviewLogsList()
             val logsDtos = logs.mapNotNull {
-                val card = vocabDao.getCardById(it.cardId) ?: return@mapNotNull null
+                val card = vocabDao.getCardByQuestionId(it.cardId) ?: return@mapNotNull null
                 ReviewLogDto(
-                    word = card.word,
-                    rating = it.rating.value,
-                    elapsed_days = it.elapsed_days,
-                    scheduled_days = it.scheduled_days,
-                    stability = it.stability,
-                    difficulty = it.difficulty,
-                    state = it.state.value,
-                    timestamp = it.timestamp.format(formatter)
+                    questionId = card.questionId,
+                    rating = it.rating,
+                    // TODO(SYNC-02, Phase 4): server contract for v3 log shape; these telemetry
+                    // fields are no longer stored locally and are sent as placeholders.
+                    elapsed_days = 0,
+                    scheduled_days = 0,
+                    stability = 0.0,
+                    difficulty = 0.0,
+                    state = 0,
+                    timestamp = Instant.ofEpochMilli(it.reviewDatetime).atOffset(ZoneOffset.UTC).format(formatter)
                 )
             }
             
@@ -109,7 +127,7 @@ class SyncManager @Inject constructor(
                 val pulledPayload = pullResponse.body()!!
                 
                 val ps = pulledPayload.userSettings
-                settingsRepository.setDailyGoalMinutes(ps.dailyGoalMinutes)
+                settingsRepository.updateDailyGoal(ps.dailyGoalXp)
                 settingsRepository.setCurrentStreak(ps.currentStreak)
                 settingsRepository.setLongestStreak(ps.longestStreak)
                 settingsRepository.setAvailableFreezes(ps.availableFreezes)
@@ -121,26 +139,63 @@ class SyncManager @Inject constructor(
                 ps.placementLevel?.let { settingsRepository.setPlacementLevel(it) }
                 settingsRepository.setSelectedTopic(ps.selectedTopic)
                 
+                val allCardsList = vocabDao.getAllCards()
                 for (c in pulledPayload.vocabularyCards) {
-                    val existing = vocabDao.getAllCards().find { it.word == c.word }
+                    val existing = allCardsList.find { it.questionId == c.questionId }
                     val dueLdt = LocalDateTime.parse(c.due, formatter)
                     val lastReviewLdt = c.lastReview?.let { LocalDateTime.parse(it, formatter) }
                     
-                    val stateEnum = com.nhimz.vocabmaster.domain.fsrs.State.values().find { it.value == c.state } 
-                        ?: com.nhimz.vocabmaster.domain.fsrs.State.New
+                    val stateEnum = State.entries.find { it.value == c.state } ?: State.New
                         
                     if (existing != null) {
                         val updated = existing.copy(
-                            due = dueLdt,
+                            due = dueLdt.toInstant(ZoneOffset.UTC).toEpochMilli(),
                             stability = c.stability,
                             difficulty = c.difficulty,
-                            interval = c.interval,
+                            step = existing.step,
                             reps = c.reps,
                             lapses = c.lapses,
-                            state = stateEnum,
-                            lastReview = lastReviewLdt
+                            state = stateEnum.value,
+                            lastReview = lastReviewLdt?.toInstant(ZoneOffset.UTC)?.toEpochMilli()
                         )
-                        vocabDao.updateCard(updated)
+                        vocabDao.updateFsrsCard(updated)
+                    } else {
+                        val newCard = FsrsCardEntity(
+                            questionId = c.questionId,
+                            due = dueLdt.toInstant(ZoneOffset.UTC).toEpochMilli(),
+                            stability = c.stability,
+                            difficulty = c.difficulty,
+                            step = 0,
+                            reps = c.reps,
+                            lapses = c.lapses,
+                            state = stateEnum.value,
+                            lastReview = lastReviewLdt?.toInstant(ZoneOffset.UTC)?.toEpochMilli()
+                        )
+                        vocabDao.insertCard(newCard)
+                    }
+                }
+
+                // Process pulled review logs
+                val refreshedCardsList = vocabDao.getAllCards()
+                for (logDto in pulledPayload.reviewLogs) {
+                    val card = refreshedCardsList.find { it.questionId == logDto.questionId }
+                    if (card != null) {
+                        val logTime = LocalDateTime.parse(logDto.timestamp, formatter)
+                            .toInstant(ZoneOffset.UTC).toEpochMilli()
+                        val existingLogs = vocabDao.getReviewLogs(card.questionId)
+                        val alreadyExists = existingLogs.any { it.reviewDatetime == logTime }
+                        if (!alreadyExists) {
+                            val ratingEnum = Rating.entries.find { it.value == logDto.rating } ?: Rating.Good
+                            val stateEnum = State.entries.find { it.value == logDto.state } ?: State.New
+                            
+                            val logEntity = ReviewLogEntity(
+                                cardId = card.questionId,
+                                rating = ratingEnum.value,
+                                reviewDatetime = logTime,
+                                reviewDuration = null
+                            )
+                            vocabDao.insertReviewLog(logEntity)
+                        }
                     }
                 }
                 

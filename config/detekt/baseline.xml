@@ -4,6 +4,7 @@
   <CurrentIssues>
     <ID>ComplexCondition:GoldenVectorTest.kt$GoldenVectorTest$stateStr == "Learning" &amp;&amp; step == 0 &amp;&amp; stability == null &amp;&amp; difficulty == null</ID>
     <ID>ComplexInterface:SettingsRepository.kt$SettingsRepository</ID>
+    <ID>ComplexInterface:VocabDao.kt$VocabDao</ID>
     <ID>ComplexInterface:VocabularyRepository.kt$VocabularyRepository</ID>
     <ID>ConstructorParameterNaming:GoldenVectorTest.kt$GoldenVectorTest.ExpectedState$val interval_days: Int</ID>
     <ID>ConstructorParameterNaming:GoldenVectorTest.kt$GoldenVectorTest.ExpectedState$val last_review: String? = null</ID>
@@ -14,17 +15,201 @@
     <ID>ConstructorParameterNaming:GoldenVectorTest.kt$GoldenVectorTest.Vector$val initial_card: InitialCard</ID>
     <ID>ConstructorParameterNaming:Models.kt$ReviewLog$val elapsed_days: Int</ID>
     <ID>ConstructorParameterNaming:Models.kt$ReviewLog$val scheduled_days: Int</ID>
+    <ID>ConstructorParameterNaming:PlacementApiService.kt$AnswerItemDto$val is_correct: Boolean</ID>
+    <ID>ConstructorParameterNaming:PlacementApiService.kt$AnswerItemDto$val question_id: String</ID>
+    <ID>ConstructorParameterNaming:PlacementApiService.kt$AnswerItemDto$val response_time_ms: Int</ID>
+    <ID>ConstructorParameterNaming:PlacementApiService.kt$AnswerRequestDto$val latest_is_correct: Boolean</ID>
+    <ID>ConstructorParameterNaming:PlacementApiService.kt$AnswerRequestDto$val latest_question_id: String</ID>
+    <ID>ConstructorParameterNaming:PlacementApiService.kt$AnswerRequestDto$val latest_response_time_ms: Int</ID>
+    <ID>ConstructorParameterNaming:PlacementApiService.kt$PlacementAnswerResponse$val current_theta: Double</ID>
+    <ID>ConstructorParameterNaming:PlacementApiService.kt$PlacementAnswerResponse$val estimated_level: String</ID>
+    <ID>ConstructorParameterNaming:PlacementApiService.kt$PlacementAnswerResponse$val next_question: PlacementQuestionDto? = null</ID>
+    <ID>ConstructorParameterNaming:PlacementApiService.kt$PlacementAnswerResponse$val standard_error: Double</ID>
+    <ID>ConstructorParameterNaming:PlacementApiService.kt$PlacementQuestionDto$val correct_option_id: Int</ID>
+    <ID>ConstructorParameterNaming:PlacementApiService.kt$PlacementQuestionDto$val question_id: String</ID>
+    <ID>ConstructorParameterNaming:PlacementApiService.kt$PlacementResultDto$val final_level: String</ID>
+    <ID>ConstructorParameterNaming:PlacementApiService.kt$PlacementResultDto$val questions_asked: Int</ID>
+    <ID>ConstructorParameterNaming:PlacementApiService.kt$PlacementStartResponse$val current_theta: Double</ID>
+    <ID>ConstructorParameterNaming:PlacementApiService.kt$PlacementStartResponse$val next_question: PlacementQuestionDto</ID>
+    <ID>ConstructorParameterNaming:PlacementApiService.kt$PlacementStartResponse$val session_id: String</ID>
+    <ID>ConstructorParameterNaming:SyncPayload.kt$ReviewLogDto$val elapsed_days: Int</ID>
+    <ID>ConstructorParameterNaming:SyncPayload.kt$ReviewLogDto$val scheduled_days: Int</ID>
+    <ID>ConstructorParameterNaming:VocabularyApiService.kt$VocabularyItemDto$val audio_url: String? = null</ID>
+    <ID>ConstructorParameterNaming:VocabularyApiService.kt$VocabularyItemDto$val difficulty_level: String</ID>
+    <ID>ConstructorParameterNaming:VocabularyApiService.kt$VocabularyItemDto$val part_of_speech: String</ID>
+    <ID>ConstructorParameterNaming:VocabularyApiService.kt$VocabularyItemDto$val scrambled_data: String? = null</ID>
+    <ID>CyclomaticComplexMethod:DataIntegrityTests.kt$suspend fun testDatabaseIntegrityCheck(vocabDao: VocabDao): TestResult</ID>
     <ID>CyclomaticComplexMethod:FSRS.kt$FSRS$fun calculate(card: Card, elapsedDays: Double = card.interval.toDouble()): Map&lt;Rating, GradeInfo&gt;</ID>
+    <ID>CyclomaticComplexMethod:FirstWinScreen.kt$@Composable fun FirstWinScreen( onFinished: () -&gt; Unit, viewModel: FirstWinViewModel = androidx.lifecycle.viewmodel.compose.viewModel() )</ID>
+    <ID>CyclomaticComplexMethod:HomeScreen.kt$@Composable private fun PathNodeItem(entry: PathEntry, globalIndex: Int, onClick: () -&gt; Unit)</ID>
+    <ID>CyclomaticComplexMethod:HomeScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun HomeScreen( onStartQuiz: () -&gt; Unit, onStartFlashcard: (List&lt;String&gt;?) -&gt; Unit, onStartCustomQuiz: (stage: String?, topic: String?, index: Int?, isLevelTest: Boolean, isReviewGym: Boolean) -&gt; Unit, onStartNodeSession: (nodeId: String) -&gt; Unit, onStartReviewNode: (nodeId: String, unitId: String?, sectionId: String?) -&gt; Unit, onStartJumpTest: (unitId: String) -&gt; Unit, onStartSectionCheckpoint: (sectionId: String) -&gt; Unit, onStartUnitCheckpoint: (unitId: String) -&gt; Unit, onStartGuidebook: (unitId: String) -&gt; Unit, viewModel: MainViewModel )</ID>
+    <ID>CyclomaticComplexMethod:MainViewModel.kt$MainViewModel$private fun monitorBadges()</ID>
+    <ID>CyclomaticComplexMethod:QuizScreen.kt$@Composable fun QuizScreen( onSessionCompleted: (xpGained: Int, durationSeconds: Int, correctCount: Int, totalCount: Int, averageStability: Double, incorrectCardIds: List&lt;String&gt;, isLevelTest: Boolean, isPassedLevelTest: Boolean) -&gt; Unit, onBackToHome: () -&gt; Unit, cdnAudioPlayer: CDNAudioPlayer, viewModel: QuizViewModel )</ID>
+    <ID>CyclomaticComplexMethod:QuizViewModel.kt$QuizViewModel$fun nextQuestion()</ID>
+    <ID>CyclomaticComplexMethod:QuizViewModel.kt$QuizViewModel$fun startNodeSession(nodeId: String, sessionIndex: Int)</ID>
+    <ID>CyclomaticComplexMethod:QuizViewModel.kt$QuizViewModel$fun startUnitCheckpoint(unitId: String)</ID>
+    <ID>CyclomaticComplexMethod:QuizViewModel.kt$QuizViewModel$fun submitAnswer(optionIndex: Int? = null, textAnswer: String? = null, selectedWordsForScrambled: List&lt;String&gt;? = null, fsrsRating: Rating? = null)</ID>
+    <ID>CyclomaticComplexMethod:ResultScreen.kt$@Composable fun ResultScreen( xpGained: Int, durationSeconds: Int, correctCount: Int, totalCount: Int, averageStability: Double, incorrectCardIds: List&lt;String&gt; = emptyList(), isLevelTest: Boolean = false, isPassedLevelTest: Boolean = false, onBackToHome: () -&gt; Unit, onReviewMistakes: (List&lt;String&gt;) -&gt; Unit )</ID>
+    <ID>CyclomaticComplexMethod:SettingsScreen.kt$@Composable fun SettingsScreen( viewModel: MainViewModel, settingsViewModel: SettingsViewModel, notificationScheduler: NotificationScheduler, onNavigateToDebugPanel: () -&gt; Unit )</ID>
+    <ID>FunctionNaming:BadgesTab.kt$@Composable fun BadgesTab(badges: List&lt;BadgeItem&gt;)</ID>
+    <ID>FunctionNaming:DebugPanelScreen.kt$@Composable fun AudioCacheTab(cdnAudioPlayer: CDNAudioPlayer)</ID>
+    <ID>FunctionNaming:DebugPanelScreen.kt$@Composable fun AudioQAStudioTab(vocabDao: VocabDao, cdnAudioPlayer: CDNAudioPlayer, settingsRepository: SettingsRepository)</ID>
+    <ID>FunctionNaming:DebugPanelScreen.kt$@Composable fun DatabaseFsrsTab(vocabDao: VocabDao)</ID>
+    <ID>FunctionNaming:DebugPanelScreen.kt$@Composable fun DatasetQATab(vocabDao: VocabDao)</ID>
+    <ID>FunctionNaming:DebugPanelScreen.kt$@Composable fun FlaggedItemsTab(vocabDao: VocabDao)</ID>
+    <ID>FunctionNaming:DebugPanelScreen.kt$@Composable fun LogsTab()</ID>
+    <ID>FunctionNaming:DebugPanelScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun DebugPanelScreen( onBack: () -&gt; Unit, cdnAudioPlayer: CDNAudioPlayer, vocabDatabase: VocabDatabase, vocabularyRepository: VocabularyRepository, reviewRepository: ReviewRepository, settingsRepository: SettingsRepository, backupRepository: BackupRepository )</ID>
+    <ID>FunctionNaming:DuolingoOptionCard.kt$@Composable fun DuolingoOptionCard( optionText: String, isSelected: Boolean, isCorrect: Boolean?, // null if not checked/unanswered, true if correct, false if selected incorrect onClick: () -&gt; Unit, modifier: Modifier = Modifier, enabled: Boolean = true )</ID>
+    <ID>FunctionNaming:DuolingoProgressBar.kt$@Composable fun DuolingoProgressBar( progress: Float, modifier: Modifier = Modifier )</ID>
+    <ID>FunctionNaming:FSRSTreeProgressBar.kt$@Composable fun FSRSTreeProgressBar( stability: Double, // FSRS stability value maxStability: Double = 30.0, // Assume 1 month is a fully grown tree modifier: Modifier = Modifier )</ID>
+    <ID>FunctionNaming:FeedbackBanner.kt$@Composable fun FeedbackBanner( isCorrect: Boolean?, // null if hidden, true if correct, false if incorrect correctAnswerText: String, onContinueClick: () -&gt; Unit, modifier: Modifier = Modifier )</ID>
+    <ID>FunctionNaming:FirstWinScreen.kt$@Composable fun FirstWinScreen( onFinished: () -&gt; Unit, viewModel: FirstWinViewModel = androidx.lifecycle.viewmodel.compose.viewModel() )</ID>
+    <ID>FunctionNaming:GoalPickerScreen.kt$@Composable fun GoalPickerScreen( onGoalSelected: (Int) -&gt; Unit )</ID>
+    <ID>FunctionNaming:HomeScreen.kt$@Composable private fun LevelTestNodeItem(isLocked: Boolean, title: String, onClick: () -&gt; Unit)</ID>
+    <ID>FunctionNaming:HomeScreen.kt$@Composable private fun NodePreviewContent(entry: PathEntry, onStart: () -&gt; Unit)</ID>
+    <ID>FunctionNaming:HomeScreen.kt$@Composable private fun PathNodeItem(entry: PathEntry, globalIndex: Int, onClick: () -&gt; Unit)</ID>
+    <ID>FunctionNaming:HomeScreen.kt$@Composable private fun StageHeaderItem(sectionStatus: SectionStatus)</ID>
+    <ID>FunctionNaming:HomeScreen.kt$@Composable private fun UnitHeaderItem(unit: UnitStatus, onGuidebook: () -&gt; Unit, onJumpTest: () -&gt; Unit)</ID>
+    <ID>FunctionNaming:HomeScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun HomeScreen( onStartQuiz: () -&gt; Unit, onStartFlashcard: (List&lt;String&gt;?) -&gt; Unit, onStartCustomQuiz: (stage: String?, topic: String?, index: Int?, isLevelTest: Boolean, isReviewGym: Boolean) -&gt; Unit, onStartNodeSession: (nodeId: String) -&gt; Unit, onStartReviewNode: (nodeId: String, unitId: String?, sectionId: String?) -&gt; Unit, onStartJumpTest: (unitId: String) -&gt; Unit, onStartSectionCheckpoint: (sectionId: String) -&gt; Unit, onStartUnitCheckpoint: (unitId: String) -&gt; Unit, onStartGuidebook: (unitId: String) -&gt; Unit, viewModel: MainViewModel )</ID>
+    <ID>FunctionNaming:IntroductionCard.kt$@Composable fun IntroductionCard( itemWithCard: QuestionWithCard?, prompt: String, audioUrl: String?, cdnAudioPlayer: CDNAudioPlayer )</ID>
+    <ID>FunctionNaming:JumpTestScreen.kt$@Composable fun JumpTestScreen( onStartTest: () -&gt; Unit, onBack: () -&gt; Unit )</ID>
+    <ID>FunctionNaming:ListeningQuestionCard.kt$@Composable fun ListeningQuestionCard( type: QuizType.Listening, hasAnswered: Boolean, selectedOptionIndex: Int?, onOptionSelected: (Int) -&gt; Unit, cdnAudioPlayer: CDNAudioPlayer )</ID>
+    <ID>FunctionNaming:LoginScreen.kt$@Composable fun LoginScreen( onLoginSuccess: () -&gt; Unit, viewModel: LoginViewModel = hiltViewModel() )</ID>
+    <ID>FunctionNaming:MatchingQuestionCard.kt$@Composable fun MatchingQuestionCard( type: QuizType.Matching, hasAnswered: Boolean, onPairsMatched: () -&gt; Unit )</ID>
+    <ID>FunctionNaming:MatchingQuestionCard.kt$@Composable private fun MatchingItem( text: String, isSelected: Boolean, isMatched: Boolean, onClick: () -&gt; Unit )</ID>
+    <ID>FunctionNaming:MistakeBankTab.kt$@Composable fun MistakeBankTab( mistakeCards: List&lt;QuestionWithCard&gt;, onReviewMistakes: (List&lt;String&gt;) -&gt; Unit )</ID>
+    <ID>FunctionNaming:MistakeBankTab.kt$@Composable private fun EmptyMistakeState()</ID>
+    <ID>FunctionNaming:MistakeBankTab.kt$@Composable private fun MistakeCardItem(card: QuestionWithCard, errorPercent: Int)</ID>
+    <ID>FunctionNaming:MistakeBankTab.kt$@Composable private fun MistakeList( mistakeCards: List&lt;QuestionWithCard&gt;, onReviewMistakes: (List&lt;String&gt;) -&gt; Unit )</ID>
+    <ID>FunctionNaming:OverviewTab.kt$@Composable fun OverviewTab(xpHistory: List&lt;DailyXp&gt;, stats: com.nhimz.vocabmaster.domain.model.ReviewStats?)</ID>
+    <ID>FunctionNaming:OverviewTab.kt$@Composable fun StatusStatsCard( title: String, count: Int, color: Color, modifier: Modifier = Modifier )</ID>
+    <ID>FunctionNaming:OverviewTab.kt$@Composable private fun VocabularyStatusSection(stats: com.nhimz.vocabmaster.domain.model.ReviewStats)</ID>
+    <ID>FunctionNaming:OverviewTab.kt$@Composable private fun XpHistoryChartCard(xpHistory: List&lt;DailyXp&gt;, animateChart: Boolean)</ID>
+    <ID>FunctionNaming:PlacementTestScreen.kt$@Composable fun PlacementTestScreen( onFinished: (String?) -&gt; Unit, onBack: () -&gt; Unit, viewModel: PlacementTestViewModel = hiltViewModel() )</ID>
+    <ID>FunctionNaming:QuizScreen.kt$@Composable fun FSRSFlashcardCard( type: QuizType.FSRSTailFlashcard, isFlipped: Boolean, onFlip: () -&gt; Unit )</ID>
+    <ID>FunctionNaming:QuizScreen.kt$@Composable fun FSRSRatingButtons(onRatingSelected: (Rating) -&gt; Unit)</ID>
+    <ID>FunctionNaming:QuizScreen.kt$@Composable fun MultipleChoiceCard( type: QuizType.MultipleChoice, hasAnswered: Boolean, selectedOptionIndex: Int?, onOptionSelected: (Int) -&gt; Unit )</ID>
+    <ID>FunctionNaming:QuizScreen.kt$@Composable fun QuizScreen( onSessionCompleted: (xpGained: Int, durationSeconds: Int, correctCount: Int, totalCount: Int, averageStability: Double, incorrectCardIds: List&lt;String&gt;, isLevelTest: Boolean, isPassedLevelTest: Boolean) -&gt; Unit, onBackToHome: () -&gt; Unit, cdnAudioPlayer: CDNAudioPlayer, viewModel: QuizViewModel )</ID>
+    <ID>FunctionNaming:QuizScreen.kt$@Composable private fun QuizEmptyState(onBack: () -&gt; Unit)</ID>
+    <ID>FunctionNaming:QuizScreen.kt$@Composable private fun QuizLoadingSkeleton()</ID>
+    <ID>FunctionNaming:ResultScreen.kt$@Composable fun ResultScreen( xpGained: Int, durationSeconds: Int, correctCount: Int, totalCount: Int, averageStability: Double, incorrectCardIds: List&lt;String&gt; = emptyList(), isLevelTest: Boolean = false, isPassedLevelTest: Boolean = false, onBackToHome: () -&gt; Unit, onReviewMistakes: (List&lt;String&gt;) -&gt; Unit )</ID>
+    <ID>FunctionNaming:ResultScreen.kt$@Composable fun StatItem( label: String, value: String, color: Color, modifier: Modifier = Modifier )</ID>
+    <ID>FunctionNaming:ScrambledQuizCard.kt$@Composable fun ScrambledQuizCard( scrambledWords: List&lt;String&gt;, selectedWords: List&lt;String&gt;, isAnswerRevealed: Boolean, isCorrect: Boolean?, onWordSelected: (String, Int) -&gt; Unit, onWordUnselected: (String, Int) -&gt; Unit, modifier: Modifier = Modifier )</ID>
+    <ID>FunctionNaming:ScrambledQuizCard.kt$@OptIn(ExperimentalLayoutApi::class) @Composable private fun SelectedWordsArea( selectedWords: List&lt;String&gt;, scrambledWords: List&lt;String&gt;, isAnswerRevealed: Boolean, borderColor: Color, onWordUnselected: (String, Int) -&gt; Unit )</ID>
+    <ID>FunctionNaming:ScrambledQuizCard.kt$@OptIn(ExperimentalLayoutApi::class) @Composable private fun WordBankArea( scrambledWords: List&lt;String&gt;, selectedIndices: Set&lt;Int&gt;, isAnswerRevealed: Boolean, onWordSelected: (String, Int) -&gt; Unit )</ID>
+    <ID>FunctionNaming:SectionCheckpointScreen.kt$@Composable fun SectionCheckpointScreen( title: String, onStartTest: () -&gt; Unit, onBack: () -&gt; Unit )</ID>
+    <ID>FunctionNaming:SettingsScreen.kt$@Composable fun SettingsScreen( viewModel: MainViewModel, settingsViewModel: SettingsViewModel, notificationScheduler: NotificationScheduler, onNavigateToDebugPanel: () -&gt; Unit )</ID>
+    <ID>FunctionNaming:SettingsScreen.kt$@Composable private fun SettingsCard( title: String, content: @Composable () -&gt; Unit )</ID>
+    <ID>FunctionNaming:StatisticsScreen.kt$@Composable fun StatisticsScreen( viewModel: StatisticsViewModel, onReviewMistakes: (List&lt;String&gt;) -&gt; Unit )</ID>
+    <ID>FunctionNaming:StatisticsScreen.kt$@Composable private fun StatisticsTabRow(tabs: List&lt;String&gt;, selectedTab: Int, onTabSelected: (Int) -&gt; Unit)</ID>
+    <ID>FunctionNaming:TestRunner.kt$@Composable fun StatusBadge(status: TestStatus)</ID>
+    <ID>FunctionNaming:TestRunner.kt$@Composable fun TestResultCard( result: TestResult, onRunClick: () -&gt; Unit, modifier: Modifier = Modifier )</ID>
+    <ID>FunctionNaming:Theme.kt$@Composable fun VocabMasterTheme( darkTheme: Boolean = isSystemInDarkTheme(), content: @Composable () -&gt; Unit )</ID>
+    <ID>FunctionNaming:Theme.kt$private fun ColorDarkOrLight(dark: Long, light: Long): androidx.compose.ui.graphics.Color</ID>
+    <ID>FunctionNaming:TypingQuestionCard.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun TypingQuestionCard( type: QuizType.Typing, hasAnswered: Boolean, typedText: String, onTextChanged: (String) -&gt; Unit, cdnAudioPlayer: CDNAudioPlayer )</ID>
+    <ID>FunctionNaming:UnitCheckpointScreen.kt$@Composable fun UnitCheckpointScreen( title: String, onStartTest: () -&gt; Unit, onBack: () -&gt; Unit )</ID>
+    <ID>FunctionNaming:UnitGuidebookScreen.kt$@Composable fun UnitGuidebookScreen( guidebook: UnitGuidebook, unitTitle: String, onBack: () -&gt; Unit )</ID>
+    <ID>FunctionNaming:VocabMasterApp.kt$@Composable fun VocabMasterApp( mainViewModel: MainViewModel, placementTestViewModel: PlacementTestViewModel, quizViewModel: QuizViewModel, statisticsViewModel: StatisticsViewModel, settingsViewModel: SettingsViewModel, cdnAudioPlayer: CDNAudioPlayer, notificationScheduler: NotificationScheduler, vocabDatabase: VocabDatabase, vocabularyRepository: VocabularyRepository, reviewRepository: ReviewRepository, settingsRepository: SettingsRepository, backupRepository: BackupRepository )</ID>
+    <ID>FunctionNaming:VocabMasterApp.kt$@Composable private fun LoadingSplash()</ID>
+    <ID>FunctionNaming:VocabMasterApp.kt$@Composable private fun MainAppScaffold( currentScreen: Screen, mainViewModel: MainViewModel, quizViewModel: QuizViewModel, statisticsViewModel: StatisticsViewModel, settingsViewModel: SettingsViewModel, notificationScheduler: NotificationScheduler, cdnAudioPlayer: CDNAudioPlayer, vocabDatabase: VocabDatabase, vocabularyRepository: VocabularyRepository, reviewRepository: ReviewRepository, settingsRepository: SettingsRepository, backupRepository: BackupRepository )</ID>
+    <ID>FunctionNaming:VocabMasterApp.kt$@Composable private fun OnboardingFlow( currentScreen: Screen, mainViewModel: MainViewModel, placementTestViewModel: PlacementTestViewModel, settingsViewModel: SettingsViewModel )</ID>
+    <ID>FunctionNaming:VocabMasterApp.kt$@Composable private fun StudyFlow( currentScreen: Screen, mainViewModel: MainViewModel, quizViewModel: QuizViewModel, cdnAudioPlayer: CDNAudioPlayer )</ID>
+    <ID>FunctionNaming:WelcomeScreen.kt$@Composable fun WelcomeScreen( onStartClick: () -&gt; Unit )</ID>
+    <ID>LabeledExpression:QuizViewModel.kt$QuizViewModel$@launch</ID>
+    <ID>LabeledExpression:VocabDatabaseSmokeTest.kt$VocabDatabaseSmokeTest$@runTest</ID>
     <ID>LargeClass:PyFsrsParityTest.kt$PyFsrsParityTest</ID>
+    <ID>LongMethod:DebugPanelScreen.kt$@Composable fun AudioQAStudioTab(vocabDao: VocabDao, cdnAudioPlayer: CDNAudioPlayer, settingsRepository: SettingsRepository)</ID>
+    <ID>LongMethod:DebugPanelScreen.kt$@Composable fun DatasetQATab(vocabDao: VocabDao)</ID>
+    <ID>LongMethod:DebugPanelScreen.kt$@Composable fun FlaggedItemsTab(vocabDao: VocabDao)</ID>
     <ID>LongMethod:FSRS.kt$FSRS$fun calculate(card: Card, elapsedDays: Double = card.interval.toDouble()): Map&lt;Rating, GradeInfo&gt;</ID>
+    <ID>LongMethod:FSRSTreeProgressBar.kt$@Composable fun FSRSTreeProgressBar( stability: Double, // FSRS stability value maxStability: Double = 30.0, // Assume 1 month is a fully grown tree modifier: Modifier = Modifier )</ID>
+    <ID>LongMethod:FeedbackBanner.kt$@Composable fun FeedbackBanner( isCorrect: Boolean?, // null if hidden, true if correct, false if incorrect correctAnswerText: String, onContinueClick: () -&gt; Unit, modifier: Modifier = Modifier )</ID>
+    <ID>LongMethod:FirstWinScreen.kt$@Composable fun FirstWinScreen( onFinished: () -&gt; Unit, viewModel: FirstWinViewModel = androidx.lifecycle.viewmodel.compose.viewModel() )</ID>
+    <ID>LongMethod:GoalPickerScreen.kt$@Composable fun GoalPickerScreen( onGoalSelected: (Int) -&gt; Unit )</ID>
+    <ID>LongMethod:HomeScreen.kt$@Composable private fun NodePreviewContent(entry: PathEntry, onStart: () -&gt; Unit)</ID>
+    <ID>LongMethod:HomeScreen.kt$@Composable private fun PathNodeItem(entry: PathEntry, globalIndex: Int, onClick: () -&gt; Unit)</ID>
+    <ID>LongMethod:HomeScreen.kt$@Composable private fun UnitHeaderItem(unit: UnitStatus, onGuidebook: () -&gt; Unit, onJumpTest: () -&gt; Unit)</ID>
+    <ID>LongMethod:HomeScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun HomeScreen( onStartQuiz: () -&gt; Unit, onStartFlashcard: (List&lt;String&gt;?) -&gt; Unit, onStartCustomQuiz: (stage: String?, topic: String?, index: Int?, isLevelTest: Boolean, isReviewGym: Boolean) -&gt; Unit, onStartNodeSession: (nodeId: String) -&gt; Unit, onStartReviewNode: (nodeId: String, unitId: String?, sectionId: String?) -&gt; Unit, onStartJumpTest: (unitId: String) -&gt; Unit, onStartSectionCheckpoint: (sectionId: String) -&gt; Unit, onStartUnitCheckpoint: (unitId: String) -&gt; Unit, onStartGuidebook: (unitId: String) -&gt; Unit, viewModel: MainViewModel )</ID>
+    <ID>LongMethod:OverviewTab.kt$@Composable private fun XpHistoryChartCard(xpHistory: List&lt;DailyXp&gt;, animateChart: Boolean)</ID>
+    <ID>LongMethod:PlacementTestScreen.kt$@Composable fun PlacementTestScreen( onFinished: (String?) -&gt; Unit, onBack: () -&gt; Unit, viewModel: PlacementTestViewModel = hiltViewModel() )</ID>
+    <ID>LongMethod:PlacementTestViewModel.kt$PlacementTestViewModel$fun submitAnswer(selectedOptionIndex: Int)</ID>
+    <ID>LongMethod:QuizScreen.kt$@Composable fun QuizScreen( onSessionCompleted: (xpGained: Int, durationSeconds: Int, correctCount: Int, totalCount: Int, averageStability: Double, incorrectCardIds: List&lt;String&gt;, isLevelTest: Boolean, isPassedLevelTest: Boolean) -&gt; Unit, onBackToHome: () -&gt; Unit, cdnAudioPlayer: CDNAudioPlayer, viewModel: QuizViewModel )</ID>
+    <ID>LongMethod:QuizViewModel.kt$QuizViewModel$fun startNodeSession(nodeId: String, sessionIndex: Int)</ID>
+    <ID>LongMethod:QuizViewModel.kt$QuizViewModel$fun startUnitCheckpoint(unitId: String)</ID>
+    <ID>LongMethod:QuizViewModel.kt$QuizViewModel$fun submitAnswer(optionIndex: Int? = null, textAnswer: String? = null, selectedWordsForScrambled: List&lt;String&gt;? = null, fsrsRating: Rating? = null)</ID>
     <ID>LongMethod:ReferenceFSRS.kt$ReferenceFSRS$fun calculate(flashCard: FlashCard): List&lt;Grade&gt;</ID>
+    <ID>LongMethod:ResultScreen.kt$@Composable fun ResultScreen( xpGained: Int, durationSeconds: Int, correctCount: Int, totalCount: Int, averageStability: Double, incorrectCardIds: List&lt;String&gt; = emptyList(), isLevelTest: Boolean = false, isPassedLevelTest: Boolean = false, onBackToHome: () -&gt; Unit, onReviewMistakes: (List&lt;String&gt;) -&gt; Unit )</ID>
+    <ID>LongMethod:ScrambledQuizCard.kt$@OptIn(ExperimentalLayoutApi::class) @Composable private fun SelectedWordsArea( selectedWords: List&lt;String&gt;, scrambledWords: List&lt;String&gt;, isAnswerRevealed: Boolean, borderColor: Color, onWordUnselected: (String, Int) -&gt; Unit )</ID>
+    <ID>LongMethod:SectionCheckpointScreen.kt$@Composable fun SectionCheckpointScreen( title: String, onStartTest: () -&gt; Unit, onBack: () -&gt; Unit )</ID>
+    <ID>LongMethod:SettingsScreen.kt$@Composable fun SettingsScreen( viewModel: MainViewModel, settingsViewModel: SettingsViewModel, notificationScheduler: NotificationScheduler, onNavigateToDebugPanel: () -&gt; Unit )</ID>
+    <ID>LongMethod:StatisticsViewModel.kt$StatisticsViewModel$fun loadStatisticsData()</ID>
+    <ID>LongMethod:TestRunner.kt$@Composable fun TestResultCard( result: TestResult, onRunClick: () -&gt; Unit, modifier: Modifier = Modifier )</ID>
+    <ID>LongMethod:TypingQuestionCard.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun TypingQuestionCard( type: QuizType.Typing, hasAnswered: Boolean, typedText: String, onTextChanged: (String) -&gt; Unit, cdnAudioPlayer: CDNAudioPlayer )</ID>
+    <ID>LongMethod:UnitCheckpointScreen.kt$@Composable fun UnitCheckpointScreen( title: String, onStartTest: () -&gt; Unit, onBack: () -&gt; Unit )</ID>
+    <ID>LongMethod:UnitGuidebookScreen.kt$@Composable fun UnitGuidebookScreen( guidebook: UnitGuidebook, unitTitle: String, onBack: () -&gt; Unit )</ID>
+    <ID>LongMethod:VocabMasterApp.kt$@Composable private fun MainAppScaffold( currentScreen: Screen, mainViewModel: MainViewModel, quizViewModel: QuizViewModel, statisticsViewModel: StatisticsViewModel, settingsViewModel: SettingsViewModel, notificationScheduler: NotificationScheduler, cdnAudioPlayer: CDNAudioPlayer, vocabDatabase: VocabDatabase, vocabularyRepository: VocabularyRepository, reviewRepository: ReviewRepository, settingsRepository: SettingsRepository, backupRepository: BackupRepository )</ID>
+    <ID>LongMethod:WelcomeScreen.kt$@Composable fun WelcomeScreen( onStartClick: () -&gt; Unit )</ID>
+    <ID>LongParameterList:DebugPanelScreen.kt$( onBack: () -&gt; Unit, cdnAudioPlayer: CDNAudioPlayer, vocabDatabase: VocabDatabase, vocabularyRepository: VocabularyRepository, reviewRepository: ReviewRepository, settingsRepository: SettingsRepository, backupRepository: BackupRepository )</ID>
+    <ID>LongParameterList:DuolingoOptionCard.kt$( optionText: String, isSelected: Boolean, isCorrect: Boolean?, // null if not checked/unanswered, true if correct, false if selected incorrect onClick: () -&gt; Unit, modifier: Modifier = Modifier, enabled: Boolean = true )</ID>
+    <ID>LongParameterList:HomeScreen.kt$( onStartQuiz: () -&gt; Unit, onStartFlashcard: (List&lt;String&gt;?) -&gt; Unit, onStartCustomQuiz: (stage: String?, topic: String?, index: Int?, isLevelTest: Boolean, isReviewGym: Boolean) -&gt; Unit, onStartNodeSession: (nodeId: String) -&gt; Unit, onStartReviewNode: (nodeId: String, unitId: String?, sectionId: String?) -&gt; Unit, onStartJumpTest: (unitId: String) -&gt; Unit, onStartSectionCheckpoint: (sectionId: String) -&gt; Unit, onStartUnitCheckpoint: (unitId: String) -&gt; Unit, onStartGuidebook: (unitId: String) -&gt; Unit, viewModel: MainViewModel )</ID>
     <ID>LongParameterList:PyFsrsParityTest.kt$PyFsrsParityTest$( year: Int, month: Int, day: Int, hour: Int, minute: Int, second: Int = 0, nano: Int = 0 )</ID>
+    <ID>LongParameterList:ResultScreen.kt$( xpGained: Int, durationSeconds: Int, correctCount: Int, totalCount: Int, averageStability: Double, incorrectCardIds: List&lt;String&gt; = emptyList(), isLevelTest: Boolean = false, isPassedLevelTest: Boolean = false, onBackToHome: () -&gt; Unit, onReviewMistakes: (List&lt;String&gt;) -&gt; Unit )</ID>
+    <ID>LongParameterList:ScrambledQuizCard.kt$( scrambledWords: List&lt;String&gt;, selectedWords: List&lt;String&gt;, isAnswerRevealed: Boolean, isCorrect: Boolean?, onWordSelected: (String, Int) -&gt; Unit, onWordUnselected: (String, Int) -&gt; Unit, modifier: Modifier = Modifier )</ID>
+    <ID>LongParameterList:VocabMasterApp.kt$( currentScreen: Screen, mainViewModel: MainViewModel, quizViewModel: QuizViewModel, statisticsViewModel: StatisticsViewModel, settingsViewModel: SettingsViewModel, notificationScheduler: NotificationScheduler, cdnAudioPlayer: CDNAudioPlayer, vocabDatabase: VocabDatabase, vocabularyRepository: VocabularyRepository, reviewRepository: ReviewRepository, settingsRepository: SettingsRepository, backupRepository: BackupRepository )</ID>
+    <ID>LongParameterList:VocabMasterApp.kt$( mainViewModel: MainViewModel, placementTestViewModel: PlacementTestViewModel, quizViewModel: QuizViewModel, statisticsViewModel: StatisticsViewModel, settingsViewModel: SettingsViewModel, cdnAudioPlayer: CDNAudioPlayer, notificationScheduler: NotificationScheduler, vocabDatabase: VocabDatabase, vocabularyRepository: VocabularyRepository, reviewRepository: ReviewRepository, settingsRepository: SettingsRepository, backupRepository: BackupRepository )</ID>
+    <ID>MagicNumber:ApiClient.kt$ApiClient$30</ID>
+    <ID>MagicNumber:BadgesTab.kt$0.4f</ID>
+    <ID>MagicNumber:BadgesTab.kt$0xFFF59E0B</ID>
+    <ID>MagicNumber:CDNAudioPlayer.kt$CDNAudioPlayer$1024</ID>
+    <ID>MagicNumber:CDNAudioPlayer.kt$CDNAudioPlayer$90</ID>
+    <ID>MagicNumber:Color.kt$0xFF059669</ID>
+    <ID>MagicNumber:Color.kt$0xFF0F172A</ID>
+    <ID>MagicNumber:Color.kt$0xFF10B981</ID>
+    <ID>MagicNumber:Color.kt$0xFF152A38</ID>
+    <ID>MagicNumber:Color.kt$0xFF1B2E1C</ID>
+    <ID>MagicNumber:Color.kt$0xFF1CB0F6</ID>
+    <ID>MagicNumber:Color.kt$0xFF1E293B</ID>
+    <ID>MagicNumber:Color.kt$0xFF2563EB</ID>
+    <ID>MagicNumber:Color.kt$0xFF2E1B1B</ID>
+    <ID>MagicNumber:Color.kt$0xFF34D399</ID>
+    <ID>MagicNumber:Color.kt$0xFF3B82F6</ID>
+    <ID>MagicNumber:Color.kt$0xFF58CC02</ID>
+    <ID>MagicNumber:Color.kt$0xFF60A5FA</ID>
+    <ID>MagicNumber:Color.kt$0xFF6366F1</ID>
+    <ID>MagicNumber:Color.kt$0xFF7C3AED</ID>
+    <ID>MagicNumber:Color.kt$0xFF818CF8</ID>
+    <ID>MagicNumber:Color.kt$0xFFD97706</ID>
+    <ID>MagicNumber:Color.kt$0xFFE0F7FA</ID>
+    <ID>MagicNumber:Color.kt$0xFFE2E8F0</ID>
+    <ID>MagicNumber:Color.kt$0xFFE8F5E9</ID>
+    <ID>MagicNumber:Color.kt$0xFFEF4444</ID>
+    <ID>MagicNumber:Color.kt$0xFFF59E0B</ID>
+    <ID>MagicNumber:Color.kt$0xFFF87171</ID>
+    <ID>MagicNumber:Color.kt$0xFFF8FAFC</ID>
+    <ID>MagicNumber:Color.kt$0xFFFF4B4B</ID>
+    <ID>MagicNumber:Color.kt$0xFFFFEBEE</ID>
+    <ID>MagicNumber:Color.kt$0xFFFFFFFF</ID>
+    <ID>MagicNumber:DataIntegrityTests.kt$10.0</ID>
+    <ID>MagicNumber:DataIntegrityTests.kt$150</ID>
+    <ID>MagicNumber:DebugPanelScreen.kt$0xFF065F46</ID>
+    <ID>MagicNumber:DebugPanelScreen.kt$0xFF10B981</ID>
+    <ID>MagicNumber:DebugPanelScreen.kt$0xFF3B82F6</ID>
+    <ID>MagicNumber:DebugPanelScreen.kt$0xFF991B1B</ID>
+    <ID>MagicNumber:DebugPanelScreen.kt$0xFFD1FAE5</ID>
+    <ID>MagicNumber:DebugPanelScreen.kt$0xFFEF4444</ID>
+    <ID>MagicNumber:DebugPanelScreen.kt$0xFFF59E0B</ID>
+    <ID>MagicNumber:DebugPanelScreen.kt$0xFFFEE2E2</ID>
+    <ID>MagicNumber:DebugPanelScreen.kt$1.5f</ID>
+    <ID>MagicNumber:DebugPanelScreen.kt$100</ID>
+    <ID>MagicNumber:DebugPanelScreen.kt$3</ID>
+    <ID>MagicNumber:DebugPanelScreen.kt$4</ID>
+    <ID>MagicNumber:DebugPanelScreen.kt$5</ID>
     <ID>MagicNumber:FSRS.kt$FSRS$0.1</ID>
     <ID>MagicNumber:FSRS.kt$FSRS$0.95</ID>
     <ID>MagicNumber:FSRS.kt$FSRS$1.05</ID>
-    <ID>MagicNumber:FSRS.kt$FSRS$10</ID>
     <ID>MagicNumber:FSRS.kt$FSRS$10.0</ID>
     <ID>MagicNumber:FSRS.kt$FSRS$1000L</ID>
+    <ID>MagicNumber:FSRS.kt$FSRS$10</ID>
     <ID>MagicNumber:FSRS.kt$FSRS$11</ID>
     <ID>MagicNumber:FSRS.kt$FSRS$12</ID>
     <ID>MagicNumber:FSRS.kt$FSRS$13</ID>
@@ -39,43 +224,403 @@
     <ID>MagicNumber:FSRS.kt$FSRS$24</ID>
     <ID>MagicNumber:FSRS.kt$FSRS$3</ID>
     <ID>MagicNumber:FSRS.kt$FSRS$4</ID>
-    <ID>MagicNumber:FSRS.kt$FSRS$5</ID>
     <ID>MagicNumber:FSRS.kt$FSRS$5.0</ID>
-    <ID>MagicNumber:FSRS.kt$FSRS$6</ID>
+    <ID>MagicNumber:FSRS.kt$FSRS$5</ID>
     <ID>MagicNumber:FSRS.kt$FSRS$60</ID>
+    <ID>MagicNumber:FSRS.kt$FSRS$6</ID>
     <ID>MagicNumber:FSRS.kt$FSRS$7</ID>
     <ID>MagicNumber:FSRS.kt$FSRS$8</ID>
     <ID>MagicNumber:FSRS.kt$FSRS$9</ID>
+    <ID>MagicNumber:FSRSTreeProgressBar.kt$0.05f</ID>
+    <ID>MagicNumber:FSRSTreeProgressBar.kt$0.2f</ID>
+    <ID>MagicNumber:FSRSTreeProgressBar.kt$0.35f</ID>
+    <ID>MagicNumber:FSRSTreeProgressBar.kt$0.3f</ID>
+    <ID>MagicNumber:FSRSTreeProgressBar.kt$0.4f</ID>
+    <ID>MagicNumber:FSRSTreeProgressBar.kt$0.6f</ID>
+    <ID>MagicNumber:FSRSTreeProgressBar.kt$0.7f</ID>
+    <ID>MagicNumber:FSRSTreeProgressBar.kt$0.8f</ID>
+    <ID>MagicNumber:FSRSTreeProgressBar.kt$0xFF654321</ID>
+    <ID>MagicNumber:FSRSTreeProgressBar.kt$0xFF8B5A2B</ID>
+    <ID>MagicNumber:FSRSTreeProgressBar.kt$10f</ID>
+    <ID>MagicNumber:FSRSTreeProgressBar.kt$120f</ID>
+    <ID>MagicNumber:FSRSTreeProgressBar.kt$12f</ID>
+    <ID>MagicNumber:FSRSTreeProgressBar.kt$15f</ID>
+    <ID>MagicNumber:FSRSTreeProgressBar.kt$25f</ID>
+    <ID>MagicNumber:FSRSTreeProgressBar.kt$30f</ID>
+    <ID>MagicNumber:FSRSTreeProgressBar.kt$5f</ID>
+    <ID>MagicNumber:FSRSTreeProgressBar.kt$60f</ID>
+    <ID>MagicNumber:FSRSTreeProgressBar.kt$8f</ID>
+    <ID>MagicNumber:FeedbackHelper.kt$FeedbackHelper$100</ID>
+    <ID>MagicNumber:FeedbackHelper.kt$FeedbackHelper$150</ID>
+    <ID>MagicNumber:FeedbackHelper.kt$FeedbackHelper$200</ID>
+    <ID>MagicNumber:FeedbackHelper.kt$FeedbackHelper$300</ID>
+    <ID>MagicNumber:FeedbackHelper.kt$FeedbackHelper$50</ID>
+    <ID>MagicNumber:FeedbackHelper.kt$FeedbackHelper$80</ID>
+    <ID>MagicNumber:FirstWinScreen.kt$0.8f</ID>
+    <ID>MagicNumber:FirstWinScreen.kt$0.98f</ID>
+    <ID>MagicNumber:FirstWinScreen.kt$0xFF10B981</ID>
+    <ID>MagicNumber:FirstWinScreen.kt$0xFF3B82F6</ID>
+    <ID>MagicNumber:FirstWinScreen.kt$0xFF6C63FF</ID>
+    <ID>MagicNumber:FirstWinScreen.kt$0xFFEC4899</ID>
+    <ID>MagicNumber:FirstWinScreen.kt$0xFFEF4444</ID>
+    <ID>MagicNumber:FirstWinScreen.kt$0xFFF59E0B</ID>
+    <ID>MagicNumber:FirstWinScreen.kt$10f</ID>
+    <ID>MagicNumber:FirstWinScreen.kt$120</ID>
+    <ID>MagicNumber:FirstWinScreen.kt$1500</ID>
+    <ID>MagicNumber:FirstWinScreen.kt$15f</ID>
+    <ID>MagicNumber:FirstWinScreen.kt$3</ID>
+    <ID>MagicNumber:FirstWinScreen.kt$40</ID>
+    <ID>MagicNumber:FirstWinScreen.kt$4f</ID>
+    <ID>MagicNumber:FirstWinScreen.kt$50f</ID>
+    <ID>MagicNumber:FirstWinScreen.kt$5f</ID>
+    <ID>MagicNumber:FirstWinViewModel.kt$FirstWinViewModel$7</ID>
+    <ID>MagicNumber:GoalPickerScreen.kt$10</ID>
+    <ID>MagicNumber:GoalPickerScreen.kt$15</ID>
+    <ID>MagicNumber:GoalPickerScreen.kt$20</ID>
+    <ID>MagicNumber:GoalPickerScreen.kt$300</ID>
+    <ID>MagicNumber:GoalPickerScreen.kt$5</ID>
+    <ID>MagicNumber:HomeScreen.kt$0xFF58A700</ID>
+    <ID>MagicNumber:HomeScreen.kt$0xFF58CC02</ID>
+    <ID>MagicNumber:HomeScreen.kt$0xFF89E219</ID>
+    <ID>MagicNumber:HomeScreen.kt$0xFFAFAFAF</ID>
+    <ID>MagicNumber:HomeScreen.kt$0xFFB45309</ID>
+    <ID>MagicNumber:HomeScreen.kt$0xFFE29F03</ID>
+    <ID>MagicNumber:HomeScreen.kt$0xFFE5E5E5</ID>
+    <ID>MagicNumber:HomeScreen.kt$0xFFEF4444</ID>
+    <ID>MagicNumber:HomeScreen.kt$0xFFF59E0B</ID>
+    <ID>MagicNumber:HomeScreen.kt$0xFFF97316</ID>
+    <ID>MagicNumber:HomeScreen.kt$0xFFFFC800</ID>
+    <ID>MagicNumber:HomeScreen.kt$1.5f</ID>
+    <ID>MagicNumber:HomeScreen.kt$1200</ID>
+    <ID>MagicNumber:HomeScreen.kt$15f</ID>
+    <ID>MagicNumber:HomeScreen.kt$50</ID>
+    <ID>MagicNumber:HomeScreen.kt$56f</ID>
+    <ID>MagicNumber:HomeScreen.kt$60</ID>
+    <ID>MagicNumber:HomeScreen.kt$900</ID>
+    <ID>MagicNumber:MainActivity.kt$MainActivity$9</ID>
+    <ID>MagicNumber:MainViewModel.kt$MainViewModel$1000</ID>
+    <ID>MagicNumber:MainViewModel.kt$MainViewModel$10</ID>
+    <ID>MagicNumber:MainViewModel.kt$MainViewModel$3</ID>
+    <ID>MagicNumber:MainViewModel.kt$MainViewModel$5000</ID>
+    <ID>MagicNumber:MainViewModel.kt$MainViewModel$500</ID>
+    <ID>MagicNumber:MainViewModel.kt$MainViewModel$50</ID>
+    <ID>MagicNumber:MainViewModel.kt$MainViewModel$7</ID>
     <ID>MagicNumber:MapRatingUseCase.kt$MapRatingUseCase$10.0</ID>
     <ID>MagicNumber:MapRatingUseCase.kt$MapRatingUseCase$1000.0</ID>
     <ID>MagicNumber:MapRatingUseCase.kt$MapRatingUseCase$3.0</ID>
+    <ID>MagicNumber:MatchingQuestionCard.kt$300</ID>
+    <ID>MagicNumber:MistakeBankTab.kt$100</ID>
     <ID>MagicNumber:Models.kt$Rating.Easy$4</ID>
     <ID>MagicNumber:Models.kt$Rating.Good$3</ID>
     <ID>MagicNumber:Models.kt$State.Relearning$3</ID>
+    <ID>MagicNumber:NotificationReceiver.kt$NotificationReceiver$1000</ID>
+    <ID>MagicNumber:NotificationReceiver.kt$NotificationReceiver$1001</ID>
+    <ID>MagicNumber:NotificationReceiver.kt$NotificationReceiver$5</ID>
+    <ID>MagicNumber:OverviewTab.kt$0xFF10B981</ID>
+    <ID>MagicNumber:OverviewTab.kt$0xFF3B82F6</ID>
+    <ID>MagicNumber:OverviewTab.kt$0xFFEF4444</ID>
+    <ID>MagicNumber:OverviewTab.kt$1000</ID>
+    <ID>MagicNumber:OverviewTab.kt$100</ID>
+    <ID>MagicNumber:OverviewTab.kt$50</ID>
+    <ID>MagicNumber:PlacementTestScreen.kt$4f</ID>
     <ID>MagicNumber:PlacementTestUseCase.kt$PlacementTestUseCase$15</ID>
     <ID>MagicNumber:PlacementTestUseCase.kt$PlacementTestUseCase$8</ID>
+    <ID>MagicNumber:QuizScreen.kt$0xFF2196F3</ID>
+    <ID>MagicNumber:QuizScreen.kt$0xFF4CAF50</ID>
+    <ID>MagicNumber:QuizScreen.kt$0xFFF44336</ID>
+    <ID>MagicNumber:QuizScreen.kt$0xFFFF9800</ID>
+    <ID>MagicNumber:QuizScreen.kt$15f</ID>
+    <ID>MagicNumber:QuizScreen.kt$3</ID>
+    <ID>MagicNumber:QuizScreen.kt$40</ID>
+    <ID>MagicNumber:QuizScreen.kt$4</ID>
+    <ID>MagicNumber:QuizViewModel.kt$QuizViewModel$0.7f</ID>
+    <ID>MagicNumber:QuizViewModel.kt$QuizViewModel$0.8f</ID>
+    <ID>MagicNumber:QuizViewModel.kt$QuizViewModel$1000</ID>
+    <ID>MagicNumber:QuizViewModel.kt$QuizViewModel$10</ID>
+    <ID>MagicNumber:QuizViewModel.kt$QuizViewModel$15</ID>
+    <ID>MagicNumber:QuizViewModel.kt$QuizViewModel$16</ID>
+    <ID>MagicNumber:QuizViewModel.kt$QuizViewModel$20</ID>
+    <ID>MagicNumber:QuizViewModel.kt$QuizViewModel$5</ID>
+    <ID>MagicNumber:ResultScreen.kt$0.5f</ID>
+    <ID>MagicNumber:ResultScreen.kt$0.8f</ID>
+    <ID>MagicNumber:ResultScreen.kt$0.98f</ID>
+    <ID>MagicNumber:ResultScreen.kt$0xFF10B981</ID>
+    <ID>MagicNumber:ResultScreen.kt$0xFF3B82F6</ID>
+    <ID>MagicNumber:ResultScreen.kt$0xFF6C63FF</ID>
+    <ID>MagicNumber:ResultScreen.kt$0xFFEC4899</ID>
+    <ID>MagicNumber:ResultScreen.kt$0xFFEF4444</ID>
+    <ID>MagicNumber:ResultScreen.kt$0xFFF59E0B</ID>
+    <ID>MagicNumber:ResultScreen.kt$1000</ID>
+    <ID>MagicNumber:ResultScreen.kt$100</ID>
+    <ID>MagicNumber:ResultScreen.kt$10f</ID>
+    <ID>MagicNumber:ResultScreen.kt$120</ID>
+    <ID>MagicNumber:ResultScreen.kt$1500</ID>
+    <ID>MagicNumber:ResultScreen.kt$15f</ID>
+    <ID>MagicNumber:ResultScreen.kt$4f</ID>
+    <ID>MagicNumber:ResultScreen.kt$50f</ID>
+    <ID>MagicNumber:ResultScreen.kt$5f</ID>
+    <ID>MagicNumber:ResultScreen.kt$60</ID>
+    <ID>MagicNumber:SectionCheckpointScreen.kt$0xFFB45309</ID>
+    <ID>MagicNumber:SectionCheckpointScreen.kt$0xFFF59E0B</ID>
+    <ID>MagicNumber:SettingsRepositoryImpl.kt$SettingsRepositoryImpl$0.9</ID>
+    <ID>MagicNumber:SettingsRepositoryImpl.kt$SettingsRepositoryImpl$50</ID>
+    <ID>MagicNumber:SettingsScreen.kt$23</ID>
+    <ID>MagicNumber:SettingsScreen.kt$24</ID>
+    <ID>MagicNumber:SettingsScreen.kt$55</ID>
+    <ID>MagicNumber:SettingsScreen.kt$5</ID>
+    <ID>MagicNumber:SettingsScreen.kt$60</ID>
+    <ID>MagicNumber:SettingsScreen.kt$9</ID>
+    <ID>MagicNumber:SettingsViewModel.kt$SettingsViewModel$0.90</ID>
+    <ID>MagicNumber:SettingsViewModel.kt$SettingsViewModel$100</ID>
+    <ID>MagicNumber:SettingsViewModel.kt$SettingsViewModel$5000</ID>
+    <ID>MagicNumber:StatisticsViewModel.kt$StatisticsViewModel$0.5f</ID>
+    <ID>MagicNumber:StatisticsViewModel.kt$StatisticsViewModel$10</ID>
+    <ID>MagicNumber:StatisticsViewModel.kt$StatisticsViewModel$3</ID>
+    <ID>MagicNumber:StatisticsViewModel.kt$StatisticsViewModel$5000</ID>
+    <ID>MagicNumber:StatisticsViewModel.kt$StatisticsViewModel$6</ID>
+    <ID>MagicNumber:SystemSettingsTests.kt$0.85</ID>
+    <ID>MagicNumber:SystemSettingsTests.kt$0.8</ID>
+    <ID>MagicNumber:SystemSettingsTests.kt$0.95</ID>
+    <ID>MagicNumber:SystemSettingsTests.kt$25</ID>
+    <ID>MagicNumber:SystemSettingsTests.kt$5</ID>
+    <ID>MagicNumber:SystemSettingsTests.kt$60</ID>
+    <ID>MagicNumber:TestRunner.kt$0xFF2E7D32</ID>
+    <ID>MagicNumber:TestRunner.kt$0xFFE65100</ID>
+    <ID>MagicNumber:TestRunner.kt$0xFFE8F5E9</ID>
+    <ID>MagicNumber:TestRunner.kt$0xFFFFF3E0</ID>
+    <ID>MagicNumber:Theme.kt$0xFF000000</ID>
+    <ID>MagicNumber:Theme.kt$0xFFFFFFFF</ID>
+    <ID>MagicNumber:UnitCheckpointScreen.kt$0xFF047857</ID>
+    <ID>MagicNumber:UnitCheckpointScreen.kt$0xFF10B981</ID>
     <ID>MagicNumber:UpdateStreakUseCase.kt$UpdateStreakUseCase$1000L</ID>
     <ID>MagicNumber:UpdateStreakUseCase.kt$UpdateStreakUseCase$24</ID>
     <ID>MagicNumber:UpdateStreakUseCase.kt$UpdateStreakUseCase$60</ID>
     <ID>MagicNumber:UpdateStreakUseCase.kt$UpdateStreakUseCase$7</ID>
+    <ID>MagicNumber:VocabApplication.kt$VocabApplication$5</ID>
+    <ID>MagicNumber:VocabApplication.kt$VocabApplication$6</ID>
+    <ID>MagicNumber:WelcomeScreen.kt$1000</ID>
+    <ID>MatchingDeclarationName:FirstWinScreen.kt$FirstWinConfettiParticle</ID>
+    <ID>MatchingDeclarationName:GoalPickerScreen.kt$GoalOption</ID>
+    <ID>MatchingDeclarationName:ResultScreen.kt$ConfettiParticle</ID>
+    <ID>MaxLineLength:BadgesTab.kt$color = if (badge.isUnlocked) Color(0xFFF59E0B).copy(alpha = 0.1f) else Color.Gray.copy(alpha = 0.1f)</ID>
+    <ID>MaxLineLength:BadgesTab.kt$containerColor = if (badge.isUnlocked) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.surface.copy(alpha = 0.5f)</ID>
+    <ID>MaxLineLength:CDNAudioPlayer.kt$CDNAudioPlayer$val cacheKey = androidx.media3.datasource.cache.CacheKeyFactory.DEFAULT.buildCacheKey(androidx.media3.datasource.DataSpec(uri))</ID>
+    <ID>MaxLineLength:CDNAudioPlayer.kt$CDNAudioPlayer.&lt;no name provided&gt;$LocalLogger.e("CDNAudioPlayer", "Audio playback failed. Silent fallback triggered. Cause: ${error.message}", error)</ID>
+    <ID>MaxLineLength:DataIntegrityTests.kt$assertions.add(AssertionResult("Cards count matches pre-backup ($preCardsCount)", cardsMatch, "Post-restore got: $postCardsCount"))</ID>
+    <ID>MaxLineLength:DataIntegrityTests.kt$assertions.add(AssertionResult("Cards with reps &gt; 0 have a lastReview timestamp", repsWithoutReviewDate == 0, "Found $repsWithoutReviewDate cards with reps &gt; 0 but null lastReview"))</ID>
+    <ID>MaxLineLength:DataIntegrityTests.kt$assertions.add(AssertionResult("Difficulty values in [1.0, 10.0] for non-New cards", difficultyAnomalies == 0, "Found $difficultyAnomalies difficulty anomalies"))</ID>
+    <ID>MaxLineLength:DataIntegrityTests.kt$assertions.add(AssertionResult("Interval values are non-negative", intervalAnomalies == 0, "Found $intervalAnomalies negative interval cards"))</ID>
+    <ID>MaxLineLength:DataIntegrityTests.kt$assertions.add(AssertionResult("No orphan review logs exist", orphanLogs == 0, "Found $orphanLogs orphan review logs"))</ID>
+    <ID>MaxLineLength:DataIntegrityTests.kt$assertions.add(AssertionResult("Review logs count matches pre-backup ($preLogsCount)", logsMatch, "Post-restore got: $postLogsCount"))</ID>
+    <ID>MaxLineLength:DataIntegrityTests.kt$assertions.add(AssertionResult("Stability values are non-negative", stabilityAnomalies == 0, "Found $stabilityAnomalies negative stability cards"))</ID>
+    <ID>MaxLineLength:DataIntegrityTests.kt$assertions.add(AssertionResult("Streak matches pre-backup ($preStreak)", streakMatch, "Post-restore got: $postStreak"))</ID>
+    <ID>MaxLineLength:DataIntegrityTests.kt$log.appendLine("Anomaly: Learned Card questionId ${card.questionId} has difficulty out of bounds [1.0, 10.0]: ${card.difficulty}")</ID>
+    <ID>MaxLineLength:DataIntegrityTests.kt$log.appendLine("Anomaly: ReviewLog ID ${logItem.id} is orphan (Card ID ${logItem.cardId} does not exist)")</ID>
+    <ID>MaxLineLength:DataIntegrityTests.kt$val isClean = (stabilityAnomalies == 0) &amp;&amp; (difficultyAnomalies == 0) &amp;&amp; (intervalAnomalies == 0) &amp;&amp; (repsWithoutReviewDate == 0) &amp;&amp; (orphanLogs == 0)</ID>
+    <ID>MaxLineLength:DebugPanelScreen.kt$"{\"word\":\"${it.questionId}\",\"issue\":\"${it.issueType}\",\"details\":\"${it.details}\"}"</ID>
+    <ID>MaxLineLength:DebugPanelScreen.kt$Button</ID>
+    <ID>MaxLineLength:DebugPanelScreen.kt$Toast.makeText(context, "Đã cắm cờ báo lỗi từ: ${currentCard.id}", Toast.LENGTH_SHORT).show()</ID>
+    <ID>MaxLineLength:DebugPanelScreen.kt$Toast.makeText(context, "Đã xuất báo cáo ra: ${reportFile.absolutePath}", Toast.LENGTH_LONG).show()</ID>
+    <ID>MaxLineLength:DebugPanelScreen.kt$anomaliesList.add("[ERR_JSON_EMPTY] '${card.id}': scrambledSentenceData bị trống hoặc null")</ID>
+    <ID>MaxLineLength:DebugPanelScreen.kt$anomaliesList.add("[ERR_JSON_FORMAT] '${card.id}': scrambledSentenceData lỗi cú pháp JSON: ${e.message}")</ID>
+    <ID>MaxLineLength:DebugPanelScreen.kt$anomaliesList.add("[WARN_JSON_ARRAY] '${card.id}': scrambledSentenceData là mảng rỗng []")</ID>
+    <ID>MaxLineLength:DebugPanelScreen.kt$colors = ButtonDefaults.buttonColors(containerColor = Color.LightGray.copy(alpha = 0.5f), contentColor = Color.DarkGray)</ID>
+    <ID>MaxLineLength:DebugPanelScreen.kt$text = "Tự động phân tích toàn bộ thẻ từ vựng trong SQLite Database để tìm lỗi logic cấu trúc JSON và dữ liệu rỗng."</ID>
+    <ID>MaxLineLength:DebugPanelScreen.kt$text = if (cacheStatus == true) "HIT (Tồn tại trong Cache cục bộ)" else "MISS (Chưa được cache, cần mạng để tải)"</ID>
+    <ID>MaxLineLength:DebugPanelScreen.kt$val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)</ID>
+    <ID>MaxLineLength:DebugPanelScreen.kt$val reportFile = File(downloadsDir, "flagged_assets_report_${System.currentTimeMillis()}.json")</ID>
+    <ID>MaxLineLength:DebugPanelScreen.kt$var cardsList by remember { mutableStateOf&lt;List&lt;com.nhimz.vocabmaster.data.database.entity.QuestionEntity&gt;&gt;(emptyList()) }</ID>
+    <ID>MaxLineLength:DebugPanelScreen.kt$var urlInput by remember { mutableStateOf("https://cdn.jsdelivr.net/gh/nhimz/vocab-master-audio@main/audio/example.ogg") }</ID>
     <ID>MaxLineLength:FSRS.kt$FSRS$return String.format(java.util.Locale.US, "%.2f", if (reverted.isNaN()) 5.0 else reverted.coerceIn(1.0, 10.0)).toDouble()</ID>
     <ID>MaxLineLength:FSRS.kt$FSRS$return String.format(java.util.Locale.US, "%.2f", if (value.isNaN()) 0.1 else value.coerceAtLeast(0.1)).toDouble()</ID>
     <ID>MaxLineLength:FSRSTest.kt$FSRSTest$assertEquals("Difficulty mismatch for card $card and rating $rating", refInfo.difficulty, info.difficulty, 0.0001)</ID>
     <ID>MaxLineLength:FSRSTest.kt$FSRSTest$assertEquals("DurationMillis mismatch for card $card and rating $rating", refInfo.durationMillis, info.durationMillis)</ID>
     <ID>MaxLineLength:FSRSTest.kt$FSRSTest$assertEquals("Stability mismatch for card $card and rating $rating", refInfo.stability, info.stability, 0.0001)</ID>
     <ID>MaxLineLength:FSRSTest.kt$FSRSTest$val card2 = Card(state = State.Review, stability = 10.0, difficulty = 5.0, interval = 8, lastReview = now.minusDays(8))</ID>
+    <ID>MaxLineLength:FirstWinScreen.kt$color = if (selectedOptionIndex != null) Color.White else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)</ID>
+    <ID>MaxLineLength:FirstWinScreen.kt$text = "Bạn đã hoàn thành bài kiểm tra đầu tiên xuất sắc. Hành trình học tập và làm chủ Tiếng Anh đã chính thức bắt đầu!"</ID>
     <ID>MaxLineLength:GoldenVectorTest.kt$GoldenVectorTest$assertEquals("Vector ${vector.id} (review $i) difficulty", expected.difficulty, card.difficulty!!, 1e-6)</ID>
     <ID>MaxLineLength:GoldenVectorTest.kt$GoldenVectorTest$assertEquals("Vector ${vector.id} (review $i) lastReview", expected.last_review?.let { parseDate(it) }, card.lastReview)</ID>
     <ID>MaxLineLength:GoldenVectorTest.kt$GoldenVectorTest$assertEquals("Vector ${vector.id} (review $i) stability", expected.stability, card.stability!!, 1e-6)</ID>
+    <ID>MaxLineLength:HomeScreen.kt$Icon(Icons.Filled.Warning, contentDescription = "Overdue", tint = MaterialTheme.colorScheme.error)</ID>
+    <ID>MaxLineLength:HomeScreen.kt$containerColor = if (dueCount &gt; 0) Color(0xFFF97316) else MaterialTheme.colorScheme.secondaryContainer</ID>
+    <ID>MaxLineLength:HomeScreen.kt$if</ID>
+    <ID>MaxLineLength:HomeScreen.kt$onStartCustomQuiz: (stage: String?, topic: String?, index: Int?, isLevelTest: Boolean, isReviewGym: Boolean) -&gt; Unit</ID>
+    <ID>MaxLineLength:HomeScreen.kt$snackbarMessage = "💡 Đang có $dueCount từ đến hạn — nên ghé REVIEW node trước nếu có thời gian."</ID>
+    <ID>MaxLineLength:HomeScreen.kt$subtitle = "Có ${drn.dueCount} từ vựng đến hạn ôn tập (spaced repetition FSRS). Luyện lại để củng cố trí nhớ dài hạn."</ID>
+    <ID>MaxLineLength:JumpTestScreen.kt$text = "Bạn có thể bỏ qua toàn bộ Unit này nếu vượt qua bài test 20 câu. Cần trả lời đúng ít nhất 80% để nhảy cóc."</ID>
+    <ID>MaxLineLength:NotificationReceiver.kt$NotificationReceiver$.</ID>
+    <ID>MaxLineLength:NotificationReceiver.kt$NotificationReceiver$val card = dueCards?.randomOrNull() ?: vocabularyRepository.getCardsByLevel(DifficultyLevel.A2).firstOrNull()?.randomOrNull()</ID>
     <ID>MaxLineLength:PlacementTestUseCase.kt$PlacementTestUseCase$*</ID>
+    <ID>MaxLineLength:PlacementTestViewModel.kt$PlacementTestViewModel$_uiState.update { it.copy(isLoading = false, error = "Failed to connect to server: ${response.code()}") }</ID>
+    <ID>MaxLineLength:QuizScreen.kt$Box(modifier = Modifier.fillMaxWidth().height(100.dp).background(Color.LightGray.copy(alpha = 0.2f), RoundedCornerShape(16.dp)))</ID>
+    <ID>MaxLineLength:QuizScreen.kt$Box(modifier = Modifier.fillMaxWidth().height(64.dp).padding(vertical = 8.dp).background(Color.LightGray.copy(alpha = 0.2f), RoundedCornerShape(16.dp)))</ID>
+    <ID>MaxLineLength:QuizScreen.kt$Box(modifier = Modifier.height(16.dp).weight(1f).background(Color.LightGray.copy(alpha = 0.3f), RoundedCornerShape(8.dp)))</ID>
+    <ID>MaxLineLength:QuizScreen.kt$Box(modifier = Modifier.size(24.dp).background(Color.LightGray.copy(alpha = 0.3f), RoundedCornerShape(12.dp)))</ID>
+    <ID>MaxLineLength:QuizScreen.kt$Button(onClick = onBack, modifier = Modifier.fillMaxWidth().height(56.dp), shape = RoundedCornerShape(28.dp)) { Text(text = "Quay lại trang chủ", fontSize = 16.sp, fontWeight = FontWeight.Bold) }</ID>
+    <ID>MaxLineLength:QuizScreen.kt$Button(onClick = { onRatingSelected(Rating.Again) }, colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF44336)), modifier = Modifier.weight(1f).padding(end = 4.dp)) { Text("Lại") }</ID>
+    <ID>MaxLineLength:QuizScreen.kt$Button(onClick = { onRatingSelected(Rating.Easy) }, colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2196F3)), modifier = Modifier.weight(1f).padding(start = 4.dp)) { Text("Dễ") }</ID>
+    <ID>MaxLineLength:QuizScreen.kt$Button(onClick = { onRatingSelected(Rating.Good) }, colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50)), modifier = Modifier.weight(1f).padding(horizontal = 2.dp)) { Text("Tốt") }</ID>
+    <ID>MaxLineLength:QuizScreen.kt$Button(onClick = { onRatingSelected(Rating.Hard) }, colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF9800)), modifier = Modifier.weight(1f).padding(horizontal = 2.dp)) { Text("Khó") }</ID>
+    <ID>MaxLineLength:QuizScreen.kt$Column</ID>
+    <ID>MaxLineLength:QuizScreen.kt$Text(text = "Chủ đề hoặc lộ trình học này hiện không có câu hỏi nào khả dụng. Vui lòng quay lại sau!", fontSize = 14.sp, color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f), textAlign = TextAlign.Center, modifier = Modifier.padding(horizontal = 16.dp))</ID>
+    <ID>MaxLineLength:QuizScreen.kt$Text(text = "Không có câu hỏi nào", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground)</ID>
+    <ID>MaxLineLength:QuizScreen.kt$Text(text = type.itemWithCard.question.translation ?: "", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)</ID>
+    <ID>MaxLineLength:QuizScreen.kt$color = if (isSubmitEnabled) Color.White else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)</ID>
+    <ID>MaxLineLength:QuizScreen.kt$containerColor = if (isSubmitEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant</ID>
+    <ID>MaxLineLength:QuizScreen.kt$is QuizType.ScrambledSentence -&gt; selectedWordsForScrambled.joinToString(" ") == type.correctSentence</ID>
+    <ID>MaxLineLength:QuizScreen.kt$onSessionCompleted: (xpGained: Int, durationSeconds: Int, correctCount: Int, totalCount: Int, averageStability: Double, incorrectCardIds: List&lt;String&gt;, isLevelTest: Boolean, isPassedLevelTest: Boolean) -&gt; Unit</ID>
+    <ID>MaxLineLength:QuizScreen.kt$onWordSelected = { word, _ -&gt; if (!hasAnswered) selectedWordsForScrambled = selectedWordsForScrambled + word }</ID>
+    <ID>MaxLineLength:QuizScreen.kt$progress = if (state.questions.isNotEmpty()) state.currentIndex.toFloat() / state.questions.size else 0f</ID>
+    <ID>MaxLineLength:QuizScreen.kt$val cleanedCorrect = type.correctSentence.replace(Regex("[^A-Za-z0-9 ]"), "").lowercase()</ID>
+    <ID>MaxLineLength:QuizScreen.kt$val cleanedUser = typedText.replace(Regex("[^A-Za-z0-9 ]"), "").lowercase()</ID>
+    <ID>MaxLineLength:QuizViewModel.kt$QuizViewModel$fun</ID>
+    <ID>MaxLineLength:QuizViewModel.kt$QuizViewModel$requireNotNull(selectedWordsForScrambled) { "selectedWordsForScrambled must be provided for ScrambledSentence" }</ID>
+    <ID>MaxLineLength:QuizViewModel.kt$QuizViewModel$val accuracy = if (state.questions.isNotEmpty()) state.correctAnswersCount.toFloat() / state.questions.size else 0f</ID>
+    <ID>MaxLineLength:QuizViewModel.kt$QuizViewModel$val</ID>
+    <ID>MaxLineLength:ResultScreen.kt$if (isPassedLevelTest) "Chúc mừng! Trình độ của bạn đã được nâng cấp." else "Bạn cần đúng ít nhất 80% số câu để vượt cấp. Hãy tiếp tục luyện tập nhé!"</ID>
+    <ID>MaxLineLength:ResultScreen.kt$val accuracy = if (totalCount &gt; 0) ((correctCount.toFloat() / totalCount) * 100).toInt() else 100</ID>
+    <ID>MaxLineLength:SectionCheckpointScreen.kt$text = "Để tiến tới chặng tiếp theo, bạn cần vượt qua thử thách cuối cùng của chặng này. Hãy chứng minh sự cố gắng của bạn!"</ID>
+    <ID>MaxLineLength:SettingsScreen.kt$/* Spacer(modifier = Modifier.height(16.dp)) Row( modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically ) { Text(text = "Ngôn ngữ dịch", fontSize = 14.sp) Row { listOf("VI", "EN").forEach { l -&gt; val isSelected = l == language Box( modifier = Modifier .padding(start = 4.dp) .background( brush = if (isSelected) { Brush.horizontalGradient(listOf(GradientStart, GradientEnd)) } else { Brush.horizontalGradient(listOf(Color.Transparent, Color.Transparent)) }, shape = RoundedCornerShape(8.dp) ) .clip(RoundedCornerShape(8.dp)) .clickable { viewModel.setLanguage(l) } .padding(horizontal = 12.dp, vertical = 6.dp) ) { Text( text = when (l) { "VI" -&gt; "Tiếng Việt" else -&gt; "Tiếng Anh" }, color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f), fontSize = 12.sp, fontWeight = FontWeight.Bold ) } } } } */</ID>
+    <ID>MaxLineLength:SettingsScreen.kt$Text("Mở Debug Panel", color = MaterialTheme.colorScheme.onErrorContainer, fontWeight = FontWeight.Bold)</ID>
+    <ID>MaxLineLength:SettingsScreen.kt$Text(text = String.format(java.util.Locale.US, "%.2f", desiredRetention), fontWeight = FontWeight.Bold, color = GradientStart)</ID>
+    <ID>MaxLineLength:SettingsScreen.kt$color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)</ID>
+    <ID>MaxLineLength:SettingsScreen.kt$text = "Lưu tiến độ học tập, thẻ từ vựng và lịch sử ôn tập của bạn thành tệp JSON hoặc khôi phục lại từ một bản sao lưu trước đó."</ID>
+    <ID>MaxLineLength:SettingsScreen.kt$text = "Lưu ý: Tỷ lệ cao hơn (0.95) sẽ tăng tần suất ôn tập thẻ ghi nhớ để giữ trí nhớ lâu hơn. Mức tối ưu khuyến nghị là 0.90."</ID>
+    <ID>MaxLineLength:SettingsScreen.kt$text = "Sao lưu và tải tiến độ học tập của bạn lên server đám mây cá nhân tự động để đồng bộ đa thiết bị."</ID>
+    <ID>MaxLineLength:SettingsScreen.kt$text</ID>
+    <ID>MaxLineLength:SettingsViewModel.kt$SettingsViewModel$_uiState.update { it.copy(isSyncing = false, syncSuccess = false, syncError = "Đồng bộ hóa thất bại. Vui lòng kiểm tra kết nối mạng.") }</ID>
+    <ID>MaxLineLength:SystemSettingsTests.kt$assertions.add(AssertionResult("Badge add works (contains badge_4)", badgesAfterAdd.contains("badge_4"), "Got: $badgesAfterAdd"))</ID>
+    <ID>MaxLineLength:SystemSettingsTests.kt$assertions.add(AssertionResult("Badge list matches written list $testBadges", badgesRead == testBadges, "Got: $badgesRead"))</ID>
+    <ID>MaxLineLength:SystemSettingsTests.kt$assertions.add(AssertionResult("Longest streak is &gt;= current streak ($longestStreak &gt;= $currentStreak)", longestStreak &gt;= currentStreak))</ID>
+    <ID>MaxLineLength:SystemSettingsTests.kt$assertions.add(AssertionResult("Retention is within valid range [0.8, 0.95] ($retention)", retention in 0.8..0.95))</ID>
+    <ID>MaxLineLength:SystemSettingsTests.kt$assertions.add(AssertionResult("Retention successfully updated to 0.85", retentionRead == 0.85, "Got: $retentionRead"))</ID>
+    <ID>MaxLineLength:SystemSettingsTests.kt$assertions.add(AssertionResult("Theme successfully updated to DARK", themeRead == "DARK", "Got: $themeRead"))</ID>
+    <ID>MaxLineLength:SystemSettingsTests.kt$assertions.add(AssertionResult("Topic successfully updated to technology", topicRead == "technology", "Got: $topicRead"))</ID>
+    <ID>MaxLineLength:SystemSettingsTests.kt$val passed = (xp &gt;= 0) &amp;&amp; (currentStreak &gt;= 0) &amp;&amp; (longestStreak &gt;= currentStreak) &amp;&amp; (freezes &gt;= 0) &amp;&amp; (goal in 5..60) &amp;&amp; (retention in 0.8..0.95)</ID>
+    <ID>MaxLineLength:TestRunner.kt$imageVector = if (expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown</ID>
+    <ID>MaxLineLength:TestRunner.kt$val dotColor = if (assertion.passed) Color(0xFF2E7D32) else MaterialTheme.colorScheme.error</ID>
+    <ID>MaxLineLength:TypingQuestionCard.kt$colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)</ID>
+    <ID>MaxLineLength:UnitCheckpointScreen.kt$text = "Hoàn thành quiz này để xác nhận bạn đã mastered chủ đề này. Các bài học LESSON và REVIEW trong unit đã giúp bạn luyện tập — giờ là lúc kiểm tra!"</ID>
+    <ID>MaxLineLength:UnitGuidebookScreen.kt$Text(text = "•", fontSize = 16.sp, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(end = 8.dp))</ID>
+    <ID>MaxLineLength:UnitGuidebookScreen.kt$Text(text = "💡 ${phrase.note}", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))</ID>
+    <ID>MaxLineLength:UnitGuidebookScreen.kt$Text(text = phrase.phrase, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)</ID>
+    <ID>MaxLineLength:UnitGuidebookScreen.kt$Text(text = phrase.translation, fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurface)</ID>
+    <ID>MaxLineLength:UnitGuidebookScreen.kt$colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.3f))</ID>
+    <ID>MaxLineLength:VocabDao.kt$VocabDao$// I will remove getCardsByLevel, getCardsByTopic, getDueAndNewCardsByTopic, getNewCardsByTopicAndLevels, getNewCardsByLevels</ID>
+    <ID>MaxLineLength:VocabDao.kt$VocabDao$suspend</ID>
+    <ID>MaxLineLength:VocabMasterApp.kt$android.widget.Toast.makeText(context, "🏆 Chúc mừng! Bạn đã mở khoá huy hiệu: $badgeUnlocked", android.widget.Toast.LENGTH_LONG).show()</ID>
+    <ID>MaxLineLength:VocabMasterApp.kt$is Screen.Home</ID>
+    <ID>MaxLineLength:VocabMasterApp.kt$is Screen.Welcome</ID>
+    <ID>MaxLineLength:VocabMasterApp.kt$mainViewModel.navigateTo(Screen.Result(xp, duration, correct, total, stability, incorrectCardIds, isLevelTest, isPassedLevelTest))</ID>
+    <ID>MaxLineLength:VocabMasterApp.kt$onSessionCompleted</ID>
+    <ID>MaxLineLength:VocabMasterApp.kt$val</ID>
+    <ID>MaxLineLength:WelcomeScreen.kt$text = "Làm chủ từ vựng tiếng Anh mỗi ngày bằng thuật toán Spaced Repetition (FSRS) tiên tiến bậc nhất."</ID>
+    <ID>NestedBlockDepth:ScrambledWordMapper.kt$ScrambledWordMapper$fun calculateSelectedIndices( selectedWords: List&lt;String&gt;, scrambledWords: List&lt;String&gt; ): List&lt;Int&gt;</ID>
+    <ID>NewLineAtEndOfFile:ApiClient.kt$com.nhimz.vocabmaster.data.remote.ApiClient.kt</ID>
+    <ID>NewLineAtEndOfFile:AppIcons.kt$com.nhimz.vocabmaster.ui.theme.AppIcons.kt</ID>
+    <ID>NewLineAtEndOfFile:BadgesTab.kt$com.nhimz.vocabmaster.ui.screens.statistics_components.BadgesTab.kt</ID>
+    <ID>NewLineAtEndOfFile:HomeScreen.kt$com.nhimz.vocabmaster.ui.screens.HomeScreen.kt</ID>
+    <ID>NewLineAtEndOfFile:MistakeBankTab.kt$com.nhimz.vocabmaster.ui.screens.statistics_components.MistakeBankTab.kt</ID>
+    <ID>NewLineAtEndOfFile:OverviewTab.kt$com.nhimz.vocabmaster.ui.screens.statistics_components.OverviewTab.kt</ID>
+    <ID>NewLineAtEndOfFile:ScrambledWordMapper.kt$com.nhimz.vocabmaster.ui.components.quiz.ScrambledWordMapper.kt</ID>
+    <ID>NewLineAtEndOfFile:ScrambledWordMapperTest.kt$com.nhimz.vocabmaster.ui.components.quiz.ScrambledWordMapperTest.kt</ID>
+    <ID>NewLineAtEndOfFile:Screen.kt$com.nhimz.vocabmaster.ui.navigation.Screen.kt</ID>
+    <ID>NewLineAtEndOfFile:SettingsScreen.kt$com.nhimz.vocabmaster.ui.screens.SettingsScreen.kt</ID>
+    <ID>NewLineAtEndOfFile:SettingsViewModel.kt$com.nhimz.vocabmaster.ui.viewmodel.SettingsViewModel.kt</ID>
+    <ID>NewLineAtEndOfFile:SyncPayload.kt$com.nhimz.vocabmaster.data.remote.SyncPayload.kt</ID>
+    <ID>NewLineAtEndOfFile:SystemSettingsTests.kt$com.nhimz.vocabmaster.ui.screens.debug_components.SystemSettingsTests.kt</ID>
+    <ID>NewLineAtEndOfFile:UnitCheckpointScreen.kt$com.nhimz.vocabmaster.ui.screens.UnitCheckpointScreen.kt</ID>
+    <ID>NewLineAtEndOfFile:VocabDatabaseSmokeTest.kt$com.nhimz.vocabmaster.data.database.VocabDatabaseSmokeTest.kt</ID>
+    <ID>NewLineAtEndOfFile:VocabMasterApp.kt$com.nhimz.vocabmaster.ui.VocabMasterApp.kt</ID>
+    <ID>NewLineAtEndOfFile:VocabularyApiService.kt$com.nhimz.vocabmaster.data.remote.VocabularyApiService.kt</ID>
+    <ID>PackageNaming:BadgesTab.kt$package com.nhimz.vocabmaster.ui.screens.statistics_components</ID>
+    <ID>PackageNaming:DataIntegrityTests.kt$package com.nhimz.vocabmaster.ui.screens.debug_components</ID>
+    <ID>PackageNaming:MistakeBankTab.kt$package com.nhimz.vocabmaster.ui.screens.statistics_components</ID>
+    <ID>PackageNaming:OverviewTab.kt$package com.nhimz.vocabmaster.ui.screens.statistics_components</ID>
+    <ID>PackageNaming:SystemSettingsTests.kt$package com.nhimz.vocabmaster.ui.screens.debug_components</ID>
+    <ID>PackageNaming:TestRunner.kt$package com.nhimz.vocabmaster.ui.screens.debug_components</ID>
+    <ID>PrintStackTrace:FeedbackHelper.kt$FeedbackHelper$e</ID>
+    <ID>ReturnCount:AuthManager.kt$AuthManager$private suspend fun handleSignIn(result: GetCredentialResponse): Result&lt;AppUser&gt;</ID>
     <ID>ReturnCount:FSRS.kt$FSRS$private fun applyFuzz( interval: Double, fuzzFactor: Double, scheduledDays: Int = 0 ): Double</ID>
+    <ID>StringLiteralDuplication:AuthManager.kt$AuthManager$"AuthManager"</ID>
+    <ID>StringLiteralDuplication:CDNAudioPlayer.kt$CDNAudioPlayer.&lt;no name provided&gt;$"CDNAudioPlayer"</ID>
+    <ID>StringLiteralDuplication:MainViewModel.kt$MainViewModel$"streak_3"</ID>
+    <ID>StringLiteralDuplication:MainViewModel.kt$MainViewModel$"streak_7"</ID>
+    <ID>StringLiteralDuplication:MainViewModel.kt$MainViewModel$"xp_1000"</ID>
+    <ID>StringLiteralDuplication:MainViewModel.kt$MainViewModel$"xp_500"</ID>
+    <ID>StringLiteralDuplication:NotificationScheduler.kt$NotificationScheduler$"NotificationScheduler"</ID>
+    <ID>StringLiteralDuplication:QuizScreen.kt$"[^A-Za-z0-9 ]"</ID>
+    <ID>StringLiteralDuplication:TestRunner.kt$"TestRunner"</ID>
+    <ID>SwallowedException:FirstWinViewModel.kt$FirstWinViewModel$e: Exception</ID>
+    <ID>SwallowedException:NotificationReceiver.kt$NotificationReceiver$e: Exception</ID>
+    <ID>SwallowedException:PlacementTestViewModel.kt$PlacementTestViewModel$e: Exception</ID>
     <ID>SwallowedException:PyFsrsParityTest.kt$PyFsrsParityTest$e: IllegalArgumentException</ID>
     <ID>ThrowsCount:PyFsrsParityTest.kt$PyFsrsParityTest$@Test fun test_scheduler_parameter_validation()</ID>
+    <ID>TooGenericExceptionCaught:AuthManager.kt$AuthManager$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:CDNAudioPlayer.kt$CDNAudioPlayer$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:DebugPanelScreen.kt$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:FeedbackHelper.kt$FeedbackHelper$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:FirstWinViewModel.kt$FirstWinViewModel$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:NotificationReceiver.kt$NotificationReceiver$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:NotificationScheduler.kt$NotificationScheduler$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:PlacementTestViewModel.kt$PlacementTestViewModel$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:SettingsViewModel.kt$SettingsViewModel$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:TestRunner.kt$e: Throwable</ID>
     <ID>TooManyFunctions:FSRS.kt$FSRS</ID>
+    <ID>TooManyFunctions:MainViewModel.kt$MainViewModel : ViewModel</ID>
     <ID>TooManyFunctions:SettingsRepository.kt$SettingsRepository</ID>
+    <ID>TooManyFunctions:SettingsRepositoryImpl.kt$SettingsRepositoryImpl : SettingsRepository</ID>
+    <ID>TooManyFunctions:VocabDao.kt$VocabDao</ID>
     <ID>TooManyFunctions:VocabularyRepository.kt$VocabularyRepository</ID>
+    <ID>UnusedParameter:DebugPanelScreen.kt$backupRepository: BackupRepository</ID>
+    <ID>UnusedParameter:DebugPanelScreen.kt$reviewRepository: ReviewRepository</ID>
+    <ID>UnusedParameter:DebugPanelScreen.kt$vocabularyRepository: VocabularyRepository</ID>
+    <ID>UnusedParameter:HomeScreen.kt$onStartQuiz: () -&gt; Unit</ID>
+    <ID>UnusedParameter:QuizViewModel.kt$QuizViewModel$cardIds: List&lt;String&gt;?</ID>
+    <ID>UnusedParameter:QuizViewModel.kt$QuizViewModel$sectionId: String</ID>
+    <ID>UnusedParameter:Theme.kt$dark: Long</ID>
+    <ID>UnusedPrivateProperty:AuthManager.kt$AuthManager$private val credentialManager = CredentialManager.create(context)</ID>
     <ID>UnusedPrivateProperty:FSRSTest.kt$FSRSTest$val baseTime = LocalDateTime.of(2026, 7, 10, 12, 0)</ID>
+    <ID>UnusedPrivateProperty:FirstWinScreen.kt$i</ID>
+    <ID>UnusedPrivateProperty:FirstWinScreen.kt$val context = LocalContext.current</ID>
+    <ID>UnusedPrivateProperty:HomeScreen.kt$private val ErrorRed = Color(0xFFEF4444)</ID>
+    <ID>UnusedPrivateProperty:HomeScreen.kt$val currentId = curriculumStatus.firstNotNullOfOrNull { section -&gt; section.units.firstNotNullOfOrNull { unit -&gt; unit.nodes.firstOrNull { !it.isCompleted &amp;&amp; !it.isLocked }?.node?.id } }</ID>
+    <ID>UnusedPrivateProperty:MainViewModel.kt$MainViewModel$val completedNodesInSection = vocabularyRepository.getCompletedNodesBySection(section.id)</ID>
+    <ID>UnusedPrivateProperty:ResultScreen.kt$i</ID>
     <ID>UnusedPrivateProperty:UseCasesTest.kt$UseCasesTest$i</ID>
+    <ID>VariableNaming:ApiClient.kt$ApiClient$private val BASE_URL = "http://127.0.0.1:8000/"</ID>
     <ID>WildcardImport:FSRS.kt$import kotlin.math.*</ID>
+    <ID>WildcardImport:IntroductionCard.kt$import androidx.compose.foundation.layout.*</ID>
+    <ID>WildcardImport:IntroductionCard.kt$import androidx.compose.material3.*</ID>
+    <ID>WildcardImport:JumpTestScreen.kt$import androidx.compose.foundation.layout.*</ID>
+    <ID>WildcardImport:JumpTestScreen.kt$import androidx.compose.material3.*</ID>
+    <ID>WildcardImport:ListeningQuestionCard.kt$import androidx.compose.foundation.layout.*</ID>
+    <ID>WildcardImport:ListeningQuestionCard.kt$import androidx.compose.material3.*</ID>
+    <ID>WildcardImport:ListeningQuestionCard.kt$import androidx.compose.runtime.*</ID>
+    <ID>WildcardImport:LoginScreen.kt$import androidx.compose.foundation.layout.*</ID>
+    <ID>WildcardImport:LoginScreen.kt$import androidx.compose.material3.*</ID>
+    <ID>WildcardImport:LoginScreen.kt$import androidx.compose.runtime.*</ID>
+    <ID>WildcardImport:MatchingQuestionCard.kt$import androidx.compose.foundation.layout.*</ID>
+    <ID>WildcardImport:MatchingQuestionCard.kt$import androidx.compose.runtime.*</ID>
+    <ID>WildcardImport:PlacementTestScreen.kt$import androidx.compose.foundation.layout.*</ID>
+    <ID>WildcardImport:PlacementTestScreen.kt$import androidx.compose.material3.*</ID>
+    <ID>WildcardImport:PlacementTestScreen.kt$import androidx.compose.runtime.*</ID>
+    <ID>WildcardImport:QuizScreen.kt$import androidx.compose.foundation.layout.*</ID>
+    <ID>WildcardImport:QuizScreen.kt$import androidx.compose.material3.*</ID>
+    <ID>WildcardImport:QuizScreen.kt$import androidx.compose.runtime.*</ID>
+    <ID>WildcardImport:QuizScreen.kt$import com.nhimz.vocabmaster.ui.components.quiz.*</ID>
+    <ID>WildcardImport:SectionCheckpointScreen.kt$import androidx.compose.foundation.layout.*</ID>
+    <ID>WildcardImport:SectionCheckpointScreen.kt$import androidx.compose.material3.*</ID>
+    <ID>WildcardImport:TestRunner.kt$import androidx.compose.foundation.layout.*</ID>
+    <ID>WildcardImport:TestRunner.kt$import androidx.compose.material3.*</ID>
+    <ID>WildcardImport:TestRunner.kt$import androidx.compose.runtime.*</ID>
+    <ID>WildcardImport:TypingQuestionCard.kt$import androidx.compose.foundation.layout.*</ID>
+    <ID>WildcardImport:TypingQuestionCard.kt$import androidx.compose.material3.*</ID>
+    <ID>WildcardImport:UnitCheckpointScreen.kt$import androidx.compose.foundation.layout.*</ID>
+    <ID>WildcardImport:UnitCheckpointScreen.kt$import androidx.compose.material3.*</ID>
+    <ID>WildcardImport:UnitGuidebookScreen.kt$import androidx.compose.foundation.layout.*</ID>
+    <ID>WildcardImport:UnitGuidebookScreen.kt$import androidx.compose.material3.*</ID>
+    <ID>WildcardImport:UnitGuidebookScreen.kt$import androidx.compose.runtime.*</ID>
   </CurrentIssues>
 </SmellBaseline>

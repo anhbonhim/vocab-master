@@ -1,6 +1,6 @@
 package com.nhimz.vocabmaster.domain.usecase
 
-import com.nhimz.vocabmaster.domain.fsrs.Rating
+import com.nhimz.vocabmaster.domain.fsrs.v6.Rating
 import javax.inject.Inject
 
 class MapRatingUseCase @Inject constructor() {
