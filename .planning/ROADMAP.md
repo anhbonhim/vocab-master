@@ -27,7 +27,7 @@ VocabMaster is being refactored and audited to build a robust local persistence 
   3. String/Locale formats do not cause NumberFormatExceptions in non-US locale runtime tests.
   4. Database operations utilize Kotlin Coroutines/Flows, executing off the main thread.
 
-**Plans**: 5/7 plans executed
+**Plans**: 7/7 plans executed
 
 Plans:
 **Wave 1**
@@ -46,11 +46,11 @@ Plans:
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
-- [ ] 01-07-PLAN.md — PERS-04: repository JSON error hardening (Result<T>, VocabDataException) + failure-injection tests
+- [x] 01-07-PLAN.md — PERS-04: repository JSON error hardening (Result<T>, VocabDataException) + failure-injection tests
 
 **Wave 5** *(blocked on Wave 4 completion)*
 
-- [ ] 01-06-PLAN.md — Legacy FSRS deletion + v6 enum migration + VocabDao transaction tests
+- [x] 01-06-PLAN.md — Legacy FSRS deletion + v6 enum migration + VocabDao transaction tests
 
 ### Phase 2: Business Logic & ViewModel Refactoring
 
@@ -113,7 +113,7 @@ Plans:
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Security & Database Stabilization | 5/7 | In Progress|  |
+| 1. Security & Database Stabilization | 7/7 | In Progress|  |
 | 2. Business Logic & ViewModel Refactoring | 0/2 | Not started | - |
 | 3. Compose UI Refactoring & Polish | 0/3 | Not started | - |
 | 4. Sync & Integration Verification | 0/1 | Not started | - |
