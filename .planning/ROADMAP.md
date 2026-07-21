@@ -66,9 +66,13 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
+**Wave 1**
 
-- [ ] 02-01: Extract Domain UseCases for Study Sessions
-- [ ] 02-02: Refactor ViewModels to Unidirectional Data Flow (UDF) Patterns
+- [ ] 02-01-PLAN.md — Extract domain UseCases for quiz sessions (Load/Evaluate/SubmitReview/Complete) + quiz types migration to domain.model.quiz
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
+- [ ] 02-02-PLAN.md — Refactor QuizViewModel to UDF: QuizUiState sealed interface, SavedStateHandle survival, rapid-tap guards
 
 ### Phase 3: Compose UI Refactoring & Polish
 
