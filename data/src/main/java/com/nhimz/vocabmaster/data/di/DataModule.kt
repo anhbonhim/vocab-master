@@ -52,6 +52,12 @@ abstract class DataModule {
     companion object {
         @Provides
         @Singleton
+        /**
+         * Provides the VocabDatabase instance.
+         * The builder deliberately omits main-thread query permission so Room's built-in guard throws
+         * IllegalStateException on any non-suspend/non-Flow DAO call, enforcing PERS-02 at runtime.
+         * Main-thread allowance is permitted ONLY in test in-memory builders.
+         */
         fun provideVocabDatabase(
             @ApplicationContext context: Context
         ): VocabDatabase {
@@ -59,7 +65,7 @@ abstract class DataModule {
                 context,
                 VocabDatabase::class.java,
                 "vocab_database"
-            ).addMigrations(VocabDatabase.MIGRATION_1_2, VocabDatabase.MIGRATION_2_3)
+            )
              .fallbackToDestructiveMigration(dropAllTables = true)
              .build()
         }

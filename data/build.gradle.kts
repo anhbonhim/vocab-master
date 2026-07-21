@@ -6,6 +6,7 @@ plugins {
 }
 
 android {
+    testOptions { unitTests.isIncludeAndroidResources = true }
     namespace = "com.nhimz.vocabmaster.data"
     compileSdk = 36
 
@@ -66,4 +67,12 @@ dependencies {
     implementation(libs.androidx.credentials)
     implementation(libs.androidx.credentials.play.services.auth)
     implementation(libs.googleid)
+}
+
+dependencies {
+    testImplementation(libs.junit)
+    testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.androidx.test.core)
+    testImplementation(libs.androidx.test.ext.junit)
+    testImplementation("org.robolectric:robolectric:4.15.1")
 }
