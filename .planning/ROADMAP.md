@@ -110,7 +110,7 @@ Plans:
 **Plans**: 1 plans
 
 Plans:
-- [ ] 04-01-PLAN.md — Implement network request resilience and data integrity for synchronization
+- [ ] 04-01-PLAN.md — Implement network request resilience and time-based data integrity for synchronization
 
 ---
 
