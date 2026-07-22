@@ -230,6 +230,15 @@ Applicable state considerations resolved: 8 covered, 2 backstop, 0 unresolved
 
 ---
 
+## UI Considerations
+
+- **Duo3DButton Text Wrap**: Text is forced to a single line with `TextOverflow.Ellipsis`. Buttons will not wrap to multiple lines to maintain 3D height consistency.
+- **DuoOptionCard Overflow**: Content inside the card wraps to multiple lines if it's long text. If the total height exceeds screen limits (many cards), the parent container must be scrollable.
+- **DuoOptionCard Loading/Error**: Cards are only shown after quiz data is fully loaded. If image loading within a card fails, a fallback icon is displayed.
+- **Progress Bar States**: Animates smoothly between values. If value is 0, empty bar with rounded corners. If 100%, full bar with rounded corners.
+- **Dialog Backstop**: Confirmation dialog text must wrap cleanly without clipping on smaller screen sizes. (Backstop required)
+- **Empty States**: If no lessons/words available, display the "Chưa có bài học nào" graphic and text from the Copywriting contract.
+
 ## Checker Sign-Off
 
 - [ ] Dimension 1 Copywriting: PASS
