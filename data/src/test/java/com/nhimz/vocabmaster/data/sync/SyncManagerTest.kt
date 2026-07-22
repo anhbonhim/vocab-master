@@ -467,7 +467,7 @@ class SyncManagerTest {
         override suspend fun insertReviewLog(log: ReviewLogEntity) { reviewLogs.add(log) }
         override suspend fun insertAllReviewLogs(logs: List<ReviewLogEntity>) { reviewLogs.addAll(logs) }
         override fun getReviewLogsFlow(cardId: String): Flow<List<ReviewLogEntity>> =
-            MutableStateFlow(getReviewLogs(cardId))
+            MutableStateFlow(reviewLogs.filter { it.cardId == cardId })
         override fun getAllReviewLogsFlow(): Flow<List<ReviewLogEntity>> =
             MutableStateFlow(reviewLogs.toList())
         override suspend fun getAllFlaggedItems() = emptyList<FlaggedItemEntity>()
