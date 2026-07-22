@@ -55,17 +55,19 @@ All sizes use `FontFamily.SansSerif`. Existing `Type.kt` defines the Material3 `
 | Role | Size | Weight | Line Height | Material3 Slot |
 |------|------|--------|-------------|----------------|
 | Body | 16sp | Normal (400) | 24sp (1.5) | `bodyLarge` |
-| Label | 14sp | Medium (500) | 20sp (1.43) | `labelLarge` / `bodyMedium` |
+| Label | 14sp | Normal (400) | 20sp (1.43) | `labelLarge` / `bodyMedium` |
 | Heading | 20sp | Bold (700) | 28sp (1.4) | `titleLarge` |
 | Display | 32sp | Bold (700) | 40sp (1.25) | `displayLarge` |
 
-Additional slot used but not primary:
-- `headlineMedium`: 24sp / SemiBold (600) / 32sp — for screen titles and section headers
-
 **Rules:**
-- Max 2 weights per screen: Normal (400) + Bold (700). Use Medium (500) only for button labels.
-- SemiBold (600) reserved exclusively for section headers (`headlineMedium`).
+- Max 2 weights per screen: Normal (400) + Bold (700). Use Bold (700) only for headings, emphasis, and button labels.
 - Never use font size below 14sp for any user-visible text (accessibility).
+
+---
+
+## Visual Focal Point
+
+**Primary Screen Focal Point:** For the primary screen (HomeScreen or QuizScreen), the question prompt text centered at the top is the primary visual anchor; option cards below are secondary.
 
 ---
 
