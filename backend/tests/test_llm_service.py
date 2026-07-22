@@ -40,6 +40,30 @@ from app.services.llm_service import (
 # ---------------------------------------------------------------------------
 
 
+@pytest.fixture(autouse=True)
+def _default_opencode_api_key(monkeypatch):
+    """Provide a non-empty OPENCODE_API_KEY for every test by default.
+
+    The service refuses to make an HTTP call when the key is empty
+    (T-05-03 mitigation + a good safety net for the content script).
+    Tests that want to assert the empty-key branch clear this env var
+    explicitly inside the test.
+    """
+    monkeypatch.setenv("OPENCODE_API_KEY", "test-api-key")
+    # Drop the cached settings instance so the env re-read takes effect.
+    # We must patch BOTH the canonical binding in app.config AND the
+    # imported binding inside app.services.llm_service, because the
+    # service did `from app.config import settings` at import time
+    # (separate name in the service module's namespace).
+    from app.config import Settings
+    from app.services import llm_service as llm_service_module
+
+    fresh_settings = Settings()
+    monkeypatch.setattr("app.config.settings", fresh_settings)
+    monkeypatch.setattr(llm_service_module, "settings", fresh_settings)
+    yield
+
+
 def _make_json_response(payload: Dict[str, Any]) -> httpx.Response:
     """Build an httpx.Response that looks like an Opencode chat-completions reply."""
     return httpx.Response(
@@ -134,9 +158,15 @@ async def test_generate_exercises_from_llm_uses_configured_url_and_model(
     monkeypatch.setenv("OPENCODE_MODEL", "fake-model-id")
     monkeypatch.setenv("OPENCODE_TIMEOUT_SECONDS", "12.5")
     # Drop the cached settings instance so the env re-read takes effect.
+    # We must patch BOTH the canonical binding in app.config AND the
+    # imported binding inside app.services.llm_service (the service
+    # did `from app.config import settings` at import time).
     from app.config import Settings
+    from app.services import llm_service as llm_service_module
 
-    monkeypatch.setattr("app.config.settings", Settings())
+    fresh_settings = Settings()
+    monkeypatch.setattr("app.config.settings", fresh_settings)
+    monkeypatch.setattr(llm_service_module, "settings", fresh_settings)
 
     raw_text = "ok"
     transport = _RecordingTransport(lambda req: _make_text_response(raw_text))
@@ -238,11 +268,17 @@ async def test_generate_exercises_from_llm_raises_when_api_key_missing(monkeypat
     """
     # Force a known empty key. pydantic-settings empty string default
     # would already satisfy this, but be explicit to make the test
-    # resilient to a future 'no default' change.
+    # resilient to a future 'no default' change. We also need to
+    # refresh the cached settings instance in both app.config AND
+    # app.services.llm_service (the service imported the settings
+    # object by name at module load time).
     monkeypatch.setenv("OPENCODE_API_KEY", "")
     from app.config import Settings
+    from app.services import llm_service as llm_service_module
 
-    monkeypatch.setattr("app.config.settings", Settings())
+    fresh_settings = Settings()
+    monkeypatch.setattr("app.config.settings", fresh_settings)
+    monkeypatch.setattr(llm_service_module, "settings", fresh_settings)
 
     # If the service actually tries to make the call, the transport
     # would record a request and the test would fail. We assert no
@@ -283,4 +319,10 @@ class _StubAsyncClient:
 
     async def post(self, url: str, **kwargs) -> httpx.Response:
         request = httpx.Request("POST", url, **kwargs)
-        return self._transport.handle_request(request)
+        response = self._transport.handle_request(request)
+        # httpx.Response.raise_for_status() requires the originating
+        # request to be set on the response — without it, it raises
+        # "Cannot call `raise_for_status` as the request instance has
+        # not been set on this response."
+        response._request = request
+        return response
