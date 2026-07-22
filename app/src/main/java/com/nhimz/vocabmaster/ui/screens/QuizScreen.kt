@@ -79,6 +79,11 @@ fun QuizScreen(
             var typedText by remember(state.currentIndex) { mutableStateOf("") }
             var selectedScrambledWords by remember(state.currentIndex) { mutableStateOf<List<String>>(emptyList()) }
             var isFlipped by remember(state.currentIndex) { mutableStateOf(false) }
+            // The selected option index is hoisted to the Container (not the
+            // Content) because the ViewModel needs it on submit. The Content
+            // only renders the value; tapping an option calls into the
+            // [QuizScreenActions.onOptionSelected] callback which writes here.
+            var selectedOptionIndex by remember(state.currentIndex) { mutableStateOf<Int?>(null) }
 
             // Build the value-object state for the Content. This is the only
             // thing the Content sees — it never references the ViewModel.
@@ -91,7 +96,7 @@ fun QuizScreen(
                 currentIndex = state.currentIndex,
                 totalQuestions = state.questions.size,
                 hasAnswered = state.isAnswerRevealed,
-                selectedOptionIndex = state.selectedOption,
+                selectedOptionIndex = selectedOptionIndex ?: state.selectedOption,
                 progress = progress,
                 isFsrsFlashcard = isFsrs,
                 isFlipped = isFlipped,
@@ -111,7 +116,9 @@ fun QuizScreen(
 
             val actions = QuizScreenActions(
                 onBack = onBackToHome,
-                onOptionSelected = { /* handled inline in Content via scratchpad */ },
+                onOptionSelected = { index ->
+                    if (!state.isAnswerRevealed) selectedOptionIndex = index
+                },
                 onScrambledWordSelected = { word, _ ->
                     if (!state.isAnswerRevealed) {
                         selectedScrambledWords = selectedScrambledWords + word
@@ -130,7 +137,7 @@ fun QuizScreen(
                 onFlipFlashcard = { isFlipped = true },
                 onSubmit = {
                     viewModel.submitAnswer(
-                        optionIndex = state.selectedOption,
+                        optionIndex = selectedOptionIndex,
                         textAnswer = typedText.takeIf { it.isNotBlank() },
                         selectedWordsForScrambled = selectedScrambledWords
                             .takeIf { it.isNotEmpty() }
@@ -144,6 +151,7 @@ fun QuizScreen(
                     typedText = ""
                     selectedScrambledWords = emptyList()
                     isFlipped = false
+                    selectedOptionIndex = null
                 },
                 onFsrsRating = { r ->
                     viewModel.submitAnswer(fsrsRating = r)

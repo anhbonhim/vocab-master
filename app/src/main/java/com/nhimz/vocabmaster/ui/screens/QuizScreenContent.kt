@@ -34,7 +34,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -146,11 +145,10 @@ fun QuizScreenContent(
 ) {
     val question = state.currentQuestion ?: return
 
-    // Per-question input scratchpad: separate remember keys keyed on
-    // currentIndex so when the user advances to the next question, the
-    // scratchpad resets cleanly without manual `selectedOption = null` etc.
-    val localSelectedOption = remember(state.currentIndex) { mutableStateOf<Int?>(null) }
-    val resolvedSelectedOption = localSelectedOption.value ?: state.selectedOptionIndex
+    // The selected option index lives in the Container's scratchpad (so the
+    // ViewModel can read it on submit). The Content just renders the value
+    // and delegates taps through [QuizScreenActions.onOptionSelected].
+    val resolvedSelectedOption = state.selectedOptionIndex
 
     Box(
         modifier = modifier
@@ -207,7 +205,7 @@ fun QuizScreenContent(
                 hasAnswered = state.hasAnswered,
                 isFlipped = state.isFlipped,
                 selectedOptionIndex = resolvedSelectedOption,
-                onOptionSelected = { if (!state.hasAnswered) localSelectedOption.value = it },
+                onOptionSelected = actions.onOptionSelected,
                 cdnAudioPlayer = cdnAudioPlayer,
                 typedText = state.typedText,
                 onTypedTextChanged = actions.onTypedTextChanged,
