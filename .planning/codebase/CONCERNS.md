@@ -4,273 +4,253 @@
 
 ## Tech Debt
 
-### Destructive Database Migrations
+### Destructive Database Migrations — All user progress wiped on every schema bump
 
-- **Issue:** Room database version 8 uses `fallbackToDestructiveMigration(dropAllTables = true)` (`data/src/main/java/com/nhimz/vocabmaster/data/di/DataModule.kt:69`). Every schema version bump wipes all user data — FSRS scheduling state, review logs, XP, streaks — and re-seeds curriculum from assets. No migration paths exist.
-- **Files:** `data/src/main/java/com/nhimz/vocabmaster/data/di/DataModule.kt:69`, `data/src/main/java/com/nhimz/vocabmaster/data/database/VocabDatabase.kt:43`
-- **Impact:** Any database upgrade (even adding a new table/column) destroys months of user progress. Users who update the app lose all spaced-repetition data.
-- **Fix approach:** Implement proper Room migrations (`Migration` objects with `ALTER TABLE`/`CREATE TABLE` for each version bump). Remove `fallbackToDestructiveMigration`. Enable `exportSchema = true` in `VocabDatabase.kt` to generate migration history.
+- **Issue:** `VocabDatabase.kt` (`data/src/main/java/com/nhimz/vocabmaster/data/database/VocabDatabase.kt`) has `exportSchema = false` and the production builder in `DataModule.kt` (`data/src/main/java/com/nhimz/vocabmaster/data/di/DataModule.kt:69`) uses `fallbackToDestructiveMigration(dropAllTables = true)`. Every Room version bump blows away all FSRS card state, review logs, flag data, and progress.
+- **Impact:** Any user with a released app that has accumulated weeks of FSRS state loses everything on upgrade. The only recovery is re-seeding curriculum from `assets/`.
+- **Fix approach:** Implement proper migration paths (Room migration objects) for the v7→v8 transition and all future bumps. Keep destructive only for early dev builds.
 
-### Detekt Baseline With 600+ Suppressed Issues
+### Stale migration code path persists in VocabApplication
 
-- **Issue:** `config/detekt/baseline.xml` contains 631 lines of suppressed detekt findings. The baseline was generated to pass CI and has not been systematically reduced. Analysis rules are actively suppressed at the file level via `@Suppress` annotations (13 `@Suppress` annotations across 10 files).
-- **Files:** `config/detekt/baseline.xml`, various `@Suppress` annotations in source files
-- **Impact:** Real issues are buried under the suppression pile. New code has no automated quality guard because detekt effectively passes everything.
-- **Fix approach:** Audit the baseline quarterly. Remove suppressions gradually, fix issues, and re-baseline with a smaller set.
+- **Issue:** `VocabApplication.onCreate()` (`app/src/main/java/com/nhimz/vocabmaster/VocabApplication.kt:27-35`) still runs `resetForMigrationV6()` based on a SharedPreferences key `db_version`. This is a one-shot cleanup intended for the v5→v6 FSRS port transition. After the v7→v8 destructive migration, any user still below version 6 in their prefs will trigger this stale code path unnecessarily (though the destructive migration already wiped those settings).
+- **Impact:** Spurious settings reset if a user's `migration_state` prefs survive a reinstall or data restore, resetting daily goal, streak, XP, etc.
+- **Fix approach:** Remove the migration V6 block and the `settingsRepositoryImpl` injection from `VocabApplication` entirely, since all migrations now go through Room's destructive path.
 
-### Hardcoded Google Web Client ID
+### Huge baseline of suppressed Detekt issues
 
-- **Issue:** `AuthManager.kt:48` contains a hardcoded Google OAuth web client ID (`170306776528-cl98eh785k2s5cto0nmd0uudkjo9lkji.apps.googleusercontent.com`). If this value is rotated (e.g., credential leak), the entire auth system breaks and requires a code release to fix.
-- **Files:** `data/src/main/java/com/nhimz/vocabmaster/data/auth/AuthManager.kt:48`
-- **Impact:** Security rotation impossible without app update. Client secret exposure risk.
-- **Fix approach:** Move to `google-services.json` (already configured via `libs.plugins.google.services`) or a server-driven configuration endpoint.
+- **Issue:** `config/detekt/baseline.xml` contains **631 suppressed issues** across the codebase — `ComplexCondition`, `CyclomaticComplexMethod`, `LongMethod`, `FunctionNaming`, `ConstructorParameterNaming`, `ComplexInterface`, etc. This means nearly every non-trivial file has its complexities suppressed rather than addressed.
+- **Impact:** Detekt effectively provides no active quality feedback. New violations are invisible because the baseline is so comprehensive that the delta is rarely checked.
+- **Fix approach:** Set a realistic target: clear 50-100 baseline entries per cycle by refactoring the worst offenders (see Large File Complexity below).
 
-### V6 Settings Migration in Application.onCreate
+### Overuse of @Suppress annotations in source files
 
-- **Issue:** `VocabApplication.kt:26-35` runs a migration check in `onCreate()` using raw `SharedPreferences` key `db_version` to detect if a V6 settings wipe is needed. This is fragile — if the SharedPreferences file is cleared (e.g., app data reset), the migration re-runs on a fresh install and resets settings for no reason.
-- **Files:** `app/src/main/java/com/nhimz/vocabmaster/VocabApplication.kt:26-35`
-- **Impact:** Race condition risk (launched in IO dispatcher but not awaited), unnecessary data loss on fresh installs.
-- **Fix approach:** Use Room's callback-based migration instead. Remove the `VocabApplication` migration hack after the next database version bump.
+- **Issue:** Multiple files carry `@Suppress` at the class or file level, bypassing lint and static analysis:
+  - `SyncManager.kt`: `@Suppress("LongMethod", "CyclomaticComplexMethod", "NestedBlockDepth", "StringLiteralDuplication", "LabeledExpression", "TooGenericExceptionCaught", "VariableNaming")`
+  - `Scheduler.kt`: `@Suppress("MagicNumber", "NestedBlockDepth", "ComplexCondition", "UseRequire", "UseCheckOrError", "TooManyFunctions", "LongMethod", "CyclomaticComplexMethod", "LongParameterList")`
+  - `BackupRepositoryImpl.kt`: `@Suppress("LongMethod", "LabeledExpression", "TooGenericExceptionCaught")`
+  - `DataIntegrityTests.kt`: `@Suppress("LongMethod", "CyclomaticComplexMethod")`
+  - `FeedbackHelper.kt`: `@Suppress("DEPRECATION")` (×2)
+- **Impact:** Suppressions hide real complexity from both static analysis and code review.
+- **Fix approach:** Refactor suppressed methods into smaller units — extract domain logic from ViewModel orchestration, split large composables into sub-composables, and remove `@Suppress` entries as the code improves.
 
-### Duplicate Fake Test Implementations
+### Test fake stubs with TODO implementations
 
-- **Issue:** Both `app/src/test/` and `domain/src/test/` maintain separate, identical copies of `FakeVocabularyRepository.kt`, `FakeSettingsRepository.kt`, and `FakeReviewRepository.kt`. These are out of sync — each duplicates ~30-90 lines of stubs with `TODO("not needed for these tests")`.
-- **Files:**
-  - `app/src/test/java/com/nhimz/vocabmaster/ui/viewmodel/fakes/FakeVocabularyRepository.kt`
-  - `domain/src/test/java/com/nhimz/vocabmaster/domain/usecase/fakes/FakeVocabularyRepository.kt`
-  - `app/src/test/java/com/nhimz/vocabmaster/ui/viewmodel/fakes/FakeSettingsRepository.kt`
-  - `domain/src/test/java/com/nhimz/vocabmaster/domain/usecase/fakes/FakeSettingsRepository.kt`
-  - `app/src/test/java/com/nhimz/vocabmaster/ui/viewmodel/fakes/FakeReviewRepository.kt`
-  - `domain/src/test/java/com/nhimz/vocabmaster/domain/usecase/fakes/FakeReviewRepository.kt`
-- **Impact:** When the repository interface grows (e.g., adding a new method), both fakes must be updated manually. Tests silently get `NotImplementedError` at runtime for unimplemented methods.
-- **Fix approach:** Extract a shared test-fixtures module or use a mocking library (e.g., MockK) instead of hand-rolled fakes.
+- **Issue:** Fake repositories in both `app/src/test/` and `domain/src/test/` contain numerous `TODO("not needed for these tests")` stubs for interface methods. Affected files:
+  - `app/src/test/java/.../fakes/FakeVocabularyRepository.kt` — 15 TODO stubs (e.g. `getCardById`, `updateCard`, `insertAll`, `getCount`, `getDueCount`, curriculum methods)
+  - `app/src/test/java/.../fakes/FakeSettingsRepository.kt` — 7 TODO stubs (e.g. `updateDailyGoal`, `addStudySeconds`, `addBadge`)
+  - `app/src/test/java/.../fakes/FakeReviewRepository.kt` — 4 TODO stubs (`getDueCards`, `getAllReviewLogs`, etc.)
+  - `domain/src/test/java/.../fakes/FakeVocabularyRepository.kt` — 17 TODO stubs
+  - `domain/src/test/java/.../fakes/FakeSettingsRepository.kt` — 7 TODO stubs
+  - `domain/src/test/java/.../fakes/FakeReviewRepository.kt` — 4 TODO stubs
+- **Impact:** When new tests exercise these stubbed methods, they will throw `NotImplementedError` at runtime. This creates a false sense of test coverage — the fakes look complete but most methods are non-functional.
+- **Fix approach:** Replace every `TODO("not needed for these tests")` with a sensible default implementation. Stored collections backed by `mutableListOf` / `mutableMapOf` are cheap and make fakes resilient.
 
-### Plain HTTP API Communication
+### SyncManager suppressed complexity — 205 lines with 7 catch blocks
 
-- **Issue:** `ApiClient.kt:17` hardcodes `BASE_URL = "http://127.0.0.1:8000/"` (plain HTTP). `AndroidManifest.xml:18` enables `android:usesCleartextTraffic="true"` to allow this. The OkHttp logging interceptor is set to `Level.BODY` (`ApiClient.kt:27`), which logs full request/response bodies including auth tokens and user data.
-- **Files:**
-  - `data/src/main/java/com/nhimz/vocabmaster/data/remote/ApiClient.kt:17,27`
-  - `app/src/main/AndroidManifest.xml:18`
-- **Impact:** All network traffic is unencrypted — auth tokens, FSRS card data, user settings sent in cleartext on the local network. Body-level logging leaks sensitive data in debug builds and could accidentally remain in release builds.
-- **Fix approach:** Support HTTPS in production (server-side change). Make `BASE_URL` configurable via BuildConfig. Set logging level to `Headers` or `NONE` in release builds. Remove `usesCleartextTraffic` from manifest for release variant.
+- **Issue:** `SyncManager.sync()` (`data/src/main/java/com/nhimz/vocabmaster/data/sync/SyncManager.kt:54-204`) is a single 150-line method that reads 9+ settings properties, maps cards to DTOs, maps logs to DTOs, pushes, pulls, and merges the result — all in one `try/catch` with 4 distinct catch clauses. It is suppressed for `LongMethod`, `CyclomaticComplexMethod`, `NestedBlockDepth`, and `TooGenericExceptionCaught`.
+- **Impact:** Hard to test, hard to reason about failure modes. The `catch (e: Exception)` at line 200 catches anything that fell through, making debugging sync failures difficult.
+- **Fix approach:** Split into `pushSync()` / `pullSync()` / `applyPulledPayload()` phases. Catch specific exception types at the phase level, not one monolithic handler.
 
-### SyncManager Monolith With Placeholder Data
+### Duplicated fake repositories (app module vs domain module)
 
-- **Issue:** `SyncManager.kt` is a 213-line monolithic method that handles push, pull, merge, and conflict resolution in a single function. It sends placeholder values for sync payload fields `interval = 0`, `elapsed_days = 0`, `scheduled_days = 0`, `stability = 0.0`, `difficulty = 0.0`, `state = 0` as documented in TODO(SYNC-02, Phase 4). Missing server contract for v3 card/log shapes.
-- **Files:** `data/src/main/java/com/nhimz/vocabmaster/data/sync/SyncManager.kt`
-- **Impact:** Server receives meaningless placeholder values for critical FSRS fields. Sync does NOT actually synchronize FSRS state — it pushes and pulls card data but the FSRS scheduling math happens independently on each client. Duplicate review logs can be created on pull.
-- **Fix approach:** Refactor into separate `SyncPushUseCase` and `SyncPullUseCase`. Finalize the v3 server contract. Remove placeholder values. Add deduplication logic for review log merging.
+- **Issue:** Nearly identical fake implementations exist in two modules:
+  - `app/src/test/java/.../fakes/FakeVocabularyRepository.kt`
+  - `domain/src/test/java/.../fakes/FakeVocabularyRepository.kt`
+  - Same pattern for `FakeReviewRepository` and `FakeSettingsRepository`.
+- **Impact:** Changes to repository interfaces must be duplicated across both sets of fakes. The domain module already depends on the domain interfaces, and the app module fakes could reuse them.
+- **Fix approach:** Move canonical fakes into the `domain/src/test/` module or a shared test fixture module (`test-utils`). The `app` module tests should depend on the domain fakes.
 
-### runBlocking in AuthInterceptor
+### `DomainPlaceholder.kt` — empty class
 
-- **Issue:** `AuthInterceptor.kt:16` uses `runBlocking { authManager.getIdToken() }` inside an OkHttp `Interceptor.intercept()`. While OkHttp runs interceptors on background threads, `runBlocking` still blocks that OkHttp thread until the Firebase token refresh completes (which could take hundreds of milliseconds on a slow network).
-- **Files:** `data/src/main/java/com/nhimz/vocabmaster/data/auth/AuthInterceptor.kt:16`
-- **Impact:** Under network congestion, UI-visible delays occur because OkHttp's dispatcher thread pool is occupied. Blocking can cause ANR-like symptoms if multiple requests queue up.
-- **Fix approach:** Cache the ID token with a refresh window (e.g., refresh 5 min before expiry) to avoid blocking on every request. Use `NonCancellable` coroutine context.
+- **Issue:** `domain/src/main/java/com/nhimz/vocabmaster/domain/DomainPlaceholder.kt` contains only `class DomainPlaceholder`. This was likely a workaround for a Kotlin compile issue with an empty module and is no longer needed.
+- **Impact:** Litter — unused code that confuses new developers.
+- **Fix approach:** Verify the domain module compiles without it, then delete.
 
-### Large Composable Screen Files
+### Field name mismatch between Android client and backend schema
 
-- **Issue:** Several screen content files exceed healthy component boundaries:
-  - `QuizScreenContent.kt` — 916 lines
-  - `HomeScreenContent.kt` — 892 lines
-  - `SettingsScreenContent.kt` — 675 lines
-  - `ResultScreenContent.kt` — 420 lines
-  - `FirstWinScreen.kt` — 471 lines
-- **Files:**
-  - `app/src/main/java/com/nhimz/vocabmaster/ui/screens/QuizScreenContent.kt`
-  - `app/src/main/java/com/nhimz/vocabmaster/ui/screens/HomeScreenContent.kt`
-  - `app/src/main/java/com/nhimz/vocabmaster/ui/screens/SettingsScreenContent.kt`
-  - `app/src/main/java/com/nhimz/vocabmaster/ui/screens/ResultScreenContent.kt`
-  - `app/src/main/java/com/nhimz/vocabmaster/ui/screens/FirstWinScreen.kt`
-- **Impact:** Difficult to test individual sections. High risk of merge conflicts. Poor reusability — small UI changes require touching massive files.
-- **Fix approach:** Extract reusable composable components into `ui/components/`. Split screens by logical section (e.g., QuizContent → QuizQuestionArea, QuizProgressBar, QuizFeedback).
-
-### `@Suppress` Abuse on Complex Methods
-
-- **Issue:** 13 `@Suppress` annotations suppress 30+ distinct detekt warnings across 10 files. Suppressed rules include `LongMethod`, `CyclomaticComplexMethod`, `NestedBlockDepth`, `TooManyFunctions`, `MagicNumber`, `ComplexCondition`, `TooGenericExceptionCaught`, `VariableNaming`, `SwallowedException`, and `LabeledExpression`.
-- **Files:** `SyncManager.kt`, `VocabularyRepositoryImpl.kt`, `Scheduler.kt`, `Optimizer.kt`, `BackupRepositoryImpl.kt`, `Card.kt`, `ReviewLog.kt`, `FeedbackHelper.kt`, `DataIntegrityTests.kt`, `VocabularyRepositoryImplTest.kt`
-- **Impact:** Structural complexity is normalized. Refactoring is harder because there's no lint pressure to simplify.
-- **Fix approach:** Remove `@Suppress` annotations one file at a time, refactor to reduce complexity, then re-enable checks.
-
-### FSRS Placeholder Data Values
-
-- **Issue:** `ReviewLogDto` (`data/src/main/java/com/nhimz/vocabmaster/data/remote/SyncPayload.kt`) sends `elapsed_days = 0`, `scheduled_days = 0`, `stability = 0.0`, `difficulty = 0.0`, `state = 0` as hardcoded placeholders in `SyncManager.kt:103-106`. These are real FSRS fields that are being zeroed out because the local schema no longer stores them (v8 removed interval, v3 removed telemetry fields).
-- **Files:** `data/src/main/java/com/nhimz/vocabmaster/data/remote/SyncPayload.kt:35-44`, `data/src/main/java/com/nhimz/vocabmaster/data/sync/SyncManager.kt:101-108`
-- **Impact:** Server-side FSRS analytics are corrupted by zero-valued telemetry. Cannot compute average stability or track review history accuracy server-side.
-- **Fix approach:** Remove telemetry fields from the DTO entirely (breaking API change) or recalculate them from local FSRS scheduler state before sync.
+- **Issue:** The Android `UserSettingsDto` uses field `dailyGoalXp` but the backend `UserSettingsSchema` uses field `dailyGoalMinutes`. The sync router at `backend/app/routers/sync.py:37` maps `s.dailyGoalMinutes` to `settings.daily_goal_min`, while the DTO field from the Android client is named `dailyGoalXp`.
+- **Impact:** On first sync, settings could map incorrectly, causing daily goal to be read from the wrong field.
+- **Fix approach:** Align naming between `UserSettingsDto` (Android, `data/src/main/java/.../remote/SyncPayload.kt`), `UserSettingsSchema` (backend, `backend/app/schemas/sync.py`), and `UserSettings` (backend DB model, `backend/app/models/user.py`). Use the same field name throughout the pipeline.
 
 ## Known Bugs
 
-### Review Log Deduplication Gap on Sync Pull
+### Review log telemetry data zeroed during sync
 
-- **Symptoms:** `SyncManager.kt:185-186` checks `existingLogs.any { it.reviewDatetime == logTime }` to avoid duplicate review log insertion on pull. However, review logs can legitimately share the same timestamp (e.g., batch reviews processed at the same millisecond), causing false deduplication and dropped data.
-- **Files:** `data/src/main/java/com/nhimz/vocabmaster/data/sync/SyncManager.kt:185-186`
-- **Trigger:** Pull sync when two review logs were created within the same millisecond.
-- **Workaround:** None — the log is silently dropped.
+- **Symptoms:** The sync push path in `SyncManager.kt:105-119` maps local `ReviewLogEntity` records to `ReviewLogDto` with placeholder zero values: `elapsed_days = 0`, `scheduled_days = 0`, `stability = 0.0`, `difficulty = 0.0`, `state = 0`. This is acknowledged with `// TODO(SYNC-02, Phase 4)`. After sync, the server stores zeroed telemetry, and when pulled back by another device, the merged review logs contain only rating + timestamp — all FSRS telemetry is lost.
+- **Trigger:** Any sync operation that pushes review logs to the server.
+- **Files:** `data/src/main/java/com/nhimz/vocabmaster/data/sync/SyncManager.kt:110-118`
+- **Workaround:** No workaround. Telemetry metadata is permanently lost once pushed.
 
-### Node Progress Marker Node Locking (Ordering)
+### FSRS card `interval` field zeroed during sync
 
-- **Symptoms:** `MainViewModel.kt:219` locks nodes based on `isPreviousNodeCompleted` using sequential ordering from `vocabularyRepository.getNodesByUnit(unit.id).first()`. If nodes are reordered or types change (e.g., REVIEW nodes inserted after a unit is marked complete), the lock state becomes incorrect.
-- **Files:** `app/src/main/java/com/nhimz/vocabmaster/ui/viewmodel/MainViewModel.kt:216-230`
-- **Trigger:** Adding or reordering nodes in the curriculum asset.
-- **Workaround:** Manually clear node_progress via the debug panel.
+- **Symptoms:** In `SyncManager.kt:92`, `interval = 0` is hardcoded for every `VocabularyCardDto` pushed to the server, with `// TODO(SYNC-02, Phase 4): server contract for v3 card shape; interval removed from v8 schema.` The server stores `interval=0` for all cards, and the pull/merge path at `VocabDao.kt:286-332` never reads the `interval` field from the DTO (it rebuilds due from `stability`/`difficulty`). This is semantically correct per FSRS v8 but the zero value propagates through the wire.
+- **Trigger:** Any sync push.
+- **Files:** `data/src/main/java/com/nhimz/vocabmaster/data/sync/SyncManager.kt:92`
+- **Workaround:** The interval isn't used by FSRS v8 scheduling on the server side, so this is purely a data pollution concern for any non-FSRS consumer of server data.
 
-### Section Completion Calculation Overcounting
+### Placement test fallback when vocabulary DB is empty throws 500
 
-- **Symptoms:** `MainViewModel.kt:269-274` computes `isSectionCompleted = totalNodesInSection > 0 && completedNodesCount == totalNodesInSection`. If a section has no nodes (edge case), `totalNodesInSection` is 0, so the section is never marked complete. Also, this counts synthetic REVIEW nodes in `nodes.size` via `getNodesByUnit`, overcounting.
-- **Files:** `app/src/main/java/com/nhimz/vocabmaster/ui/viewmodel/MainViewModel.kt:269-274`
-- **Trigger:** Section with only a node newly seeded but no node_progress entries.
-- **Workaround:** None — the section remains permanently uncompleted.
+- **Symptoms:** In `backend/app/routers/placement.py:114-115` and line 263, if no vocabulary items exist in the DB, the endpoint raises `HTTPException(500, "Vocabulary DB is empty!")` — a 500 Internal Server Error for a condition that is really a 503 or should be handled at deploy time.
+- **Trigger:** Server started without seeding vocabulary data via `seed_db.py`.
+- **Files:** `backend/app/routers/placement.py:115`, `:264`
+
+### `PlacementSession` foreign key constraint risk
+
+- **Symptoms:** The `PlacementSession` model (`backend/app/models/placement_session.py`) references `user.id` but the `submit_answer` endpoint (`backend/app/routers/placement.py:146-151`) only queries the session for authenticated users. For unauthenticated users (`uid` is None), `session` stays `None` and `session.finished_at` check is skipped — but `responses_list` is still populated from `request.responses`. If an unauthenticated user's session somehow references a non-existent user, there's no FK validation at the application level (SQLite does not enforce FK by default).
+- **Trigger:** Anonymous placement test flow with client-driven session state.
+- **Workaround:** None needed for the happy path — the client manages its own responses.
 
 ## Security Considerations
 
-### Cleartext Traffic in Production Build
+### Firebase service-account JSON committed to repository
 
-- **Risk:** `AndroidManifest.xml:18` has `android:usesCleartextTraffic="true"` globally. The API base URL `http://127.0.0.1:8000/` is unencrypted HTTP. Any device on the local network can MITM traffic.
-- **Files:** `app/src/main/AndroidManifest.xml:18`, `data/src/main/java/com/nhimz/vocabmaster/data/remote/ApiClient.kt:17`
-- **Current mitigation:** None. Cleartext is unconditionally allowed.
-- **Recommendations:** Use a `network_security_config.xml` that only allows cleartext for `127.0.0.1` during debug. Use HTTPS for production API endpoints. Remove `usesCleartextTraffic` from release manifest.
+- **Risk:** `backend/firebase-service-account.json` is present in the git repository. This file contains the Firebase Admin SDK service account private key. Anyone with repo access can mint Firebase custom tokens, access Firebase Authentication, and potentially read/write Firebase project resources depending on the SA's IAM roles.
+- **File:** `backend/firebase-service-account.json` (file exists — contents not read per rules)
+- **Current mitigation:** The file is in `backend/.gitignore` but is tracked in git (already committed). Its existence in the repo at all is the vulnerability.
+- **Recommendations:**
+  1. Immediately rotate the service account key in Firebase Console.
+  2. Remove the file from git history using `git filter-branch` or `bfg-repo-cleaner`.
+  3. Use environment variables or a secrets manager (e.g., Google Secret Manager) instead.
+  4. Add `firebase-service-account.json` to `.gitignore` at the repo root.
 
-### Sensitive Data in Logs
+### Hardcoded Google OAuth Web Client ID in source
 
-- **Risk:** `ApiClient.kt:27` enables `HttpLoggingInterceptor.Level.BODY` which logs full request/response bodies including Firebase ID tokens (Bearer auth), card content, and user settings. In debug builds, this is visible in logcat which any app with `READ_LOGS` permission can read.
-- **Files:** `data/src/main/java/com/nhimz/vocabmaster/data/remote/ApiClient.kt:27`
-- **Current mitigation:** `BuildConfig.DEBUG` is not checked — the interceptor runs at BODY level regardless.
-- **Recommendations:** Gate `HttpLoggingInterceptor.Level.BODY` behind `BuildConfig.DEBUG`. Use `Headers` level as default.
+- **Risk:** `AuthManager.kt:48` contains a hardcoded `webClientId` string (`170306776528-cl98eh785k2s5cto0nmd0uudkjo9lkji.apps.googleusercontent.com`). While OAuth client IDs are not strictly secret (they are embedded in Android apps by necessity), any extracted ID can be used to attempt OAuth phishing against the registered OAuth consent screen.
+- **File:** `data/src/main/java/com/nhimz/vocabmaster/data/auth/AuthManager.kt:48`
+- **Current mitigation:** The ID is tied to the Firebase project's authorized redirect URIs, limiting misuse.
+- **Recommendations:** Move to `BuildConfig` (build config field) so it can vary per build flavor (debug/release with different Firebase projects).
 
-### Hardcoded Firebase Auth Web Client ID
+### `runBlocking` in OkHttp interceptor blocks the dispatcher thread
 
-- **Risk:** The Google OAuth web client ID in `AuthManager.kt:48` is hardcoded in source. If rotated or leaked, a fake app can impersonate the real client ID.
-- **Files:** `data/src/main/java/com/nhimz/vocabmaster/data/auth/AuthManager.kt:48`
-- **Current mitigation:** The ID is embedded in the open-source APK. Anyone can extract it via `apkanalyzer`.
-- **Recommendations:** Move to `google-services.json` resource-based configuration. Implement app verification via Play Integrity API.
+- **Risk:** `AuthInterceptor.kt:16` uses `runBlocking { authManager.getIdToken() }` inside an OkHttp `Interceptor`. OkHttp calls interceptors on its dispatcher thread pool. While `runBlocking` is tolerable in this context (background thread, token retrieval is fast), a slow network call in `getIdToken()` (e.g., token refresh triggering a network request) would block the dispatcher thread, potentially starving other HTTP calls in the pool.
+- **File:** `data/src/main/java/com/nhimz/vocabmaster/data/remote/AuthInterceptor.kt:16`
+- **Current mitigation:** `getIdToken(false)` does not force a token refresh, so it returns a cached token almost instantly.
+- **Recommendations:** Document the assumption or switch to OkHttp's `java.util.concurrent.CompletableFuture`-based async interceptor API if `getIdToken` ever starts making network calls.
 
-### Database Schema Exposed via `exportSchema = false`
+### Firebase Auth init errors silently swallowed in backend
 
-- **Risk:** `VocabDatabase.kt:43` sets `exportSchema = false`, preventing Room from generating schema JSON files. Without schema export, migration history cannot be tracked in source control, and future migration authors have no reference for what changed.
-- **Files:** `data/src/main/java/com/nhimz/vocabmaster/data/database/VocabDatabase.kt:43`
-- **Current mitigation:** None — destructive migrations make schema history moot.
-- **Recommendations:** Set `exportSchema = true` and add the schema output directory to version control. This is a prerequisite for non-destructive migrations.
+- **Risk:** `backend/app/utils/firebase_auth.py:9-16` wraps Firebase Admin initialization in a `try/except` that logs the error and continues with `pass`. If the service-account file is missing or invalid, the app starts without authentication. The `verify_token` function will fail on every request when it tries to call `auth.verify_id_token(token)`.
+- **File:** `backend/app/utils/firebase_auth.py:14-16`
+- **Current mitigation:** The error is printed to stdout, but in production this is easily missed during deployment.
+- **Recommendations:** Raise on initialization failure so the app fails fast and the deployment pipeline catches it. Alternatively, use a health check endpoint that verifies Firebase connectivity.
+
+### Missing CORS and rate limiting on backend
+
+- **Risk:** `backend/app/main.py` configures no CORS middleware and no rate limiting. Without CORS, any web origin could potentially call the API if the backend is ever exposed to the web (though currently it's a mobile app backend). Without rate limiting, the placement test endpoint is vulnerable to brute-force answer probing.
+- **File:** `backend/app/main.py`
+- **Recommendations:** Add `CORSMiddleware` with explicit allowed origins, and a rate limiter (e.g., `slowapi` for FastAPI) on sensitive endpoints like `/api/v1/placement/`.
 
 ## Performance Bottlenecks
 
-### SyncManager Loads All Cards Into Memory
+### Gradient descent IRT estimator in synchronous HTTP handler
 
-- **Problem:** `SyncManager.kt:75` calls `vocabDao.getAllCards()` which loads ALL FSRS card entities into memory at once. The number can grow to thousands of cards over extended use. The entire method holds a single long transaction.
-- **Files:** `data/src/main/java/com/nhimz/vocabmaster/data/sync/SyncManager.kt:75,95,142,179`
-- **Cause:** No pagination or streaming. The v1 sync implementation prioritizes correctness over memory efficiency.
-- **Improvement path:** Implement cursor-based pagination for card/log queries. Use `PagingSource` or chunked queries.
+- **Problem:** The IRT engine's `estimate_theta()` (`backend/app/services/irt_engine.py:23-55`) runs gradient descent synchronously inside the FastAPI request handler (`backend/app/routers/placement.py`). Each answer submission triggers 5 Newton-Raphson iterations over all accumulated responses (up to 15 questions × N users). For a single user this is negligible, but under concurrent load it blocks the SQLAlchemy session thread pool.
+- **Files:** `backend/app/services/irt_engine.py:23-55`, `backend/app/routers/placement.py:195`
+- **Cause:** In-process synchronous computation on the main async thread pool.
+- **Improvement path:** Offload theta estimation to a background thread via `run_in_executor`, or precompute IRT parameters in the seeding script and use a lookup table approach.
 
-### Curriculum Seeding Loads Entire JSON Into Memory
+### No caching for quiz session data
 
-- **Problem:** `VocabularyRepositoryImpl.kt:184` calls `reader.readText()` on the entire `lessons_v3.json` asset file, which could be several megabytes. The entire seed operation blocks `Dispatchers.IO` and holds the mutex (`prepopulateCurriculumMutex`) for the duration.
-- **Files:** `data/src/main/java/com/nhimz/vocabmaster/data/repository/VocabularyRepositoryImpl.kt:182-184`
-- **Cause:** The JSON decoder requires a complete string to parse. Asset file can grow as the curriculum expands.
-- **Improvement path:** Stream-decode the top-level array using `Json.decodeToSequence` or chunk the asset into per-section files.
+- **Problem:** `LoadQuizSessionUseCase` (`domain/src/main/java/com/nhimz/vocabmaster/domain/usecase/LoadQuizSessionUseCase.kt` — 255 lines) queries the database for curriculum structure (units, nodes, sessions, questions, FSRS cards) on every quiz start. For the REVIEW node type, it must query due cards across all sessions in a node. The curriculum data is static after seeding but is loaded fresh each time.
+- **Files:** `domain/src/main/java/com/nhimz/vocabmaster/domain/usecase/LoadQuizSessionUseCase.kt`
+- **Cause:** No in-memory caching layer between use cases and DAO.
+- **Improvement path:** Add a lightweight in-memory cache (e.g., Caffeine) for the static curriculum structure (sections, units, nodes, sessions, questions). Invalidate only on curriculum re-seed.
 
-### `ensureCurriculumAndFsrsSeeded()` Called on Every Data Access
+### Room database accessed from multiple coroutine contexts without pooling
 
-- **Problem:** Nearly every method in `VocabularyRepositoryImpl` starts by calling `ensureCurriculumAndFsrsSeeded()`, which checks `getQuestionCount() > 0` every time. While the mutex prevents re-seeding, the `getQuestionCount()` call still hits the DB on every flow collection.
-- **Files:** `data/src/main/java/com/nhimz/vocabmaster/data/repository/VocabularyRepositoryImpl.kt` (22 call sites across the file)
-- **Cause:** Lazy-seeding pattern chosen over application-init or DataStore-backed flag.
-- **Improvement path:** Seed once at application startup in `VocabApplication.onCreate()` or use a `StateFlow<Boolean>` to track seeding state.
+- **Problem:** Multiple repositories (`VocabularyRepositoryImpl`, `ReviewRepositoryImpl`, `SettingsRepositoryImpl`) each independently inject Room DAO instances. Room manages its own internal connection pool, but the DAO passthrough pattern means Room must serialize access from multiple coroutine dispatchers. This is generally fine for small datasets but could become a bottleneck as card counts grow.
+- **Files:** `data/src/main/java/com/nhimz/vocabmaster/data/di/DataModule.kt`, `data/src/main/java/com/nhimz/vocabmaster/data/repository/*`
+- **Improvement path:** Monitor with Room's `setQueryCallback` in debug builds to detect long-running queries. Add indexes on frequently-queried columns (`fsrs_cards.due`, `fsrs_cards.state`, `questions.sessionId`).
 
 ## Fragile Areas
 
-### FSRS Scheduler — Math Precision and Parity
+### `SyncManager` — single method orchestrating push + pull + merge
 
-- **Files:**
-  - `domain/src/main/java/com/nhimz/vocabmaster/domain/fsrs/v6/Scheduler.kt` (516 lines)
-  - `domain/src/main/java/com/nhimz/vocabmaster/domain/fsrs/v6/Optimizer.kt` (512 lines)
-- **Why fragile:** Direct port of py-fsrs v6.3.1 floating-point math. Any deviation in rounding (`round()` in `nextInterval`) or expression evaluation causes schedule divergence from the reference Python implementation. Bankser's rounding (`round-half-to-even`) matches Python's `round()` but differs from Kotlin's default `roundToInt()` (ties-to-away).
-- **Safe modification:** All scheduler changes must be validated against the `golden_vectors.json` test suite (`domain/src/test/resources/fsrs/golden_vectors.json`).
-- **Test coverage:** Well-covered — `PyFsrsParityTest.kt` (960 lines), `GoldenVectorTest.kt`, `OptimizerTest.kt`.
+- **Files:** `data/src/main/java/com/nhimz/vocabmaster/data/sync/SyncManager.kt`
+- **Why fragile:** The entire sync lifecycle is a single `suspend fun sync(): Boolean` that reads local state, serializes it, pushes, pulls, merges settings, merges cards via `VocabDao.mergePulledCards`, and reconciles review logs. Any failure midway leaves the system in an inconsistent state — the server may have received the push but the pull fell over, or the local DB is partially merged. The function catches `Exception` broadly and returns `false`, giving the caller no diagnostic about which phase failed.
+- **Test coverage:** `data/src/test/java/.../sync/SyncManagerTest.kt` (567 lines) exists but tests are integration-level, mocking Retrofit rather than the network boundary.
+- **Safe modification:** Never modify `sync()` without adding a phase identifier to the log output and a specific exception type per phase. Consider extracting to `pushSync()`, `pullSync()`, `mergePulledSettings()`, `mergePulledCards()`, `mergePulledLogs()`.
 
-### VocabularyRepositoryImpl Fallback Chain
+### `VocabularyRepositoryImpl` — 644 lines, 30+ injected dependencies
 
-- **Files:** `data/src/main/java/com/nhimz/vocabmaster/data/repository/VocabularyRepositoryImpl.kt` (644 lines)
-- **Why fragile:** The 3-tier fallback chain (`getDueCardsScoped`: unit → section → global) has non-obvious behavior. Several methods (`getCardsByLevel`, `getCardsByTopic`, `getNewCardsByTopicAndLevels`, `getNewCardsByLevels`) all fall back to the same `getDueAndNewCardsByTopicFallback` query with a fixed limit of 100, ignoring topic/level filtering entirely.
-- **Safe modification:** Adding new query parameters must update ALL fallback paths. Removing unused interface methods (`getCompletedLessons`, `markLessonCompleted` returning empty/stub) should precede refactoring.
-- **Test coverage:** `VocabularyRepositoryImplTest.kt` (331 lines) covers some paths but not the fallback chain.
+- **Files:** `data/src/main/java/com/nhimz/vocabmaster/data/repository/VocabularyRepositoryImpl.kt`
+- **Why fragile:** This single class implements the entire `VocabularyRepository` interface for an app with structured curriculum (sections, units, nodes, sessions, questions), FSRS card management, quiz session loading, badge logic, streak calculation, audio URL management, and vocabulary loading from assets. It uses `@Suppress("LongMethod", "CyclomaticComplexMethod")` and mixes JSON asset parsing (`QuestionAssetItem`, `SessionAssetItem`, etc.) with DAO queries and domain model mapping.
+- **Test coverage:** `data/src/test/java/.../repository/VocabularyRepositoryImplTest.kt` (331 lines) exists.
+- **Safe modification:** Extract asset parsing into a dedicated `CurriculumAssetParser` class. Move quiz/question loading into a dedicated use case or service. Keep `VocabularyRepositoryImpl` as a thin facade over specialized services.
 
-### VocabDao Query Comments Exposing Schema Ambiguity
+### `Scheduler.kt` — 516 lines of pure FSRS math
 
-- **Files:** `data/src/main/java/com/nhimz/vocabmaster/data/database/VocabDao.kt:27-35`
-- **Why fragile:** The DAO file contains extensive inline commentary about missing `topic` and `difficultyLevel` columns on the `questions` table, noting that "questions table doesn't have topic or difficultyLevel!" and "I will remove getCardsByLevel, getCardsByTopic..." but these methods still exist in the interface as fallbacks that return unfiltered results. A future developer might be confused about which queries are authoritative.
-- **Safe modification:** Remove dead fallback queries (`getDueAndNewCardsByTopicFallback`) and the interface methods that use them. Consolidate ownership of topic/level filtering in the service layer.
+- **Files:** `domain/src/main/java/com/nhimz/vocabmaster/domain/fsrs/v6/Scheduler.kt`
+- **Why fragile:** This is a literal port of py-fsrs 6.3.1 with 516 lines of deeply nested when-blocks (Learning / Review / Relearning states × 4 rating values). The state machine has 12+ distinct branching paths with subtle edge cases around `newStep` bounds, empty `learningSteps`/`relearningSteps`, and state transitions. An incorrect edge case here silently corrupts all scheduling data.
+- **Test coverage:** `GoldenVectorTest.kt` (960 lines) provides py-fsrs parity coverage. `PyFsrsParityTest.kt` (960 lines) also exists. Coverage is robust.
+- **Safe modification:** Always run `GoldenVectorTest.kt` against any change. Never modify the Scheduler without generating new golden vectors from py-fsrs 6.3.1.
+
+### `QuizScreenContent.kt` — 916 lines of single-file composable UI
+
+- **Files:** `app/src/main/java/com/nhimz/vocabmaster/ui/screens/QuizScreenContent.kt`
+- **Why fragile:** A single Composable file handles all quiz question types (multiple choice, listening, scrambled, matching, typing, FSRSTailFlashcard, introduction) plus the full quiz container layout. At 916 lines, it's difficult to reason about recomposition scope, state hoisting correctness, and accessibility.
+- **Test coverage:** `app/src/test/java/.../screens/Plan0301ContainerContentTest.kt` exists but likely covers only a subset of states.
+- **Safe modification:** Extract each question type card (already split into individual card files under `ui/components/quiz/`) into their own screenshot-testable composables. The container file should only orchestrate visibility and transitions.
 
 ## Scaling Limits
 
-### Local Learning Steps Array for All Cards
+### Backend SQLite will bottleneck at modest concurrency
 
-- **Current capacity:** `Scheduler.kt:31-33` uses fixed `longArrayOf(60_000L, 600_000L)` for learning steps and `longArrayOf(600_000L)` for relearning steps for ALL cards. These are hardcoded, not per-card.
-- **Limit:** Cannot provide differentiated learning intervals per card or per user. All FSRS cards share the same scheduling parameters at the `Scheduler` class level.
-- **Scaling path:** Store `learningSteps` and `relearningSteps` as per-user preferences (in DataStore) or per-card metadata.
-
-### Single-Page Quiz Session for Large Question Sets
-
-- **Current capacity:** `LoadQuizSessionUseCase` loads all questions for a quiz session into memory as `List<QuizQuestion>`. For a review session with hundreds of due cards, the entire list is held in ViewModel state.
-- **Limit:** Session size grows linearly with accumulated due cards. Onboarding or curriculum-wide review sessions could exceed memory budgets.
-- **Scaling path:** Implement paginated question loading with a sliding window of 10-20 questions ahead of the current index.
+- **Current capacity:** SQLite with `check_same_thread=False` allows concurrent reads but serializes writes at the file-system level. FastAPI runs on uvicorn (async workers), so multiple requests can hit `db.commit()` simultaneously.
+- **Limit:** ~10-50 concurrent write operations per second before WAL contention degrades latency noticeably. With a single-user or small-team deployment this is fine, but it will not scale beyond a few hundred daily active users.
+- **Files:** `backend/app/database.py` — `engine = create_engine(settings.DATABASE_URL, connect_args=connect_args)` where `DATABASE_URL` defaults to `sqlite:///./vocab.db`
+- **Scaling path:** Replace SQLite with PostgreSQL (or at least SQLite in WAL mode with connection pooling). The SQLAlchemy ORM makes this straightforward — swap the connection string.
 
 ## Dependencies at Risk
 
-### Navigation 3 (alpha-stage library)
+### `androidx.credentials` uses 1.5.0-rc01 (release candidate)
 
-- **Risk:** The project uses `androidx.navigation3.ui`, `androidx.navigation3.runtime`, and `androidx.lifecycle.viewmodel.navigation3` (version 1.0.1-alpha). Navigation 3 is an alpha-stage Jetpack library with an unstable API surface. Breaking changes are expected before stable release.
-- **Impact:** API breakage on upgrade. Migration path to stable Navigation Compose is unclear. The project's entire navigation architecture (backStack, NavDisplay, entryProvider) is coupled to this alpha API.
-- **Migration plan:** Consider migrating to standard Jetpack Navigation Compose (which is stable) if Navigation 3 is deprecated or significantly restructured.
+- **Risk:** `credentialsPlayServices = "1.5.0-rc01"` in `gradle/libs.versions.toml:5` is a release candidate version, not a stable release. RC APIs may change behavior in the stable release.
+- **Impact:** Google Sign-In flow could break if the RC introduces incompatibilities with the Google Play Services version on the device.
+- **Migration plan:** Monitor for stable release and update promptly. The current version is from 2024-08, so a stable version should be available.
 
-### Robolectric (test dependency)
+### Detekt 1.23.6 — local JAR install
 
-- **Risk:** `data/build.gradle.kts:77` pins `org.robolectric:robolectric:4.15.1`. Robolectric releases often break on new Android SDK levels. Upgrading `compileSdk` or `targetSdk` past 36 may require a newer Robolectric version.
-- **Impact:** Database tests (`VocabDaoTest.kt`, `VocabularyRepositoryImplTest.kt`) will fail until Robolectric catches up with the SDK.
-- **Mitigation:** Keep Robolectric version pinned and test the SDK upgrade in a branch first.
+- **Risk:** Detekt CLI is installed as a raw JAR (`detekt-cli-1.23.6.zip`) committed to the repo root. This suggests manual tooling setup that may diverge from the Gradle plugin version (`1.23.6` in `libs.versions.toml:6`).
+- **Files:** `detekt-cli-1.23.6.zip`, `detekt-cli/` directory at repo root.
+- **Impact:** Inconsistent analysis results between local Detekt runs and CI/Gradle builds if the ZIP install and the Gradle plugin are configured differently.
 
 ## Missing Critical Features
 
-### No Offline Sync Conflict Resolution
+### No offline-first sync conflict resolution strategy
 
-- **Problem:** The SyncManager (`data/src/main/java/com/nhimz/vocabmaster/data/sync/SyncManager.kt`) implements "last-writer-wins" — the server's data completely overwrites local state on pull. There is no three-way merge, no timestamp-based conflict detection, and no user-facing conflict resolution UI.
-- **Blocks:** Multiple-device users will lose progress when syncing from different devices if review sessions overlap. The server copy can overwrite local FSRS state that hasn't been pushed yet.
+- **Problem:** The sync protocol (`SyncManager.kt` + `sync.py`) uses last-modified-wins for cards and append-only for review logs. There is no mechanism to detect or resolve conflicts when the same card is reviewed on two offline devices before either syncs. The `VocabDao.mergePulledCards` D-03 invariant only prevents stale server data from overwriting newer local data, but it does not handle concurrent edits on two devices.
+- **Files:** `data/src/main/java/com/nhimz/vocabmaster/data/sync/SyncManager.kt`, `data/src/main/java/com/nhimz/vocabmaster/data/database/VocabDao.kt:286-332`
+- **Blocks:** Multi-device sync correctness. A user who reviews a card on their phone while offline, then reviews it on their tablet offline, will lose one device's review when the second device syncs.
 
-### No Data Export/Portability (Beyond Debug)
+### No analytics or crash reporting in production
 
-- **Problem:** Backup/restore (`BackupRepositoryImpl.kt`) exists for internal app restore but there is no user-facing data export (CSV, Anki-compatible APKG, etc.).
-- **Blocks:** Users cannot migrate their spaced-repetition data to another app or create backups for archival purposes outside the app's restore mechanism.
-
-### No Rate Limiting or Backpressure on Sync
-
-- **Problem:** Manual sync calls (triggered from settings/debug) fire immediately regardless of network state. No exponential backoff, no queue, no retry limit.
-- **Blocks:** A flaky server connection causes repeated full database scans (getAllCards, getAllReviewLogsList) which drain battery and block the IO dispatcher.
+- **Problem:** The app uses `LocalLogger` for debug logging only (guarded by `BuildConfig.DEBUG`). The only crash handler is `setupCrashHandler()` which logs to `LocalLogger` — never persisted to a remote service. There is no Firebase Crashlytics, Sentry, or any production telemetry.
+- **Files:** `app/src/main/java/com/nhimz/vocabmaster/util/LocalLogger.kt`, `app/src/main/java/com/nhimz/vocabmaster/VocabApplication.kt:21-24`
+- **Blocks:** Understanding production crash rates, ANRs, and user errors.
 
 ## Test Coverage Gaps
 
-### Untested Source Files (No Associated Test)
+### No E2E or integration tests for the quiz flow
 
-The following modules have zero test coverage:
+- **What's not tested:** The full user journey from HomeScreen → node/checkpoint selection → QuizScreen → answer submission → FSRS card update → ResultScreen is not covered by any automated test. The `NavGraphTest.kt` in `app/src/androidTest/` only verifies navigation routes exist.
+- **Files:** `app/src/androidTest/java/com/nhimz/vocabmaster/navigation/NavGraphTest.kt`
+- **Risk:** Regressions in state management across the quiz lifecycle (process death restoration, double-tap guard, session completion) are only covered by unit tests of `QuizViewModel`, not the integrated Compose UI.
+- **Priority:** Medium
 
-- `app/src/main/java/com/nhimz/vocabmaster/data/auth/AuthManager.kt` — 107 lines
-- `app/src/main/java/com/nhimz/vocabmaster/data/remote/ApiClient.kt` — 50 lines
-- `app/src/main/java/com/nhimz/vocabmaster/data/remote/AuthInterceptor.kt` — 28 lines
-- `app/src/main/java/com/nhimz/vocabmaster/data/sync/SyncManager.kt` — 213 lines
-- `app/src/main/java/com/nhimz/vocabmaster/data/repository/SettingsRepositoryImpl.kt` — 330 lines
-- `app/src/main/java/com/nhimz/vocabmaster/data/repository/BackupRepositoryImpl.kt` — 199 lines
-- `app/src/main/java/com/nhimz/vocabmaster/notification/*.kt` — 167 lines total
-- `app/src/main/java/com/nhimz/vocabmaster/audio/CDNAudioPlayer.kt` — 140 lines
-- `app/src/main/java/com/nhimz/vocabmaster/ui/viewmodel/MainViewModel.kt` — 428 lines (core navigation + curriculum logic)
-- `app/src/main/java/com/nhimz/vocabmaster/ui/viewmodel/SettingsViewModel.kt` — missing test
-- `app/src/main/java/com/nhimz/vocabmaster/ui/viewmodel/PlacementTestViewModel.kt` — missing test
-- `app/src/main/java/com/nhimz/vocabmaster/ui/viewmodel/StatisticsViewModel.kt` — missing test
-- `app/src/main/java/com/nhimz/vocabmaster/ui/viewmodel/LoginViewModel.kt` — missing test
+### Sync error handling under network degradation untested
 
-**Risk:** These untested files contain critical logic: authentication (AuthManager, AuthInterceptor), data persistence (SyncManager), database operations (BackupRepositoryImpl), navigation (MainViewModel), and state management (all ViewModels). Regressions in these areas would affect core app functionality and may go unnoticed.
+- **What's not tested:** `SyncManagerTest.kt` tests the happy path and specific error responses but does not simulate partial failures (push succeeds / pull fails, timeout mid-sync, network drops during merge). The current `sync()` implementation returns `false` for all recoverable errors with no partial-state recovery.
+- **Files:** `data/src/test/java/com/nhimz/vocabmaster/data/sync/SyncManagerTest.kt`
+- **Risk:** Users experiencing network degradation mid-sync get a silent `false` return and no indication of whether settings were partially saved on the server.
+- **Priority:** Medium
 
-**Priority sources:**
-1. **HIGH** — `SyncManager.kt` (sync logic, I/O, placeholder data), `MainViewModel.kt` (navigation, curriculum unlock logic)
-2. **HIGH** — `AuthManager.kt`, `AuthInterceptor.kt` (security-sensitive, Firebase integration)
-3. **MEDIUM** — `BackupRepositoryImpl.kt` (data loss risk), `SettingsRepositoryImpl.kt` (persistence layer)
-4. **MEDIUM** — `SettingsViewModel.kt`, `PlacementTestViewModel.kt`, `LoginViewModel.kt`, `StatisticsViewModel.kt` (UI state)
+### Debug panel integrity tests are not part of the CI test suite
+
+- **What's not tested:** `DataIntegrityTests.kt` provides valuable in-app runtime assertions (stability floor, difficulty bounds, due/ordering, orphan review logs, backup roundtrip) but these are manual-only — they run from a debug UI screen, not from the Gradle test runner. There is no scheduled or CI-triggered execution.
+- **Files:** `app/src/main/java/com/nhimz/vocabmaster/ui/screens/debug_components/DataIntegrityTests.kt`
+- **Risk:** Data corruption in the field goes undetected until a user manually navigates to the debug panel and runs the tests.
+- **Priority:** Low
 
 ---
 

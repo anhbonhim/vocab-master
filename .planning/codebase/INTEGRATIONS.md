@@ -4,148 +4,147 @@
 
 ## APIs & External Services
 
-**Firebase Authentication:**
-- **Service:** Firebase Auth for user authentication
-- **SDK/Client (Android):** `com.google.firebase:firebase-auth` (via BoM 33.1.2) in `data/build.gradle.kts`
-- **SDK/Client (Backend):** `firebase-admin==6.5.0` for token verification in `backend/app/utils/firebase_auth.py`
-- **Auth flow:** Google Sign-In via AndroidX Credential Manager (`data/src/main/java/.../data/auth/AuthManager.kt`) → Firebase Auth → Backend verifies ID tokens
-- **Web client ID:** `170306776528-cl98eh785k2s5cto0nmd0uudkjo9lkji.apps.googleusercontent.com` (hardcoded in `AuthManager.kt`)
-- **Config files:** `app/google-services.json` (Android), `backend/firebase-service-account.json` (Admin SDK)
+**Authentication:**
+- **Firebase Authentication** — User identity management
+  - Android SDK: `com.google.firebase:firebase-auth` (via Firebase BOM 33.1.2)
+  - Backend: `firebase-admin==6.5.0` verifies ID tokens (`backend/app/utils/firebase_auth.py`)
+  - Auth flow: Google Sign-In → Firebase ID token → Bearer header on API calls
+  - Config files:
+    - `app/google-services.json` — Android Firebase project config
+    - `backend/firebase-service-account.json` — Backend admin credentials (path from `FIREBASE_CREDENTIALS_PATH` env var)
 
-**Google Sign-In (Android):**
-- **Service:** Google identity for authentication
-- **SDK:** AndroidX Credentials 1.2.2 + `credentials-play-services-auth:1.5.0-rc01` + `googleid:1.1.1`
-- **Implementation:** `AuthManager.kt` uses `CredentialManager.getCredential()` with `GetGoogleIdOption`
-- **Backend no direct Google API calls** — only Firebase Admin SDK
+- **Google Sign-In** — Primary auth method
+  - Android: `androidx.credentials:credentials` (1.2.2) + `credentials-play-services-auth` + `googleid` (1.1.1)
+  - Web client ID: `170306776528-cl98eh785k2s5cto0nmd0uudkjo9lkji.apps.googleusercontent.com` (hardcoded in `data/src/main/java/com/nhimz/vocabmaster/data/auth/AuthManager.kt:48`)
+  - Uses Credential Manager API with `GetGoogleIdOption` for token retrieval
+  - Flow: Google ID token → `GoogleAuthProvider.getCredential()` → `FirebaseAuth.signInWithCredential()` → Firebase session
 
-**No other third-party APIs** are directly consumed. All external HTTP calls go through the local backend.
+**Backend API:**
+- **Self-hosted FastAPI** — Android client talks to Python backend
+  - Base URL: `http://127.0.0.1:8000/` (configured in `data/build.gradle.kts` as `BuildConfig.API_BASE_URL`)
+  - Transport: HTTP/1.1 via Retrofit/OkHttp (plaintext, `usesCleartextTraffic="true"` in AndroidManifest)
+  - Auth: Bearer token (Firebase ID token) via `AuthInterceptor` (`data/src/main/java/com/nhimz/vocabmaster/data/remote/AuthInterceptor.kt`)
+  - Endpoints:
+    - `GET /api/v1/health` — Health check
+    - `GET /api/v1/me` — Authenticated user profile
+    - `GET /api/v1/vocabulary/topics` — List vocabulary topics
+    - `GET /api/v1/vocabulary/catalog` — Paginated vocabulary catalog (by topic, level)
+    - `POST /api/v1/placement/start` — Start placement test
+    - `POST /api/v1/placement/{session_id}/answer` — Submit placement answer
+    - `POST /api/v1/sync/push` — Push local data to server
+    - `GET /api/v1/sync/pull` — Pull remote data from server (since timestamp)
+  - Swagger UI: `http://localhost:8000/docs`
+
+**CDN / Audio Assets:**
+- **jsDelivr** (GitHub-backed CDN) — Audio file hosting
+  - Base URL: `https://cdn.jsdelivr.net/gh/anhbonhim/vocab-assets@main/audio/v2/`
+  - Audio files: OGG format, cached locally via ExoPlayer `SimpleCache` (90MB LRU cache)
+  - Upload: `upload_audio_to_cdn.sh` pushes `output/audio/v2/` to GitHub repo `anhbonhim/vocab-assets`
+  - Repository URL: `git@github.com:anhbonhim/vocab-assets.git` (SSH-based push)
 
 ## Data Storage
 
-**Local Database (Mobile):**
-- **Type:** SQLite via Room 2.7.1
-- **DB name:** `vocab_database` (production), defined in `DataModule.kt`
-- **Entities:** 12 tables (FsrsCardEntity, ReviewLogEntity, FlaggedItemEntity, SectionEntity, UnitEntity, UnitGuidebookEntity, NodeEntity, SessionEntity, QuestionEntity, NodeProgressEntity, SessionProgressEntity, QuestionAndFsrsCard)
-- **Version:** 8 (destructive migration from v7)
-- **Seeding:** Curriculum data loaded from assets JSON (`lessons_v3.json`) in `VocabularyRepositoryImpl.kt`
+**Databases:**
+| Database | Engine | Client | Connection | Location |
+|----------|--------|--------|------------|----------|
+| Local (Android) | SQLite via Room | Room 2.7.1 | Embedded, `vocab_master_db` | Device-local via Room |
+| Server (Backend) | SQLite via SQLAlchemy | SQLAlchemy 2.0.51 | `sqlite:///./vocab.db` (from `DATABASE_URL` env var) | `backend/vocab.db` |
 
-**Local Database (Backend):**
-- **Type:** SQLite via SQLAlchemy 2.0.51
-- **Path:** `sqlite:///./vocab.db` (relative to backend run dir)
-- **Tables:** vocabulary, users, user_settings, user_cards, review_logs, placement_sessions
-- **Migrations:** Alembic 1.13.1 available
+**Room Entities (Android Local DB):**
+10 entities: `FsrsCardEntity`, `ReviewLogEntity`, `FlaggedItemEntity`, `SectionEntity`, `UnitEntity`, `UnitGuidebookEntity`, `NodeEntity`, `SessionEntity`, `QuestionEntity`, `NodeProgressEntity`, `SessionProgressEntity`, `QuestionAndFsrsCard` (relation). DB version 8 with destructive migration on version bump.
+
+**Backend Models (Server DB):**
+| Model | Table | Purpose |
+|-------|-------|---------|
+| `User` | `users` | Firebase UID mapping |
+| `UserSettings` | `user_settings` | Streaks, daily goal, theme, language, placement level |
+| `Vocabulary` | `vocabulary` | Word bank with CEFR level, IRT params, audio URLs |
+| `UserCard` | `user_cards` | FSRS card state (per-user) |
+| `ReviewLog` | `review_logs` | Review history (append-only) |
+| `PlacementSession` | `placement_sessions` | Active placement test sessions |
 
 **File Storage:**
-- **Local filesystem only** for app assets (`app/src/main/assets/`)
-- **No cloud file storage** (S3, GCS) — audio served via CDN (see below)
+- **Local filesystem only** — Backend uses SQLite file (`backend/vocab.db`)
+- No cloud storage (S3, GCS, etc.) or file upload support
 
 **Caching:**
-- **SimpleCache (ExoPlayer)** — 90MB LRU cache for audio files in `CDNAudioPlayer.kt`
-- **No Redis, Memcached, or other external caching service**
+- **ExoPlayer SimpleCache** (Android) — 90MB LRU cache for CDN audio OGG files at `context.cacheDir/audio_cdn_cache/`
+- **No server-side caching** — Backend has no Redis, memcached, or in-memory cache
 
 ## Authentication & Identity
 
 **Auth Provider:**
-- **Firebase Authentication** — Primary auth provider
-- **Implementation:**
-  - Android: `AuthManager.kt` uses Firebase Auth + Credential Manager for Google Sign-In
-  - Backend: `firebase_auth.py` verifies Bearer tokens via Firebase Admin SDK
-- **Anonymous mode supported:** Backend endpoint `/api/v1/placement/start` works with optional auth
-- **Auth interceptor:** `AuthInterceptor.kt` injects `Authorization: Bearer <token>` header into all Retrofit calls
+- **Firebase Authentication** (Google Sign-In as identity provider)
+  - Android: `FirebaseAuth` singleton via `AuthManager` (`data/src/main/java/com/nhimz/vocabmaster/data/auth/AuthManager.kt`)
+  - Backend: Firebase Admin SDK token verification via `firebase_admin.auth.verify_id_token()` (`backend/app/utils/firebase_auth.py`)
+  - Two auth dependency modes:
+    - `get_current_user_uid` — Required auth (returns 401 if missing)
+    - `get_optional_user_uid` — Optional auth (returns `None` for guest access)
+  - Guest mode supported: Placement test can run without authentication (stateless, client-driven)
 
-**Identity Token Flow:**
-1. User signs in via Google on Android → Firebase Auth token obtained
-2. `AuthManager.getIdToken()` retrieves Firebase ID token
-3. `AuthInterceptor` attaches token to every Retrofit request
-4. Backend `verify_token()` dependency validates token with Firebase Admin SDK
-5. `get_current_user_uid()` extracts Firebase UID for downstream use
+**Backend API Security:**
+- Bearer token authentication via `HTTPBearer` (`fastapi.security`)
+- `AuthInterceptor` on Android attaches `Authorization: Bearer <token>` header to all Retrofit requests (`data/src/main/java/com/nhimz/vocabmaster/data/remote/AuthInterceptor.kt`)
+- Token refreshed via `user.getIdToken(false).await()` before expiry
 
 ## Monitoring & Observability
 
 **Error Tracking:**
-- **None** — No Sentry, Crashlytics, or other crash reporting service integrated
-- Custom `LocalLogger` (`util/LocalLogger.kt`) with in-memory buffer (500 events) and crash handler — debug only
+- **None** — No Sentry, Crashlytics, or similar service integrated
+- Backend errors surface as FastAPI HTTP 500 responses
+- Android uses `LocalLogger` utility (`app/src/main/java/com/nhimz/vocabmaster/util/LocalLogger.kt`) for local logging
 
 **Logs:**
-- **Android:** `android.util.Log` via `LocalLogger` wrapper — in-memory circular buffer, lost on app restart
-- **Backend:** No structured logging (FastAPI default output only)
-- **No remote log aggregation** service integrated
+- **Android**: `LocalLogger` (custom utility, logs to `android.util.Log` under tag `VocabMaster`)
+- **Backend**: Uvicorn stdout logs, plus manual `print()` in Firebase init (`backend/app/utils/firebase_auth.py:13`)
+- **Backend log file**: `backend/backend.log` (gitignored)
 
 ## CI/CD & Deployment
 
 **Hosting:**
-- **Android:** Direct APK build/release (no app store CI detected)
-- **Backend:** Self-hosted (no cloud platform config found)
+- **Backend**: Self-hosted — no cloud provider (designed to run on local machine or Android Termux)
+- **CDN**: jsDelivr (free CDN for open-source GitHub repos)
+- **Not deployed** to any cloud platform
 
 **CI Pipeline:**
-- **None detected** — No GitHub Actions, GitLab CI, or other CI config files found
-- **detekt** static analysis configured in `build.gradle.kts` (runs during Gradle build)
+- **None** — no GitHub Actions, Jenkins, or similar configured
+- Static analysis run locally via `detekt` Gradle plugin
+- Tests run manually via Gradle (`./gradlew test`)
 
 ## Environment Configuration
 
-**Backend:**
-- `backend/app/config.py` — Uses `pydantic-settings` with `.env` file support
-- Config values: `DATABASE_URL`, `FIREBASE_CREDENTIALS_PATH`, `PROJECT_NAME`, `VERSION`
-- `.env` file: Not present in repo (listed in `.gitignore` — present in `config.yaml` for CLIProxyAPI, but that's a separate sub-project)
-
-**Android:**
-- No runtime env vars — configuration via `google-services.json` (Firebase) and build config
-- `local.properties` — SDK paths (not committed)
+**Required env vars (Backend):**
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `DATABASE_URL` | `sqlite:///./vocab.db` | SQLite database path |
+| `FIREBASE_CREDENTIALS_PATH` | `firebase-service-account.json` | Path to Firebase Admin SDK JSON key file |
 
 **Secrets location:**
-- `app/google-services.json` — Firebase Android config (committed)
-- `backend/firebase-service-account.json` — Firebase Admin service account (committed)
-
-## CDN & Media Delivery
-
-**Audio CDN:**
-
-- **CDN Provider:** jsDelivr (npm-like GitHub CDN) — `https://cdn.jsdelivr.net/gh/anhbonhim/vocab-assets@main/audio/v2/`
-- **Hosting:** GitHub repository `git@github.com:anhbonhim/vocab-assets.git`
-- **Upload workflow:** `upload_audio_to_cdn.sh` — copies audio from `output/audio/v2/` to assets repo, commits, pushes
-- **Android consumption:** `CDNAudioPlayer.kt` plays audio URLs via ExoPlayer with 90MB LRU caching
-- **Local dev server fallback:** `CDNAudioPlayer` can redirect CDN URLs to `http://localhost:8080/` for offline dev
-
-**Audio Generation:**
-- **Tool:** `tools/generate_audio_edge_tts_v2.py` — Uses `edge-tts` Python library (Microsoft Edge TTS) via `en-US-AriaNeural` voice
-- **Output:** OGG files to `output/audio/v2/words/` and `output/audio/v2/sentences/`
-- **Concurrency:** 15 concurrent downloads, 3 max retries
-
-## Data Pipeline
-
-**Curriculum Data Tools** (in `tools/`):
-
-| Tool | Purpose | Data Source |
-|------|---------|-------------|
-| `download_tatoeba.py` | Download sentence pairs | Tatoeba.org |
-| `download_cefrj.py` | Download CEFR-J wordlist | CEFR-J project |
-| `download_oewn.py` | Download Open English WordNet | OEWN |
-| `build_vocab_structured.py` | Build structured vocabulary | Combine sources |
-| `generate_lessons_v3.py` | Generate lesson curriculum | Structured vocabulary |
-| `generate_audio_edge_tts_v2.py` | Generate audio files | Microsoft Edge TTS |
-| `audio_pipeline_v3.py` | Orchestrate audio pipeline | Output of lessons |
-| `validate_lessons_v3.py` | Validate lesson JSON | Lessons JSON |
-
-**Backend Seeding:**
-- `backend/seed_db.py` — Seeds vocabulary table from `data/src/main/assets/lessons_v3.json` into SQLite DB
-- IRT difficulty parameters mapped by CEFR level (A1=-2.0 through C2=3.0)
+| Secret | File | Status |
+|--------|------|--------|
+| Firebase Admin key | `backend/firebase-service-account.json` | Exists on device, gitignored |
+| Firebase Android config | `app/google-services.json` | Exists on device, committed |
+| Google Sign-In Web Client ID | `AuthManager.kt:48` | Hardcoded in source |
+| Environment file | `backend/.env` | Not present; pydantic-settings looks for it |
 
 ## Webhooks & Callbacks
 
 **Incoming:**
-- Not detected
+- **None** — No webhook endpoints defined
 
 **Outgoing:**
-- Not detected
+- **None** — No outgoing webhook calls from the backend
 
-## Sync Architecture
+## Data Sync Architecture
 
-**Sync Protocol:**
-- **Model:** Push/Pull bidirectional sync with last-modified-wins for cards
-- **Endpoint:** `POST /api/v1/sync/push` + `GET /api/v1/sync/pull?since=<timestamp>`
-- **Authentication:** Firebase Bearer token required
-- **Payload schema:** UserSettings + VocabularyCards + ReviewLogs (defined in `data/remote/SyncPayload.kt`)
-- **Android manager:** `data/sync/SyncManager.kt` handles full sync lifecycle
+**Sync between Android local DB and server:**
+- Protocol: REST over HTTP (push/pull pattern)
+- Direction: **Bidirectional** — `POST /api/v1/sync/push` and `GET /api/v1/sync/pull`
+- Conflict resolution: Last-write-wins based on `last_modified` epoch ms timestamp
+- Sync payload contains: user settings, vocabulary cards (FSRS state), review logs
+- Review logs: Append-only with dedup by `questionId + timestamp` uniqueness
+- Guest mode: No sync (local-only)
+- Auth mode: Sync requires authenticated Firebase user
 
 ---
 

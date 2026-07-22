@@ -5,183 +5,253 @@
 ## Naming Patterns
 
 **Files:**
-- Kotlin source files use PascalCase matching the primary class name (e.g., `QuizViewModel.kt`, `VocabApplication.kt`).
-- Compose screen files end with `Screen` or `ScreenContent` (e.g., `HomeScreen.kt`, `HomeScreenContent.kt`, `SettingsScreen.kt`).
-- Compose component files use descriptive names (e.g., `MatchingQuestionCard.kt`, `Duo3DCard.kt`, `FeedbackBanner.kt`).
-- Repository interface files are in `domain/model/` and end with `Repository` (e.g., `VocabularyRepository.kt`, `ReviewRepository.kt`).
-- Repository implementation files are in `data/repository/` and end with `Impl` (e.g., `VocabularyRepositoryImpl.kt`, `ReviewRepositoryImpl.kt`).
-- Database entity files are in `data/database/entity/` and end with `Entity` (e.g., `FsrsCardEntity.kt`, `QuestionEntity.kt`).
-- Use case files are in `domain/usecase/` and use descriptive verb-noun names (e.g., `EvaluateAnswerUseCase.kt`, `SubmitReviewUseCase.kt`, `CompleteQuizSessionUseCase.kt`).
-- Test files mirror the source package structure with `Test` suffix (e.g., `QuizViewModelTest.kt`, `ScrambledWordMapperTest.kt`).
-- Fake files use `Fake` prefix (e.g., `FakeVocabularyRepository.kt`, `FakeReviewRepository.kt`).
+- Kotlin: PascalCase matching class/interface name (e.g., `SubmitReviewUseCase.kt`, `QuizViewModel.kt`, `VocabDatabase.kt`, `Converters.kt`)
+- Python: snake_case (e.g., `firebase_auth.py`, `irt_engine.py`, `seed_db.py`)
+- Test files: `<ClassName>Test.kt` for JVM tests, `<ClassName>Test.kt` for instrumented tests in `androidTest/`
+- Fake files: `Fake<InterfaceName>.kt` (e.g., `FakeReviewRepository.kt`, `FakeVocabularyRepository.kt`)
 
 **Functions:**
-- Standard Kotlin functions use camelCase (e.g., `startNodeSession`, `submitAnswer`, `setupCrashHandler`).
-- Jetpack Compose composable functions use PascalCase with `@Composable` annotation (e.g., `HomeScreenContent`, `MatchingQuestionCard`, `SettingsActions`).
-- ViewModel functions are camelCase, often named after user actions (e.g., `submitAnswer`, `startNodeSession`).
-- Use case classes implement `operator fun invoke()` for clean call-site syntax.
-- Use case functions internally use `execute()` naming (e.g., `MapRatingUseCase.execute()`).
-- Private utility functions in tests use camelCase (e.g., `createViewModel`, `flashcardQuestion`, `qWithCard`).
+- Kotlin: camelCase (e.g., `startNodeSession()`, `submitAnswer()`, `getDueCardsScoped()`, `restoreSession()`)
+- Python: snake_case (e.g., `verify_token()`, `get_current_user_uid()`, `health_check()`)
+- Compose functions: PascalCase (e.g., `VocabMasterApp()`, `VocabMasterNavScaffold()`, `LoadingSplash()`)
+- Use case operator `invoke()` pattern (e.g., `SubmitReviewUseCase.invoke()` called as `useCase(...)`)
 
 **Variables:**
-- Standard Kotlin camelCase (e.g., `settingsRepositoryImpl`, `lastKnownVersion`, `dailyGoalXp`).
-- Private backing properties for `MutableStateFlow` use underscore prefix (e.g., `_logs`, `_uiState`).
-- Constants use `UPPER_SNAKE_CASE` marked `const val` in `companion object` (e.g., `MAX_LOG_COUNT`, `DEFAULT_LOAD_ERROR`, `KEY_QUIZ_KIND`).
-- Composable lambdas use PascalCase for factory functions or descriptive names (e.g., `onDailyGoalChange`, `onSync`, `onRestore`).
+- Kotlin: camelCase (e.g., `sessionStartTime`, `pendingRestoreIndex`, `updatedCorrectCount`)
+- Python: snake_case (e.g., `daily_goal_xp`, `current_streak`)
+- Constants: UPPER_SNAKE_CASE within `companion object` blocks (e.g., `private const val TAG = "QuizViewModel"`, `KEY_QUIZ_KIND`)
 
 **Types:**
-- Classes and interfaces use PascalCase.
-- Sealed interfaces use PascalCase (e.g., `QuizUiState`, `QuizType`).
-- Data classes nested inside sealed interfaces (e.g., `QuizUiState.Active`, `QuizUiState.Completed`, `QuizUiState.Error`).
-- Enum classes use PascalCase (e.g., `QuestionType`, `Rating`, `State`, `NodeType`).
+- Kotlin: PascalCase (e.g., `QuizUiState`, `AnswerResult`, `QuizType`, `Card`, `Scheduler`, `VocabDatabase`)
+- Interfaces: PascalCase (e.g., `VocabularyRepository`, `ReviewRepository`, `SettingsRepository`)
+- Enums: PascalCase, values in PascalCase (e.g., `State.New`, `State.Review`, `QuizType.Introduction`, `NodeType.LESSON`)
+- Python classes: PascalCase (e.g., `Settings`, `Base` via SQLAlchemy)
+- Python type aliases: PascalCase
 
 ## Code Style
 
 **Formatting:**
-- Standard Kotlin conventions consistent with IntelliJ/Android Studio defaults.
-- Indentation: 4 spaces.
+- Tool: Detekt (`io.gitlab.arturbosch.detekt`) via Gradle
+- Config: `config/detekt/detekt.yml` — build upon default config, allRules = false
+- Detekt rules enabled: `ComplexCondition`, `ComplexInterface`, `ComplexMethod`, `CyclomaticComplexMethod`, `LabeledExpression`, `LargeClass`, `LongMethod`, `LongParameterList`, `MethodOverloading`, `NestedBlockDepth`, `ReplaceSafeCallChainWithRun`, `StringLiteralDuplication`, `TooManyFunctions`
+- Baseline: `config/detekt/baseline.xml`
+- Style guide: `kotlin.code.style=official` in `gradle.properties`
 
 **Linting:**
-- **Tool:** Detekt (`io.gitlab.arturbosch.detekt`).
-- **Configuration:** `config/detekt/detekt.yml` + `config/detekt/baseline.xml`.
-- **Key rules enabled under `complexity` active=true:**
-  - `ComplexCondition`, `ComplexInterface`, `ComplexMethod`
-  - `CyclomaticComplexMethod`, `LabeledExpression`
-  - `LargeClass`, `LongMethod`, `LongParameterList`
-  - `MethodOverloading`, `NestedBlockDepth`
-  - `ReplaceSafeCallChainWithRun`, `StringLiteralDuplication`, `TooManyFunctions`
-- Some long test files suppress certain Detekt rules with `@Suppress("LabeledExpression")` (e.g., `VocabularyRepositoryImplTest.kt`).
+- Kotlin: Detekt 1.23.6, applied to all projects via build.gradle.kts
+- Python: No linting config detected (no `ruff.toml`, `.pylintrc`, or `.flake8` found)
+- JS/TS: No linting config detected (no `.eslintrc` or `.prettierrc` found)
 
-## Package Organization
+**Suppression patterns:**
+- File-level: `@file:Suppress("MagicNumber", "NestedBlockDepth", ...)` used in the FSRS `Scheduler.kt` file
+- Function-level: `@Suppress("TooManyFunctions", "LongMethod", ...)` on complex scheduler functions
+- Detekt baseline is used to suppress existing violations without exhaustive inline suppressions
 
-**App module** (`app/src/main/java/com/nhimz/vocabmaster/`):
-- `ui/screens/` — Top-level Screen composables and `*ScreenContent.kt` files
-- `ui/screens/statistics_components/` — Statistics tab content (OverviewTab, MistakeBankTab, BadgesTab)
-- `ui/screens/debug_components/` — Debug test runner components (DataIntegrityTests, SystemSettingsTests, TestRunner)
-- `ui/components/` — Reusable Compose components (Duo3DCard, DuoSnackbar, SnackbarMessage)
-- `ui/components/quiz/` — Quiz-specific components (MatchingQuestionCard, TypingQuestionCard, ScrambledWordMapper, etc.)
-- `ui/viewmodel/` — ViewModel classes and UI state models
-- `ui/navigation/` — NavGraph, Screen sealed class
-- `ui/theme/` — Theme files (Color, Theme, Type, AppIcons)
-- `ui/util/` — UI utilities (FeedbackHelper)
-- `util/` — App utilities (LocalLogger)
-- `notification/` — Notification scheduling and receiver
-- `audio/` — CDN audio player
+```kotlin
+// File-level — Scheduler.kt
+@file:Suppress("MagicNumber", "NestedBlockDepth", "ComplexCondition", "UseRequire", "UseCheckOrError")
 
-**Domain module** (`domain/src/main/java/com/nhimz/vocabmaster/domain/`):
-- `model/` — Domain model interfaces (VocabularyRepository, ReviewRepository, SettingsRepository) and data classes (Question, Session, Node, Curriculum, VocabDataException)
-- `model/quiz/` — Quiz domain types (QuizType, QuizSessionModels, QuestionDirection)
-- `usecase/` — Business logic use cases (EvaluateAnswerUseCase, SubmitReviewUseCase, LoadQuizSessionUseCase, CompleteQuizSessionUseCase, etc.)
-- `fsrs/v6/` — FSRS spaced repetition algorithm (Scheduler, Optimizer, State, Card, ReviewLog)
-
-**Data module** (`data/src/main/java/com/nhimz/vocabmaster/data/`):
-- `database/` — Room database (VocabDatabase, VocabDao, Converters)
-- `database/entity/` — Room entity classes (FsrsCardEntity, QuestionEntity, ReviewLogEntity, etc.)
-- `repository/` — Repository implementations (VocabularyRepositoryImpl, ReviewRepositoryImpl, etc.)
-- `remote/` — API clients and network models (ApiClient, AuthManager, SyncPayload, etc.)
-- `di/` — Hilt DI module (DataModule)
-- `sync/` — Sync management (SyncManager)
-- `auth/` — Authentication (AuthManager)
-- `model/` — Data-layer models (BackupModels)
+// Class-level — Scheduler.kt
+@Suppress("TooManyFunctions", "LongMethod", "CyclomaticComplexMethod", "LongParameterList", "MagicNumber")
+class Scheduler @Inject constructor(...)
+```
 
 ## Import Organization
 
-**Order:**
-1. `package` declaration
-2. Blank line
-3. Android/Kotlin standard library imports (`androidx.*`, `kotlinx.*`, `java.*`)
-4. Project imports (`com.nhimz.vocabmaster.*`)
-5. Blank line
-6. Third-party library imports (`org.junit.*`, `dagger.hilt.*`)
+**Kotlin imports order** (observed pattern, not enforced by tool):
+1. `kotlin.*` / `java.*` / `javax.*` standard library imports
+2. Android framework imports (`androidx.*`, `android.*`)
+3. Project-internal imports (`com.nhimz.vocabmaster.*`)
+4. Third-party imports (`dagger.*`, `kotlinx.*`, `retrofit2.*`, `okhttp3.*`)
+5. Blank line between groups
 
-**Wildcard imports:**
-- Not used; explicit imports are preferred.
+**Python imports order** (observed pattern):
+1. Standard library (`os`, `from typing import ...`)
+2. Third-party (`fastapi`, `firebase_admin`, `pydantic_settings`)
+3. Local app modules (`from app.config import settings`)
+
+**Wildcard imports usage:**
+- Single-type wildcards are common: `import com.nhimz.vocabmaster.domain.usecase.*` for use case groupings in ViewModels
+- No star imports observed in domain module
+
+**Path Aliases:**
+- Standard Gradle module paths: `:app`, `:domain`, `:data` — imported via `project(":domain")` / `project(":data")`
+- No additional path aliases configured
 
 ## Error Handling
 
 **Patterns:**
-- Use `Result<T>` return type and `runCatching {}` at use case boundaries for predictable error propagation.
+- **Kotlin Result type** — Use cases return `Result<T>` using `runCatching {}`
   ```kotlin
-  // domain/src/main/java/.../usecase/EvaluateAnswerUseCase.kt
-  class EvaluateAnswerUseCase @Inject constructor() {
-      operator fun invoke(...): Result<AnswerResult> = runCatching { ... }
+  // SubmitReviewUseCase.kt
+  suspend operator fun invoke(...): Result<Card?> = runCatching {
+      ...
+      Result.success(updatedCard)
+  }.getOrElse { Result.failure(it) }
+  ```
+
+- **ViewModel `.fold(onSuccess, onFailure)`** — Standard pattern for consuming use case results
+  ```kotlin
+  loadQuizSessionUseCase(request).fold(
+      onSuccess = { data -> handleLoadedSession(data) },
+      onFailure = { error ->
+          _uiState.value = QuizUiState.Error(msg)
+          emitSnackbar(SnackbarMessage(text = msg, isError = true))
+      }
+  )
+  ```
+
+- **Error state in UI state** — `QuizUiState.Error(message)` sealed class variant for UI error display
+- **SnackbarMessage emission** — ViewModels emit error messages via `SharedFlow<SnackbarMessage>` for the UI
+- **Python exceptions** — Exception handling with HTTPException for API errors:
+  ```python
+  raise HTTPException(status_code=401, detail=f"Invalid authentication credentials: {str(e)}")
+  ```
+
+**Illegal state handling:**
+- `IllegalArgumentException` thrown in use cases for invalid input combinations:
+  ```kotlin
+  if (optionIndex == null) {
+      Result.failure(IllegalArgumentException("optionIndex must be provided for MultipleChoice"))
   }
   ```
-- Custom typed exception `VocabDataException` in `domain/src/main/java/com/nhimz/vocabmaster/domain/model/VocabDataException.kt` for data-layer parse failures — carries a human-readable message and the original `cause`.
-- Implementations propagate errors using `Result.failure(...)` from `VocabularyRepositoryImpl`.
-- ViewModels catch errors from use cases and map them to UI state (e.g., `QuizUiState.Error`).
-- `try-catch` blocks used for platform-specific operations that may throw `UnsatisfiedLinkError` (Robolectric/Termux CI environment fallback).
-- `TODO("not needed for these tests")` used as stub implementation in fake repositories for methods not exercised by current tests.
+
+**Firebase auth initialization:**
+- Exception caught and logged, app continues without crashing for test environments:
+  ```python
+  try:
+      cred = credentials.Certificate(settings.FIREBASE_CREDENTIALS_PATH)
+      firebase_admin.initialize_app(cred)
+  except Exception as e:
+      print(f"Error initializing Firebase Admin: {e}")
+      pass
+  ```
 
 ## Logging
 
-**Framework:** Custom `LocalLogger` singleton in `app/src/main/java/com/nhimz/vocabmaster/util/LocalLogger.kt`.
+**Framework:** Custom `LocalLogger` singleton — `app/src/main/java/com/nhimz/vocabmaster/util/LocalLogger.kt`
 
 **Patterns:**
-- Wraps `android.util.Log` with in-memory buffer exposed via `StateFlow`.
-- Levels: `d()` (debug), `i()` (info), `w()` (warning), `e()` (error with optional `Throwable`).
-- `section(tag, title)` helper for prominent log boundaries.
-- `setupCrashHandler()` — installs a global uncaught exception handler that logs via `LocalLogger.e(...)` before delegating to the default handler.
-- In-memory buffer capped at `MAX_LOG_COUNT = 500` entries.
-- `getExportString()` exports all buffered logs for debug purposes.
-- Logging is initialized in `VocabApplication` only in `BuildConfig.DEBUG` mode.
+- Methods: `d()`, `i()`, `w()`, `e()`, `section()`
+- Signature: `fun d(tag: String, message: String)`, `fun e(tag: String, message: String, throwable: Throwable? = null)`
+- Tags are static strings from `companion object` (e.g., `private const val TAG = "QuizViewModel"`)
+- In-memory ring buffer of 500 entries exposed as `StateFlow<List<LogEvent>>`
+- Wraps Android `Log.d/i/w/e` while also storing in memory for debug panel
 
-**Tag convention:**
-- Each file defines a `TAG` constant (e.g., `private const val TAG = "QuizViewModel"`).
+```kotlin
+LocalLogger.e(TAG, "Failed to load node session", error)
+LocalLogger.d(TAG, "Session loaded successfully")
+```
 
-## Dependency Injection
+**Python logging:** Primarily `print()` statements — no structured logging framework detected
 
-**Framework:** Hilt (`dagger.hilt`).
+## Comments
 
-**Patterns:**
-- ViewModels annotated with `@HiltViewModel` and constructor-injected.
+**When to Comment:**
+- KDoc (`/** ... */`) on public classes, interfaces, and significant functions
+- Inline `//` comments for non-obvious business logic, edge cases, and architectural decisions
+- TODO/FIXME comments reference plan IDs (e.g., `// Plan 03-02 hardening:`)
+- Section comments use `// ===== Section title =====` patterns
+
+**KDoc/TSDoc:**
+- KDoc extensively used on domain model classes explaining FSRS deviations from py-fsrs:
   ```kotlin
-  @HiltViewModel
-  class QuizViewModel @Inject constructor(
-      private val savedStateHandle: SavedStateHandle,
-      private val loadQuizSessionUseCase: LoadQuizSessionUseCase,
-      ...
-  ) : ViewModel()
+  /**
+   * FSRS-6 card model.
+   *
+   * Deviation from py-fsrs:
+   * - [due] and [lastReview] are stored as UTC epoch milliseconds ([Long]) instead of
+   *   ISO-8601 strings. ...
+   */
   ```
-- Use case classes annotated with `@Inject constructor()`.
-- Data module provides bindings via `DataModule` (`data/src/main/java/com/nhimz/vocabmaster/data/di/DataModule.kt`).
-- Multi-module Hilt compiler workaround: `kspTest` and `kspAndroidTest` for `hilt.compiler`.
+- KDoc on ViewModel classes explaining intent, plan references, and design decisions
+- Python docstrings used for function documentation
 
-## Coroutines & Concurrency
+**Architectural decision comments:**
+- Plan references in comments: `// Plan 03-02 hardening: if we are restoring from a saved state...`
+- Cross-reference to PLAN.md and design documents: `// Per D-03 / SYNC-02`
 
-**Patterns:**
-- ViewModels use `viewModelScope.launch { }` for all async operations.
-- Application-level background tasks use `CoroutineScope(Dispatchers.IO).launch { }`.
-- Tests use `kotlinx.coroutines.test.runTest { }` with `advanceUntilIdle()` and `UnconfinedTestDispatcher`.
-- `MainDispatcherRule` (JUnit `TestWatcher`) sets `Dispatchers.setMain` for ViewModel tests.
-- State management via `StateFlow` + `MutableStateFlow` with `asStateFlow()` for read-only exposure.
-- One-shot events via `SharedFlow` + `MutableSharedFlow` with `asSharedFlow()`.
+## Function Design
 
-## Compose UI Conventions
+**Size:** Functions range from short (1-5 line helpers) to moderately long (up to ~50 lines for state management). Complex logic is broken into private helper methods (e.g., `persistActiveState()`, `clearPersistenceKeys()`, `setupPersistenceKeys()` in `QuizViewModel.kt`).
 
-**Patterns:**
-- Container/Content split pattern: Screens have a `*Screen.kt` (Container — ViewModel wiring) and `*ScreenContent.kt` (Content — pure Compose UI driven by state + action callbacks).
-  - `HomeScreen.kt` + `HomeScreenContent.kt`
-  - `SettingsScreen.kt` + `SettingsScreenContent.kt`
-  - `QuizScreen.kt` + `QuizScreenContent.kt`
-  - `ResultScreen.kt` + `ResultScreenContent.kt`
-- Content composables accept typed state and action callbacks, not ViewModels.
-- UI state modeled as data classes with sensible defaults (e.g., `HomeScreenUiState()`, `SettingsUiModel()`).
-- Action callbacks grouped into action classes with no-op defaults (e.g., `SettingsActions`).
-- `Duo*` prefix for Duolingo-style custom components (e.g., `Duo3DCard.kt`, `DuoSnackbar.kt`).
-- Snackbar messages modeled as immutable data class `SnackbarMessage` with `text`, `actionLabel`, `duration`, `isError`.
-- Theme files split across `Color.kt`, `Theme.kt`, `Type.kt`, `AppIcons.kt`.
+**Parameters:**
+- Use case `invoke` operators use named parameters with sensible defaults:
+  ```kotlin
+  suspend operator fun invoke(
+      question: QuizQuestion,
+      isCorrect: Boolean,
+      responseTimeMs: Long,
+      xpEarned: Int,
+      explicitRating: Rating? = null
+  ): Result<Card?>
+  ```
+- ViewModel method parameters use default values for optional arguments:
+  ```kotlin
+  fun submitAnswer(optionIndex: Int? = null, textAnswer: String? = null, ...)
+  ```
+
+**Return Values:**
+- Use cases return `Result<T>` (Kotlin standard library)
+- Repository interfaces return `Flow<List<T>>` for reactive collections, `suspend fun` that returns `T?` or `Int` for one-shot queries
+- ViewModel methods are void; state is exposed via `StateFlow`
 
 ## Module Design
 
-**Exports:**
-- `domain` module: exposes repository interfaces and domain models only (no Android dependencies).
-- `data` module: contains repository implementations, Room DB, and remote API clients.
-- `app` module: contains UI, ViewModels, DI wiring.
+**Exports:** Each module exposes public interfaces/classes in the top-level package of its concern:
+- `:domain` — pure Kotlin module with no Android dependencies, exports `model/*Repository`, `usecase/*UseCase`, `fsrs/v6/*`
+- `:data` — Android module with Room, Retrofit, DataStore; exports `database/*`, `remote/*`, `repository/*`, `sync/*`, `auth/*`
+- `:app` — Android application module with Compose UI; depends on `:domain` and `:data`
 
-**Barrel files:** Not used; each class is imported directly.
+**Barrel Files:** Not used. Imports reference specific packages within modules.
 
-**Companion objects:** Used for constants and factory methods within ViewModels and utility classes.
+**Package by Feature + Layer:**
+```
+com.nhimz.vocabmaster.domain/
+  ├── model/        (domain models, repository interfaces)
+  ├── usecase/      (business logic use cases)
+  ├── fsrs/v6/      (FSRS scheduling algorithm)
+  └── model/quiz/   (quiz-specific models)
+
+com.nhimz.vocabmaster.data/
+  ├── database/       (Room DAO, entities, converters)
+  ├── database/entity/ (Room entity classes)
+  ├── repository/     (Repository implementations)
+  ├── remote/         (Retrofit API services, DTOs)
+  ├── auth/           (Firebase auth manager)
+  ├── sync/           (Sync manager)
+  └── di/             (Hilt DataModule)
+
+app/src/main/java/com/nhimz/vocabmaster/
+  ├── ui/
+  │   ├── screens/      (Feature-specific screens)
+  │   ├── components/   (Shared composables)
+  │   ├── viewmodel/    (ViewModels per feature)
+  │   ├── navigation/   (NavGraph, Screen routes)
+  │   ├── theme/        (Color, Type, Theme, Icons)
+  │   └── util/         (UI utilities)
+  ├── audio/            (CDN audio player)
+  ├── notification/     (Notification scheduling/receiving)
+  └── util/             (LocalLogger)
+```
+
+## Dependency Injection
+
+**Framework:** Hilt (Dagger) for all Android modules (`@HiltViewModel`, `@AndroidEntryPoint`, `@Inject`, `@Module`/`@Provides`)
+
+**Pattern:**
+- `@HiltViewModel` annotation on ViewModels with `@Inject constructor`
+- `@AndroidEntryPoint` on `MainActivity` (the only entry point activity)
+- `DataModule` Hilt module in `:data` module at `data/src/main/java/.../data/di/DataModule.kt`
+- `javax.inject.Inject` for domain module constructors (no Hilt dependency in `:domain`)
+- `ksp(hilt.compiler)` as the annotation processor (KSP, not kapt)
+
+## Testing Conventions
+
+- Test files mirror production structure with `Test` suffix: `SubmitReviewUseCaseTest`, `QuizViewModelTest`
+- Fake classes implement repository interfaces for test isolation: `FakeReviewRepository`, `FakeVocabularyRepository`
+- `TODO("not needed for these tests")` used for unimplemented fake methods
+- `@Ignore` annotation used for flaky or platform-dependent tests (e.g., Robolectric on Termux)
 
 ---
 

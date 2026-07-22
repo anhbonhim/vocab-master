@@ -6,267 +6,253 @@
 ## System Overview
 
 ```text
-┌─────────────────────────────────────────────────────────────────────────┐
-│                        Android App (app module)                         │
-│  Jetpack Compose UI · Navigation 3 · Hilt DI · ExoPlayer · DataStore   │
-├──────────────────────┬──────────────────────┬───────────────────────────┤
-│   UI Layer           │   ViewModel Layer    │   Data Layer (data mod.)  │
-│   `app/.../ui/`      │   `app/.../vm/`      │   `data/.../repository/`  │
-│                      │                      │                           │
-│   • Screens          │   • MainViewModel    │   • VocabularyRepoImpl    │
-│   • NavGraph/Display │   • QuizViewModel    │   • ReviewRepoImpl        │
-│   • Components/Quiz  │   • SettingsVM       │   • SettingsRepoImpl      │
-│   • Theme            │   • StatsVM          │   • BackupRepoImpl        │
-│                      │   • PlacementTestVM  │                           │
-└──────────┬───────────┴──────────┬───────────┴─────────────┬─────────────┘
-           │                     │                          │
-           ▼                     ▼                          ▼
-┌─────────────────────────────────────────────────────────────────────────┐
-│                         Domain Layer (domain module)                     │
-│               Pure Kotlin · No Android dependencies                       │
-├──────────────────┬──────────────────┬───────────────────────────────────┤
-│   Use Cases      │   Models         │   FSRS v6 Scheduler               │
-│   • SubmitReview │   • Curriculum   │   • Card / State / ReviewLog      │
-│   • EvaluateAns  │   • Question     │   • Scheduler (py-fsrs 6.3.1)     │
-│   • LoadQuizSess │   • Repository   │   • Optimizer                     │
-│   • CompleteQuiz │     Interfaces   │                                   │
-│   • UpdateStreak │                  │                                   │
-│   • MapRating    │                  │                                   │
-└──────────────────┴──────────────────┴───────────────────────────────────┘
-           │
-           ▼
-┌─────────────────────────────────────────────────────────────────────────┐
-│                     Data Layer (data module)                             │
-│   Room DB · Retrofit · Firebase Auth · DataStore · Coroutines            │
-├──────────────────┬──────────────────┬───────────────────────────────────┤
-│   Local Storage  │   Networking     │   Auth & Sync                     │
-│   • Room DB (v8) │   • Retrofit     │   • Firebase Auth (Google)        │
-│   • DataStore    │   • OkHttp       │   • Credential Manager            │
-│   • Asset JSON   │   • ApiClient    │   • SyncManager (push/pull)       │
-│     (curriculum) │   • API Services │   • AuthInterceptor               │
-└──────────────────┴──────────────────┴───────────────────────────────────┘
-           │
-           ▼
-┌─────────────────────────────────────────────────────────────────────────┐
-│                      Backend Server (backend/)                           │
-│               FastAPI · Python · SQLite · Firebase Admin                 │
-├──────────────────┬──────────────────┬───────────────────────────────────┤
-│   REST API       │   Services       │   Models                          │
-│   • /api/v1/     │   • FSRS calc    │   • SQLAlchemy ORM                │
-│   • vocabulary   │   • Placement    │   • Pydantic schemas              │
-│   • placement    │     logic        │                                   │
-│   • sync         │                  │                                   │
-└──────────────────┴──────────────────┴───────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────────┐
+│                          Presentation Layer (app module)                  │
+│  ┌──────────────┐  ┌──────────────────┐  ┌───────────────────────────┐  │
+│  │   Screens     │  │   ViewModels      │  │  Navigation (NavGraph)    │  │
+│  │  (Composable) │──│  (State Holders)  │──│  Type-safe sealed class   │  │
+│  │  `app/.../ui/ │  │  `app/.../ui/    │  │  `app/.../ui/navigation/` │  │
+│  │  screens/`    │  │  viewmodel/`     │  │                           │  │
+│  └──────┬───────┘  └────────┬─────────┘  └───────────────────────────┘  │
+│         │                    │                                           │
+│  ┌──────┴────────────────────┴──────────────────────────────────────┐  │
+│  │              VocabMasterApp.kt (Top-level Composable)             │  │
+│  │              MainActivity.kt (Entry Point)                        │  │
+│  └────────────────────────────┬──────────────────────────────────────┘  │
+└───────────────────────────────┼──────────────────────────────────────────┘
+                                │ injects repositories & use cases
+                                ▼
+┌──────────────────────────────────────────────────────────────────────────┐
+│                         Domain Layer (domain module)                      │
+│  ┌──────────────┐  ┌────────────────┐  ┌────────────────────────────┐   │
+│  │  Use Cases    │  │  Repositories  │  │  FSRS-6 Scheduler          │   │
+│  │  (Pure Kotlin)│──│  (Interfaces)  │  │  (Pure alg. port w/ tests)  │   │
+│  │  `domain/.../ │  │  `domain/.../  │  │  `domain/.../fsrs/v6/`     │   │
+│  │  usecase/`    │  │  model/`       │  │                            │   │
+│  └──────────────┘  └───────┬────────┘  └────────────────────────────┘   │
+│                            │                                             │
+│                   Domain Models (Curriculum, QuizSession, etc.)          │
+└────────────────────────────┼──────────────────────────────────────────────┘
+                             │ Implements
+                             ▼
+┌──────────────────────────────────────────────────────────────────────────┐
+│                           Data Layer (data module)                        │
+│  ┌──────────────┐  ┌────────────────┐  ┌────────────────────────────┐   │
+│  │  Repository   │  │  Room Database  │  │  Remote / Sync             │   │
+│  │  Impls        │──│  VocabDao +    │  │  ApiClient (Retrofit)      │   │
+│  │  `data/.../   │  │  Entities      │  │  SyncManager               │   │
+│  │  repository/` │  │  `data/.../db/`│  │  `data/.../remote/`        │   │
+│  └──────────────┘  └────────────────┘  └───────────┬────────────────┘   │
+│  ┌──────────────┐  ┌────────────────┐              │                     │
+│  │  DI Module   │  │  AuthManager   │              │                     │
+│  │  DataModule  │  │ (Firebase Auth) │              │                     │
+│  └──────────────┘  └────────────────┘              │                     │
+│                                                     ▼                     │
+│                                          FastAPI Backend (Python)        │
+│                                          `backend/app/`                  │
+└──────────────────────────────────────────────────────────────────────────┘
 ```
 
 ## Component Responsibilities
 
 | Component | Responsibility | File |
 |-----------|----------------|------|
-| `MainActivity` | Activity lifecycle, DI entry, ViewModel wiring | `app/.../MainActivity.kt` |
-| `VocabApplication` | `@HiltAndroidApp`, crash handler init, V6 migration | `app/.../VocabApplication.kt` |
-| `VocabMasterApp` | Top-level Scaffold, theme, Navigation 3 NavDisplay, snackbar host | `app/.../ui/VocabMasterApp.kt` |
-| `NavGraph` | Type-safe route definitions via `entryProvider` | `app/.../ui/navigation/NavGraph.kt` |
-| `Screen` | Sealed class of `@Serializable` NavKey routes | `app/.../ui/navigation/Screen.kt` |
-| `MainViewModel` | Navigation state, curriculum, badges, stats flows | `app/.../ui/viewmodel/MainViewModel.kt` |
-| `QuizViewModel` | Quiz session lifecycle, process-death-safe via SavedStateHandle | `app/.../ui/viewmodel/QuizViewModel.kt` |
-| `SettingsViewModel` | Theme, daily goal, retention preferences | `app/.../ui/viewmodel/SettingsViewModel.kt` |
-| `StatisticsViewModel` | Review stats, mistake bank, badges | `app/.../ui/viewmodel/StatisticsViewModel.kt` |
-| `PlacementTestViewModel` | Placement test flow state | `app/.../ui/viewmodel/PlacementTestViewModel.kt` |
-| `DataModule` | Hilt DI bindings for DB, DAO, all repositories | `data/.../di/DataModule.kt` |
-| `VocabDatabase` | Room database (v8), 10 entity types | `data/.../database/VocabDatabase.kt` |
-| `VocabDao` | Room DAO — FSRS cards, curriculum, progress, review logs | `data/.../database/VocabDao.kt` |
-| `VocabularyRepositoryImpl` | Implements `VocabularyRepository` — curriculum seeding, CRUD | `data/.../repository/VocabularyRepositoryImpl.kt` |
-| `ReviewRepositoryImpl` | Implements `ReviewRepository` — card/log persistence | `data/.../repository/ReviewRepositoryImpl.kt` |
-| `SettingsRepositoryImpl` | Implements `SettingsRepository` — DataStore-backed | `data/.../repository/SettingsRepositoryImpl.kt` |
-| `BackupRepositoryImpl` | Implements `BackupRepository` | `data/.../repository/BackupRepositoryImpl.kt` |
-| `SyncManager` | Push/pull sync to backend | `data/.../sync/SyncManager.kt` |
-| `AuthManager` | Firebase Auth + Credential Manager (Google Sign-In) | `data/.../auth/AuthManager.kt` |
-| `ApiClient` | Retrofit client setup with OkHttp interceptor chain | `data/.../remote/ApiClient.kt` |
-| `Scheduler` | FSRS-6 algorithm port (py-fsrs 6.3.1) | `domain/.../fsrs/v6/Scheduler.kt` |
-| `LoadQuizSessionUseCase` | Maps requests to quiz data for 6 quiz modes | `domain/.../usecase/LoadQuizSessionUseCase.kt` |
-| `EvaluateAnswerUseCase` | Grading logic per question type | `domain/.../usecase/EvaluateAnswerUseCase.kt` |
-| `SubmitReviewUseCase` | Records FSRS review, awards XP | `domain/.../usecase/SubmitReviewUseCase.kt` |
-| `CompleteQuizSessionUseCase` | Mark node completion, update streak | `domain/.../usecase/CompleteQuizSessionUseCase.kt` |
-| Backend FastAPI app | REST API — placement, sync, vocabulary endpoints | `backend/app/main.py` |
+| VocabApplication | App lifecycle, Hilt entry point, V6 migration trigger | `app/src/main/java/.../VocabApplication.kt` |
+| MainActivity | Single activity host, injects all repositories, sets content | `app/src/main/java/.../MainActivity.kt` |
+| VocabMasterApp | Top-level Composable, NavDisplay, bottom bar, snackbar host | `app/src/main/java/.../ui/VocabMasterApp.kt` |
+| Screen | Type-safe navigation sealed class (16 routes) | `app/src/main/java/.../ui/navigation/Screen.kt` |
+| NavGraph (entryProvider) | Route-to-Composable mapping, async data loading per route | `app/src/main/java/.../ui/navigation/NavGraph.kt` |
+| MainViewModel | Navigation back stack owner, curriculum status, badge tracking | `app/src/main/java/.../ui/viewmodel/MainViewModel.kt` |
+| QuizViewModel | Quiz session state machine, question lifecycle, FSRS review flow | `app/src/main/java/.../ui/viewmodel/QuizViewModel.kt` |
+| VocabularyRepository | Repository interface for card & curriculum data | `domain/src/main/java/.../model/VocabularyRepository.kt` |
+| ReviewRepository | Repository interface for review logs | `domain/src/main/java/.../model/ReviewRepository.kt` |
+| SettingsRepository | Repository interface for user settings, XP, streaks, badges | `domain/src/main/java/.../model/SettingsRepository.kt` |
+| BackupRepository | Repository interface for JSON export/import | `domain/src/main/java/.../model/BackupRepository.kt` |
+| VocabDao | Room DAO — all SQL queries for cards, questions, curriculum, sync | `data/src/main/java/.../database/VocabDao.kt` |
+| VocabDatabase | Room database (version 8, 10 entities) | `data/src/main/java/.../database/VocabDatabase.kt` |
+| Scheduler | FSRS-6 spaced repetition algorithm (pure Kotlin, ported from py-fsrs) | `domain/src/main/java/.../domain/fsrs/v6/Scheduler.kt` |
+| DataModule | Dagger Hilt module — binds repository implementations, provides DB/DAO | `data/src/main/java/.../di/DataModule.kt` |
+| SyncManager | Bidirectional push/pull sync with cloud backend | `data/src/main/java/.../sync/SyncManager.kt` |
+| ApiClient | Retrofit HTTP client with Firebase auth interceptor | `data/src/main/java/.../remote/ApiClient.kt` |
+| FastAPI Backend | Python REST API — vocabulary, placement, sync endpoints | `backend/app/main.py` |
 
 ## Pattern Overview
 
-**Overall:** Android Clean Architecture (multi-module) — `domain` → `data` → `app` dependency chain.
+**Overall:** Clean Architecture with 3 Gradle modules (app → domain ← data)
 
 **Key Characteristics:**
-- **3-module structure:** `:domain` (pure Kotlin), `:data` (Android Library), `:app` (Android Application)
-- **Dependency injection:** Hilt (`@HiltAndroidApp`, `@HiltViewModel`, `@Singleton`, `@Binds`)
-- **Repository pattern:** Interfaces in `domain/.../model/`, implementations in `data/.../repository/`
-- **Use Case pattern:** Business logic in `domain/.../usecase/` — single-responsibility `operator fun invoke()`
-- **Unidirectional data flow:** UI → ViewModel → UseCase → Repository → DB/API → Flow → ViewModel → UI
-- **Type-safe Navigation:** Navigation 3 (1.0.1) with `@Serializable` sealed class routes, no string-based routing
-- **MVVM with Compose:** `StateFlow` in ViewModels, `collectAsState()` in Composables
-- **FSRS-6 spaced repetition:** Local client-side scheduler ported from py-fsrs, with optional server sync
+- Strict layer dependency: `app` depends on `domain` and `data`; `data` depends on `domain`; `domain` has zero Android dependencies
+- Each layer is a separate Gradle module with its own `build.gradle.kts`
+- Repository pattern: interfaces live in `domain/model/`, implementations in `data/repository/`
+- Use cases in `domain/usecase/` are stateless `@Inject` classes with `operator fun invoke()`
+- ViewModels hold Compose-aware state (`StateFlow`, `SnapshotStateList`) and mediate between UI and domain
+- Dagger Hilt for dependency injection (singleton components cross modules)
+- Type-safe Navigation 3 (sealed class `Screen` hierarchy with `@Serializable` routes)
+- FSRS-6 port is pure Kotlin with no external dependencies, tested against golden vectors
 
 ## Layers
 
-**Domain Layer (`domain/` module):**
-- Purpose: Pure business logic and enterprise rules with zero Android dependencies
-- Location: `domain/src/main/java/com/nhimz/vocabmaster/domain/`
-- Contains:
-  - `model/` — Repository interfaces (`VocabularyRepository`, `ReviewRepository`, `SettingsRepository`, `BackupRepository`) plus domain data classes (`Section`, `Unit`, `Node`, `Question`, `QuestionWithCard`, `QuizSessionModels`)
-  - `usecase/` — `EvaluateAnswerUseCase`, `SubmitReviewUseCase`, `LoadQuizSessionUseCase`, `CompleteQuizSessionUseCase`, `UpdateStreakUseCase`, `MapRatingUseCase`, `PlacementTestUseCase`
-  - `fsrs/v6/` — FSRS-6 scheduler port: `Scheduler.kt`, `Card.kt`, `State.kt`, `ReviewLog.kt`, `Optimizer.kt`
-- Depends on: Nothing (pure Kotlin, only kotlinx.serialization and coroutines)
-- Used by: `data` module, `app` module
-
-**Data Layer (`data/` module):**
-- Purpose: Data persistence, API communication, auth, sync — implements domain repository interfaces
-- Location: `data/src/main/java/com/nhimz/vocabmaster/data/`
-- Contains:
-  - `database/` — Room DB v8 (`VocabDatabase`, `VocabDao`), 12 entity types, `Converters`
-  - `repository/` — `VocabularyRepositoryImpl`, `ReviewRepositoryImpl`, `SettingsRepositoryImpl`, `BackupRepositoryImpl`
-  - `remote/` — Retrofit `ApiClient`, `AuthInterceptor`, API service interfaces, DTOs
-  - `auth/` — `AuthManager` (Firebase Auth + Credential Manager Google Sign-In)
-  - `sync/` — `SyncManager` (bidirectional push/pull sync with backend)
-  - `di/` — `DataModule` (Hilt @Binds + @Provides)
-  - `model/` — DTO models for backup
-- Depends on: `:domain` module
-
-**App Layer (`app/` module):**
-- Purpose: Android application entry point, UI layer, DI wiring
+**Presentation Layer (app module):**
+- Purpose: Android UI — Jetpack Compose screens, ViewModels, navigation
 - Location: `app/src/main/java/com/nhimz/vocabmaster/`
-- Contains:
-  - `ui/` — All Jetpack Compose UI: screens, navigation, components, theme, viewmodels
-  - `audio/` — `CDNAudioPlayer` (ExoPlayer-based with local caching)
-  - `notification/` — `NotificationScheduler`, `NotificationReceiver`
-  - `util/` — `LocalLogger`
-- Depends on: `:data` and `:domain` modules
+- Contains: Compose screens, ViewModels, navigation graph, audio player, notifications
+- Depends on: `domain` module (models, use cases), `data` module (repositories, database)
+- Used by: Android OS (via `AndroidManifest.xml`, `MainActivity` as launcher)
 
-**Backend (`backend/` directory):**
-- Purpose: Python FastAPI server providing REST API + sync endpoint
+**Domain Layer (domain module):**
+- Purpose: Pure business logic — no Android dependencies, testable in pure JVM
+- Location: `domain/src/main/java/com/nhimz/vocabmaster/domain/`
+- Contains: Repository interfaces, domain models (`Question`, `Card`, `Curriculum`), use cases, FSRS-6 scheduler
+- Depends on: Nothing Android — only `kotlinx.coroutines`, `kotlinx.serialization`, `javax.inject`
+- Used by: `app` module and `data` module
+
+**Data Layer (data module):**
+- Purpose: Data persistence, networking, synchronization
+- Location: `data/src/main/java/com/nhimz/vocabmaster/data/`
+- Contains: Room database (10 entities, VocabDao), repository implementations, Retrofit API client, sync manager, Firebase auth
+- Depends on: `domain` module, Android SDK, Room, Retrofit, Firebase Auth
+- Used by: `app` module
+
+**Backend Layer (Python FastAPI):**
+- Purpose: Cloud sync, user data persistence, placement test IRT engine
 - Location: `backend/app/`
-- Contains:
-  - `main.py` — FastAPI app entry point, router inclusion
-  - `routers/` — `vocabulary.py`, `placement.py`, `sync.py`
-  - `models/` — SQLAlchemy ORM models
-  - `schemas/` — Pydantic request/response schemas
-  - `services/` — Business logic services
-  - `utils/` — Firebase auth middleware
-  - `database.py` — SQLAlchemy engine + session
+- Contains: FastAPI app, SQLAlchemy models, REST routers (vocabulary, placement, sync), Firebase auth middleware
+- Depends on: Python 3, FastAPI, SQLAlchemy, Firebase Admin SDK
+- Used by: Android app sync manager
 
 ## Data Flow
 
-### Primary Quiz Flow
+### Primary Request Path (Quiz Flow)
 
-1. User taps a node on the Home screen path (`HomeScreen.kt`)
-2. HomeScreen calls `mainViewModel.navigateTo(Screen.Quiz(...))` or `quizViewModel.startNodeSession(nodeId, index)`
-3. `QuizViewModel` calls `LoadQuizSessionUseCase` which calls `VocabularyRepository`
-4. Repository loads from Room DB (or seeds from asset JSON on first launch)
-5. Use case returns `QuizSessionData` with `List<QuizQuestion>` mapped from domain `Question` + FSRS `Card`
-6. `QuizViewModel` updates `_uiState: StateFlow<QuizUiState>` to `Active` state
-7. `QuizScreen` composable observes `uiState` and renders the appropriate quiz card
-8. User submits answer → `QuizViewModel.submitAnswer()` → `EvaluateAnswerUseCase` → then `SubmitReviewUseCase`
-9. `SubmitReviewUseCase` runs FSRS scheduler, records card + log via `ReviewRepository`, awards XP via `SettingsRepository`
-10. On completion, `CompleteQuizSessionUseCase` marks node progress, updates streak
-11. Navigate to `Screen.Result` with session stats
+1. User taps a learning node on the curriculum path (`HomeScreen` → `NavGraph.kt:144`)
+2. `mainViewModel.navigateTo(Screen.Quiz())` pushes route onto `SnapshotStateList` back stack (`MainViewModel.kt:359`)
+3. `NavDisplay` detects new back stack entry, calls `entryProvider` which renders `QuizScreen` (`NavGraph.kt:199`)
+4. `QuizViewModel` uses `LoadQuizSessionUseCase` to fetch questions (`domain/usecase/LoadQuizSessionUseCase.kt`)
+5. Use case calls `VocabularyRepository.getSessionsByNode()` etc. — interface methods
+6. `VocabularyRepositoryImpl` delegates to `VocabDao` Room queries, maps entities to domain models (`data/repository/VocabularyRepositoryImpl.kt:531`)
+7. Room queries SQLite DB, returns `Flow<List<QuestionAndFsrsCard>>`
+8. User answers each question; `QuizViewModel` calls `SubmitReviewUseCase` for each answer
+9. `SubmitReviewUseCase` invokes `Scheduler.reviewCard()` (FSRS-6 algorithm), then `ReviewRepository.recordReview()` (`domain/usecase/SubmitReviewUseCase.kt`)
+10. On quiz completion, `CompleteQuizSessionUseCase` marks node progress, updates streaks
 
-### Backend Sync Flow
+### Sync Data Flow
 
-1. `SyncManager.sync()` collects all local settings, active cards, and review logs
-2. Posts `SyncPayload` to `POST /api/v1/sync/push` via Retrofit
-3. Gets server response from `GET /api/v1/sync/pull` with merged data
-4. Applies pulled settings, cards, and review logs to local Room DB + DataStore
-
-### Curriculum Loading Flow
-
-1. `VocabularyRepositoryImpl.ensureCurriculumAndFsrsSeeded()` called on first data access
-2. Reads `lessons_v3.json` from Android assets
-3. Parses into `LessonsV2Asset` via `kotlinx.serialization`
-4. Inserts all sections → units → guidebooks → nodes → sessions → questions → FSRS cards into Room DB
-5. Subsequent reads go straight to Room
+1. `SyncManager.sync()` reads local Room DB state and `SettingsRepository` values (`data/sync/SyncManager.kt:54`)
+2. Builds `SyncPayload` with user settings, FSRS cards, review logs
+3. Calls `ApiClient.syncApi.pushSync(payload)` (Retrofit POST)
+4. FastAPI backend (`backend/app/routers/sync.py`) processes push — last-write-wins for settings, timestamp-based merge for cards
+5. Backend returns `pullSync` response with any newer server data
+6. `SyncManager` applies pulled data: settings via `SettingsRepository`, cards via `VocabDao.mergePulledCards()` (D-03 server-wins-with-time-guard)
+7. `syncPrefs` stores `last_sync_timestamp` for incremental next sync
 
 **State Management:**
-- ViewModel state: `StateFlow` / `MutableStateFlow` in each ViewModel, collected as Compose state via `collectAsState()`
-- Navigation state: `SnapshotStateList<NavKey>` owned by `MainViewModel` — survives config changes
-- Persistence across process death: `SavedStateHandle` in `QuizViewModel` with whitelisted keys
-- Theme/streak/XP/retention: `DataStore Preferences` via `SettingsRepository`
+- Navigation: `SnapshotStateList<NavKey>` owned by `MainViewModel` — survives config changes, triggers Compose recomposition
+- Screen state: `StateFlow` in each ViewModel (e.g., `QuizUiState`, curriculum `SectionStatus`)
+- One-shot events: `SharedFlow` for snackbar messages, badge unlock events
+- Persisted state: Room SQLite for curriculum/cards/review logs; `SharedPreferences` (wrapped by DataStore-backed `SettingsRepositoryImpl`) for user settings
+- Pagination/loading: none — curriculum is fully loaded; quiz sessions fetch up to 20 items
+
+### Secondary Flow (Onboarding)
+
+1. Launch → `VocabApplication.onCreate()` → Hilt init + V6 migration check
+2. `MainActivity.onCreate()` → `setContent { VocabMasterApp(...) }`
+3. `VocabMasterApp` calls `MainViewModel.checkOnboardingStatus()` which checks badges for `onboarding_completed`
+4. If not completed, backStack starts at `Screen.Welcome`
+5. Sequential flow: Welcome → Login (Firebase) → GoalPicker → PlacementTest → FirstWin → Home
+6. `completeOnboarding()` saves `onboarding_completed` badge, 50XP, redirects to Home
 
 ## Key Abstractions
 
 **Repository Interfaces (domain layer):**
-- Purpose: Define data contracts without Android dependencies
-- Examples: `VocabularyRepository` (`domain/.../model/VocabularyRepository.kt`), `ReviewRepository` (`domain/.../model/ReviewRepository.kt`), `SettingsRepository` (`domain/.../model/SettingsRepository.kt`), `BackupRepository` (`domain/.../model/BackupRepository.kt`)
-- Pattern: Interface in `:domain`, implementation in `:data`, bound via Hilt `@Binds` in `DataModule`
+- Purpose: Contract between data and domain layers
+- Examples: `VocabularyRepository` (`domain/src/main/java/.../model/VocabularyRepository.kt`), `ReviewRepository` (`domain/.../model/ReviewRepository.kt`), `SettingsRepository` (`domain/.../model/SettingsRepository.kt`), `BackupRepository` (`domain/.../model/BackupRepository.kt`)
+- Pattern: Interface in domain, `@Singleton` implementation in data, bound via `DataModule` (`data/.../di/DataModule.kt`) using `@Binds`
 
-**Use Cases:**
-- Purpose: Single-responsibility business operations wrapping domain logic
-- Pattern: Class with `operator fun invoke()` returning `Result<T>`, injected via `@Inject constructor`
-- Examples: `EvaluateAnswerUseCase`, `SubmitReviewUseCase`, `LoadQuizSessionUseCase`, `CompleteQuizSessionUseCase`
+**Use Cases (domain layer):**
+- Purpose: Single-responsibility business operations
+- Examples: `LoadQuizSessionUseCase`, `SubmitReviewUseCase`, `CompleteQuizSessionUseCase`, `EvaluateAnswerUseCase`, `UpdateStreakUseCase`, `MapRatingUseCase`
+- Pattern: Stateless `@Inject` classes with `operator fun invoke()`, return `Result<T>`
 
-**FSRS v6 Scheduler:**
-- Purpose: Port of py-fsrs 6.3.1 algorithm for spaced repetition
-- Files: `domain/.../fsrs/v6/Scheduler.kt` (516 lines), `Card.kt`, `State.kt`, `ReviewLog.kt`, `Optimizer.kt`
-- Key features: 21 default parameters, learning/relearning steps, fuzzing, difficulty/stability/retrievability math
+**FSRS-6 Scheduler:**
+- Purpose: Pure algorithmic implementation of the Free Spaced Repetition Scheduler v6
+- Location: `domain/src/main/java/.../domain/fsrs/v6/`
+- Files: `Card.kt` (card model with toDict/fromDict/JSON serde), `State.kt` (enum: New/Learning/Review/Relearning), `ReviewLog.kt`, `Scheduler.kt` (all math), `Optimizer.kt`
+- Properties: 21 FSRS parameters, learning/relearning steps (millis), desired retention, fuzzing support
+- Dependencies: Zero — pure Kotlin math (exp, pow, log), serializable to/from py-fsrs JSON/Map format
 
-**Quiz UI State Machine:**
-- `QuizUiState` sealed interface (`app/.../ui/viewmodel/QuizUiState.kt`)
-- States: `Loading` → `Active` (questions, answers, progress) → `Completed` (results, XP) | `Error`
-- Transitions: `submitAnswer()` → `nextQuestion()` loop → final completion
+**Type-Safe Navigation:**
+- Purpose: Compiler-checked routing instead of string-based routes
+- Location: `app/src/main/java/.../ui/navigation/Screen.kt`
+- Pattern: `sealed class Screen : NavKey` with `@Serializable` subtypes
+- Parametric routes: `Quiz(val cardIds: List<String>?)`, `Result(val xpGained: Int, ...)`, `Guidebook(val unitId: String)`, `JumpTest(unitId)`, `SectionCheckpoint(sectionId)`, `UnitCheckpoint(unitId)`
+- Back stack: `SnapshotStateList<NavKey>` in `MainViewModel`, rendered by `NavDisplay` (Navigation 3 library)
+
+**Curriculum Domain Model:**
+- Purpose: Hierarchical learning path structure — Section → Unit → Node → Session → Question
+- Location: `domain/src/main/java/.../domain/model/Curriculum.kt`
+- Key types: `Section` (CEFR level grouping), `Unit` (topic-based), `Node` (LESSON/REVIEW/CHECKPOINT/JUMP_TEST), `Session` (bundle of questions), `Question` (individual quiz item)
+- Node types: LESSON, REVIEW, UNIT_CHECKPOINT, SECTION_CHECKPOINT, JUMP_TEST, GUIDEBOOK
+- Question types: INTRODUCTION, FILL_IN_BLANK, MULTIPLE_CHOICE, SCRAMBLED, LISTENING, MATCHING, TYPING
 
 ## Entry Points
 
-**Application:**
-- `VocabApplication.onCreate()` — Hilt init, V6 DB migration reset, debug crash handler
-- `MainActivity.onCreate()` — `setContent { VocabMasterApp(...) }`, default reminder scheduling
+**Android App:**
+- Location: `app/src/main/java/com/nhimz/vocabmaster/VocabApplication.kt`
+- Triggers: Android OS — app process start
+- Responsibilities: Hilt initialization, V6 DB migration reset, crash handler setup in debug
 
-**Backend:**
-- `backend/app/main.py` — FastAPI with `uvicorn`, 3 routers (vocabulary, placement, sync)
+**MainActivity:**
+- Location: `app/src/main/java/com/nhimz/vocabmaster/MainActivity.kt`
+- Triggers: Android launcher intent
+- Responsibilities: Single activity host, injects all repositories (5), creates 5 ViewModels, binds TTS lifecycle, initializes default reminder settings, renders `VocabMasterApp` Composable
+
+**Backend API:**
+- Location: `backend/app/main.py`
+- Triggers: Uvicorn server start
+- Responsibilities: Creates DB tables via SQLAlchemy, includes 3 routers (vocabulary, placement, sync), provides health check endpoints
+- Endpoints: `GET /` (welcome), `GET /api/v1/health`, `GET /api/v1/me` (Firebase auth check)
 
 ## Architectural Constraints
 
-- **Threading:** All Room/IO operations use `Dispatchers.IO` via `withContext(Dispatchers.IO)`. UI composables run on main thread. ViewModel coroutines use `viewModelScope`. Room DB builder omits `allowMainThreadQueries()` to enforce main-thread safety.
-- **Global state:** `SnapshotStateList<NavKey>` in `MainViewModel` as source of truth for navigation. `MutableStateFlow`/`SharedFlow` for ViewModel state. `MutableStateFlow<AppUser?>` in `AuthManager` for auth state.
-- **Circular imports:** None detected — dependency graph is strictly `domain` → `data` → `app` with `data` depending only on `domain` and `app` depending on both.
-- **Process death:** `QuizViewModel` uses `SavedStateHandle` with whitelisted keys (`PERSISTENCE_KEYS`) to survive both config changes and low-memory kill. Cumulative progress (correctCount, xpGained, incorrectCardIds) and per-question answer state are persisted.
-- **Destructive migrations:** Room DB v8 uses `fallbackToDestructiveMigration(dropAllTables = true)` — curriculum is re-seeded from assets on schema bump.
+- **Threading:** Single-threaded UI via Compose main thread; all DB/network operations use `Dispatchers.IO` via `withContext` or `flowOn(Dispatchers.IO)` in repository implementations; coroutines structured in `viewModelScope`
+- **Global state:** `SnapshotStateList<NavKey>` in `MainViewModel` (`backStack`) is the sole navigation state owner — survives config changes; `curriculumStatus: StateFlow<List<SectionStatus>>` is a `combine()` of 3 flows in `MainViewModel` — reactive curriculum tree
+- **Circular imports:** Not detected — layer separation via Gradle modules prevents cycles; `data` → `domain`, `app` → both
+- **Room main-thread guard:** `DataModule.provideVocabDatabase()` deliberately omits `allowMainThreadQueries()` — enforces that all DAO calls are `suspend` or `Flow` (PERS-02)
+- **No production database migrations:** `fallbackToDestructiveMigration(dropAllTables = true)` configured — all schema changes are destructive; curriculum is re-seeded from `lessons_v3.json` asset on next access after DB wipe
+- **FSRS-6 determinism:** `enableFuzzing` defaults to `false` for deterministic test output (py-fsrs defaults to `true`)
+- **Curriculum seeding:** `ensureCurriculumAndFsrsSeeded()` guarded by a `Mutex` — runs once at first access via `questionCount == 0` check; reads `lessons_v3.json` from Android assets, deserializes into Room entities and FSRS cards
 
 ## Anti-Patterns
 
-### Repository Fallback Stubs
+### Topic/Level Query Fallbacks
 
-**What happens:** Several methods in `VocabularyRepositoryImpl` return hard-coded stubs (e.g. `getLearnedCountByTopic()` returns `0`, `getWordCountByTopicAndLevel()` returns `0`, `getCompletedLessons()` returns `emptyFlow()`).
-**Why it's wrong:** Callers get silent incorrect data instead of a meaningful error or actual implementation. Topic-scoped queries are not implemented but the interface defines them.
-**Do this instead:** Either implement proper topic-scoped queries via Room joins, or remove unused interface methods to keep the API honest.
+**What happens:** Several `VocabularyRepository` query methods (`getCardsByLevel`, `getDueCardsByTopic`, `getNewCardsByTopicAndLevels`) do not actually filter by topic or level — they fall back to `getDueAndNewCardsByTopicFallback` which is a simple "get all" query (`data/repository/VocabularyRepositoryImpl.kt:221`).
+**Why it's wrong:** The `questions` table lacks direct topic/level columns (they are implied by Section → Unit hierarchy), so topic-scoped queries require multi-table joins that were never fully implemented.
+**Do this instead:** Implement proper JOIN queries in `VocabDao` that walk the Section → Unit → Node → Session → Question chain, or denormalize topic/level onto the `questions` table.
 
-### Large ViewModel with Mixed Concerns
+### Obsolete Completed-Lessons API
 
-**What happens:** `MainViewModel` (428 lines) owns navigation state, curriculum status computation (heavy flow combining sections/units/nodes with conditional logic), streak management, badge monitoring, snackbar messages, and counts refresh.
-**Why it's wrong:** Violates single-responsibility. Makes the ViewModel harder to test and maintain. The curriculum status flow is particularly complex (nested loops over sections/units/nodes with lock computation).
-**Do this instead:** Extract curriculum status computation into a specialized use case or separate ViewModel. Keep `MainViewModel` focused on navigation and top-level UI state.
-
-### Long Repository Implementation
-
-**What happens:** `VocabularyRepositoryImpl` is 644 lines with `@Suppress("TooManyFunctions", "LongMethod", "CyclomaticComplexMethod")` — signals a class trying to do too much.
-**Why it's wrong:** Large classes are harder to understand, test, and modify. The curriculum seeding logic (a single 130-line method) alone handles 10 entity types.
-**Do this instead:** Split curriculum seeding into a dedicated `CurriculumSeeder` class. Keep the repository focused on data access composition.
+**What happens:** `getCompletedLessons(stage, unitTopic)` returns `flow { emit(emptyList()) }` and `markLessonCompleted()` is a no-op (`VocabularyRepositoryImpl.kt:584-588`).
+**Why it's wrong:** These legacy methods from an earlier curriculum model are never removed; dead code creates confusion about the API surface.
+**Do this instead:** Remove these methods from the interface and all call sites (currently no callers exist in production code — only the interface contract remains).
 
 ## Error Handling
 
-**Strategy:** Use `Result<T>` return types in use cases and repository calls. ViewModels fold on success/failure and emit error states or snackbar messages.
+**Strategy:** `Result<T>` return type in use cases and repository suspend functions; exceptions are caught and wrapped with `runCatching` at the use case boundary.
 
 **Patterns:**
-- Domain use cases return `Result<T>` — `runCatching { ... }.getOrElse { Result.failure(it) }`
-- Repository methods use `runCatching` or try/catch with custom `VocabDataException`
-- ViewModels fold results: `.fold(onSuccess = { ... }, onFailure = { error -> ... })`
-- UI-level errors surface via snackbar through `SharedFlow<SnackbarMessage>` piped to `SnackbarHostState`
-- `CDNAudioPlayer` uses silent fallback on playback errors (logs without crashing)
+- Use cases wrap bodies in `runCatching { ... }.getOrElse { Result.failure(it) }` — caller always gets `Result<T>` never an unhandled exception
+- Repository implementations use `withContext(Dispatchers.IO)` + `runCatching` for individual operations
+- `VocabDataException` custom exception type in domain layer for data integrity violations (malformed JSON, unknown enum values)
+- `SyncManager` catches `IOException`, `HttpException`, `CancellationException`, and generic `Exception` separately with distinct logging
+- ViewModels launch coroutines in `viewModelScope` — uncaught exceptions crash the coroutine but not the app (Hilt/ViewModel lifecycle handles cleanup)
 
 ## Cross-Cutting Concerns
 
-**Logging:** `LocalLogger` (`app/.../util/LocalLogger.kt`) — wraps Android `Log` with tag prefix, optional crash handler setup. Debug-only crash reporting via `Thread.setDefaultUncaughtExceptionHandler`.
-
-**Validation:** Inline checks in `VocabularyRepositoryImpl` during curriculum seeding (`check()` calls for MULTIPLE_CHOICE options, MATCHING pairs size, SCRAMBLED words count, etc.). These are runtime assertions that throw on malformed asset data.
-
-**Authentication:** Firebase Auth via `AuthManager` — Google Sign-In using Credential Manager API. Auth state exposed as `StateFlow<AppUser?>`. Backend validates via Firebase Admin SDK token verification.
-
-**Audio:** `CDNAudioPlayer` (`@Singleton`) uses ExoPlayer with 90MB LRU disk cache for OGG audio files from CDN. Supports local dev server override for offline testing. Bound to activity lifecycle via `DefaultLifecycleObserver`.
+**Logging:** `LocalLogger` utility in `app/src/main/java/.../util/LocalLogger.kt` — wraps Android `Log` with debug-only crash handler setup in `VocabApplication.onCreate()`
+**Validation:** Runtime assertions in `VocabularyRepositoryImpl.ensureCurriculumAndFsrsSeeded()` — checks `MULTIPLE_CHOICE` has 4 options, `MATCHING` has >=3 pairs, etc. during curriculum seeding
+**Authentication:** Firebase Auth via `AuthManager` (`data/src/main/java/.../data/auth/AuthManager.kt`) — `AuthInterceptor` attaches Firebase ID token to all Retrofit HTTP requests; backend validates via `get_current_user_uid` Firebase middleware
+**Serialization:** `kotlinx.serialization` used throughout — JSON for Room entity fields (options, scrambledWords, matchingPairs), Retrofit body conversion, FSRS Card/Scheduler JSON serde, sync DTOs
 
 ---
 
