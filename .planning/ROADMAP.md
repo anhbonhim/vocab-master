@@ -32,7 +32,10 @@
   1. Client có thể gọi API để lấy dữ liệu Topics, Lessons và Exercises theo chủ đề.
   2. Hệ thống backend có kịch bản (script) sinh bài tập tự động từ bộ từ vựng thông qua LLM.
   3. Mọi dữ liệu bài học sinh ra hoặc nhập vào đều vượt qua kiểm định đúng cấu trúc Pydantic.
-**Plans**: TBD
+**Plans**: 3 plans
+- [ ] 05-01-PLAN.md — Khởi tạo Curriculum Data Models (Topic, Lesson) và User Report Model cùng các API endpoints
+- [ ] 05-02-PLAN.md — Kiểm định package cài đặt, cấu hình biến môi trường và xây dựng hệ thống Pydantic schemas LLM
+- [ ] 05-03-PLAN.md — Tích hợp LLM để tự động sinh bài tập từ bộ từ vựng thông qua Opencode API và kịch bản script
 
 ### Phase 6: Client Data Layer & Core Logic
 **Goal**: Ứng dụng Android lưu trữ đúng cấu trúc bài học mới, sẵn sàng xử lý âm thanh và quản lý vòng đời trả lời.
