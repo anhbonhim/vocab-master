@@ -1,7 +1,10 @@
 package com.nhimz.vocabmaster.ui.viewmodel
 
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.navigation3.runtime.NavKey
 import com.nhimz.vocabmaster.domain.model.SettingsRepository
 import com.nhimz.vocabmaster.domain.model.VocabularyRepository
 import com.nhimz.vocabmaster.domain.model.DifficultyLevel
@@ -67,8 +70,37 @@ class MainViewModel @Inject constructor(
     private val updateStreakUseCase: UpdateStreakUseCase
 ) : ViewModel() {
 
-    private val _currentScreen = MutableStateFlow<Screen>(Screen.Welcome)
-    val currentScreen: StateFlow<Screen> = _currentScreen.asStateFlow()
+    /**
+     * Back stack cho Navigation 3 (D-02 / UX-01) — Phase 3 Plan 03-03.
+     *
+     * Trước đây: `_currentScreen: MutableStateFlow<Screen>` chỉ track 1 screen
+     * duy nhất, dispatch qua `when (currentScreen)` trong `VocabMasterApp.kt`.
+     * Hạn chế: không có back stack, không có deep link, navigation history bị
+     * reset mỗi lần navigate.
+     *
+     * Bây giờ: `backStack: SnapshotStateList<NavKey>` là source of truth duy
+     * nhất cho navigation state. `VocabMasterApp.kt` đọc backStack để render
+     * `NavDisplay` (Navigation 3). Top-level routes (Home/Statistics/Settings)
+     * dùng `navigateTopLevel()` để switch tab; sub-routes dùng `navigateTo()`.
+     *
+     * Lưu ý: `SnapshotStateList` được tạo từ `mutableStateListOf` — Compose
+     * tự động observe và trigger recomposition khi list thay đổi. ViewModel
+     * vẫn giữ ownership để state survive configuration changes.
+     */
+    val backStack: SnapshotStateList<NavKey> = mutableStateListOf<NavKey>(Screen.Welcome)
+
+    /**
+     * Top-level routes (bottom nav destinations) — clear backStack trước khi
+     * thêm route mới để đảm bảo tab switch không bị stack-up.
+     */
+    val topLevelRoutes: Set<NavKey> = setOf(Screen.Home, Screen.Statistics, Screen.Settings)
+
+    /**
+     * `true` khi backStack.last() là một trong các top-level routes — dùng để
+     * hiện/ẩn bottom navigation bar (UI layer).
+     */
+    val isOnTopLevelRoute: Boolean
+        get() = backStack.lastOrNull() in topLevelRoutes
 
     private val _isLoading = MutableStateFlow(true)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
@@ -277,17 +309,50 @@ class MainViewModel @Inject constructor(
     fun checkOnboardingStatus() {
         viewModelScope.launch {
             val badges = settingsRepository.badgeStatus.first()
-            if (badges.contains("onboarding_completed")) {
-                _currentScreen.value = Screen.Home
+            val startRoute: NavKey = if (badges.contains("onboarding_completed")) {
+                Screen.Home
             } else {
-                _currentScreen.value = Screen.Welcome
+                Screen.Welcome
             }
+            // Replace backStack so NavDisplay starts at the correct screen
+            // (avoids brief flash of Welcome before redirecting to Home).
+            backStack.clear()
+            backStack.add(startRoute)
             _isLoading.value = false
         }
     }
 
-    fun navigateTo(screen: Screen) {
-        _currentScreen.value = screen
+    /**
+     * Push một route mới lên backStack (Navigation 3 forward navigation).
+     * Caller chịu trách nhiệm truyền đúng typed NavKey — compiler sẽ check
+     * argument types tại call site (UX-01 / D-02).
+     */
+    fun navigateTo(route: NavKey) {
+        backStack.add(route)
+    }
+
+    /**
+     * Pop top entry khỏi backStack (back navigation). Nếu chỉ còn 1 entry thì
+     * không pop (để user không thoát app khi back ở root).
+     */
+    fun goBack() {
+        if (backStack.size > 1) {
+            backStack.removeLast()
+        }
+    }
+
+    /**
+     * Switch sang top-level route (Home / Statistics / Settings) — clear
+     * backStack trước khi add để tránh stack-up khi user tap bottom nav nhiều lần.
+     */
+    fun navigateTopLevel(route: NavKey) {
+        if (route !in topLevelRoutes) {
+            // Fallback: treat as normal navigate
+            navigateTo(route)
+            return
+        }
+        backStack.clear()
+        backStack.add(route)
     }
 
     fun completeOnboarding() {
@@ -297,7 +362,7 @@ class MainViewModel @Inject constructor(
             settingsRepository.addXp(50)
             settingsRepository.setCurrentStreak(1)
             settingsRepository.setLastStudyDate(System.currentTimeMillis())
-            navigateTo(Screen.Home)
+            navigateTopLevel(Screen.Home)
         }
     }
 
