@@ -7,10 +7,14 @@ import com.nhimz.vocabmaster.domain.fsrs.v6.Rating
 import com.nhimz.vocabmaster.domain.model.quiz.QuizQuestion
 import com.nhimz.vocabmaster.domain.model.quiz.QuizType
 import com.nhimz.vocabmaster.domain.usecase.*
+import com.nhimz.vocabmaster.ui.components.SnackbarMessage
 import com.nhimz.vocabmaster.util.LocalLogger
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -97,6 +101,32 @@ class QuizViewModel @Inject constructor(
     private val _uiState = MutableStateFlow<QuizUiState>(QuizUiState.Loading)
     val uiState: StateFlow<QuizUiState> = _uiState.asStateFlow()
 
+    /**
+     * One-shot snackbar messages surfaced from quiz-session operations
+     * (load failures, submit failures, etc.). Backed by a [MutableSharedFlow]
+     * with a small buffer so the Container can collect via `LaunchedEffect`
+     * even if the emission happens during a recomposition.
+     *
+     * Container ([com.nhimz.vocabmaster.ui.screens.QuizScreen]) reads
+     * [snackbarMessages] and forwards each emission to the global
+     * [androidx.compose.material3.SnackbarHostState] hosted in
+     * [com.nhimz.vocabmaster.ui.VocabMasterApp].
+     */
+    private val _snackbarMessages = MutableSharedFlow<SnackbarMessage>(
+        replay = 0,
+        extraBufferCapacity = 8
+    )
+    val snackbarMessages: SharedFlow<SnackbarMessage> = _snackbarMessages.asSharedFlow()
+
+    /**
+     * Emit a [SnackbarMessage] for the Container to display. Used in error
+     * paths (e.g. session load failure, answer submit failure) to surface
+     * a user-visible notification rather than silently swallowing.
+     */
+    private suspend fun emitSnackbar(message: SnackbarMessage) {
+        _snackbarMessages.emit(message)
+    }
+
     private var sessionStartTime: Long = 0
     private var pendingRestoreIndex: Int? = null
     private var pendingRestoreFromSavedState: Boolean = false
@@ -153,7 +183,9 @@ class QuizViewModel @Inject constructor(
                 },
                 onFailure = { error ->
                     LocalLogger.e(TAG, "Failed to restore session", error)
-                    _uiState.value = QuizUiState.Error(error.message ?: DEFAULT_LOAD_ERROR)
+                    val msg = error.message ?: DEFAULT_LOAD_ERROR
+                    _uiState.value = QuizUiState.Error(msg)
+                    emitSnackbar(SnackbarMessage(text = msg, isError = true))
                 }
             )
         }
@@ -277,7 +309,9 @@ class QuizViewModel @Inject constructor(
                 },
                 onFailure = { error ->
                     LocalLogger.e(TAG, "Failed to load node session", error)
-                    _uiState.value = QuizUiState.Error(error.message ?: DEFAULT_LOAD_ERROR)
+                    val msg = error.message ?: DEFAULT_LOAD_ERROR
+                    _uiState.value = QuizUiState.Error(msg)
+                    emitSnackbar(SnackbarMessage(text = msg, isError = true))
                 }
             )
         }
@@ -299,7 +333,9 @@ class QuizViewModel @Inject constructor(
                 },
                 onFailure = { error ->
                     LocalLogger.e(TAG, "Failed to load review node", error)
-                    _uiState.value = QuizUiState.Error(error.message ?: DEFAULT_LOAD_ERROR)
+                    val msg = error.message ?: DEFAULT_LOAD_ERROR
+                    _uiState.value = QuizUiState.Error(msg)
+                    emitSnackbar(SnackbarMessage(text = msg, isError = true))
                 }
             )
         }
@@ -319,7 +355,9 @@ class QuizViewModel @Inject constructor(
                 },
                 onFailure = { error ->
                     LocalLogger.e(TAG, "Failed to load unit checkpoint", error)
-                    _uiState.value = QuizUiState.Error(error.message ?: DEFAULT_LOAD_ERROR)
+                    val msg = error.message ?: DEFAULT_LOAD_ERROR
+                    _uiState.value = QuizUiState.Error(msg)
+                    emitSnackbar(SnackbarMessage(text = msg, isError = true))
                 }
             )
         }
@@ -339,7 +377,9 @@ class QuizViewModel @Inject constructor(
                 },
                 onFailure = { error ->
                     LocalLogger.e(TAG, "Failed to load jump test", error)
-                    _uiState.value = QuizUiState.Error(error.message ?: DEFAULT_LOAD_ERROR)
+                    val msg = error.message ?: DEFAULT_LOAD_ERROR
+                    _uiState.value = QuizUiState.Error(msg)
+                    emitSnackbar(SnackbarMessage(text = msg, isError = true))
                 }
             )
         }
@@ -357,7 +397,9 @@ class QuizViewModel @Inject constructor(
                 },
                 onFailure = { error ->
                     LocalLogger.e(TAG, "Failed to load mistake review", error)
-                    _uiState.value = QuizUiState.Error(error.message ?: DEFAULT_LOAD_ERROR)
+                    val msg = error.message ?: DEFAULT_LOAD_ERROR
+                    _uiState.value = QuizUiState.Error(msg)
+                    emitSnackbar(SnackbarMessage(text = msg, isError = true))
                 }
             )
         }
@@ -378,7 +420,9 @@ class QuizViewModel @Inject constructor(
                 },
                 onFailure = { error ->
                     LocalLogger.e(TAG, "Failed to load section checkpoint", error)
-                    _uiState.value = QuizUiState.Error(error.message ?: DEFAULT_LOAD_ERROR)
+                    val msg = error.message ?: DEFAULT_LOAD_ERROR
+                    _uiState.value = QuizUiState.Error(msg)
+                    emitSnackbar(SnackbarMessage(text = msg, isError = true))
                 }
             )
         }
@@ -456,14 +500,18 @@ class QuizViewModel @Inject constructor(
                         },
                         onFailure = { error ->
                             LocalLogger.e(TAG, "Failed to submit review", error)
-                            _uiState.value = QuizUiState.Error(error.message ?: "Lỗi ghi nhận kết quả ôn tập")
+                            val msg = error.message ?: "Lỗi ghi nhận kết quả ôn tập"
+                            _uiState.value = QuizUiState.Error(msg)
+                            emitSnackbar(SnackbarMessage(text = msg, isError = true))
                         }
                     )
                 }
             },
             onFailure = { error ->
                 LocalLogger.e(TAG, "Failed to evaluate answer", error)
-                _uiState.value = QuizUiState.Error(error.message ?: "Lỗi đánh giá câu trả lời")
+                val msg = error.message ?: "Lỗi đánh giá câu trả lời"
+                _uiState.value = QuizUiState.Error(msg)
+                emitSnackbar(SnackbarMessage(text = msg, isError = true))
             }
         )
     }
@@ -509,7 +557,9 @@ class QuizViewModel @Inject constructor(
                     },
                     onFailure = { error ->
                         LocalLogger.e(TAG, "Failed to complete quiz session", error)
-                        _uiState.value = QuizUiState.Error(error.message ?: "Lỗi hoàn thành bài học")
+                        val msg = error.message ?: "Lỗi hoàn thành bài học"
+                        _uiState.value = QuizUiState.Error(msg)
+                        emitSnackbar(SnackbarMessage(text = msg, isError = true))
                     }
                 )
             }

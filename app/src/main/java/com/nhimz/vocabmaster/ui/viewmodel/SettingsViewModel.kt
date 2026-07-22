@@ -7,9 +7,13 @@ import androidx.lifecycle.viewModelScope
 import com.nhimz.vocabmaster.data.sync.SyncManager
 import com.nhimz.vocabmaster.domain.model.BackupRepository
 import com.nhimz.vocabmaster.domain.model.SettingsRepository
+import com.nhimz.vocabmaster.ui.components.SnackbarMessage
 import com.nhimz.vocabmaster.util.LocalLogger
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -40,6 +44,23 @@ class SettingsViewModel @Inject constructor(
 
     private val _uiState = MutableStateFlow(SettingsUiState())
     val uiState: StateFlow<SettingsUiState> = _uiState.asStateFlow()
+
+    /**
+     * One-shot snackbar messages surfaced from settings operations (sync
+     * failures, backup/restore errors). Container ([SettingsScreen]) reads
+     * this flow and forwards each emission to the global
+     * [androidx.compose.material3.SnackbarHostState] hosted in
+     * [com.nhimz.vocabmaster.ui.VocabMasterApp].
+     */
+    private val _snackbarMessages = MutableSharedFlow<SnackbarMessage>(
+        replay = 0,
+        extraBufferCapacity = 8
+    )
+    val snackbarMessages: SharedFlow<SnackbarMessage> = _snackbarMessages.asSharedFlow()
+
+    private suspend fun emitSnackbar(message: SnackbarMessage) {
+        _snackbarMessages.emit(message)
+    }
 
     val dailyGoalXp: StateFlow<Int> = settingsRepository.dailyGoalXp
         .stateIn(viewModelScope, kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(5000), 100)
@@ -85,8 +106,11 @@ class SettingsViewModel @Inject constructor(
             val success = syncManager.sync()
             if (success) {
                 _uiState.update { it.copy(isSyncing = false, syncSuccess = true) }
+                emitSnackbar(SnackbarMessage(text = "Đồng bộ hóa thành công!"))
             } else {
-                _uiState.update { it.copy(isSyncing = false, syncSuccess = false, syncError = "Đồng bộ hóa thất bại. Vui lòng kiểm tra kết nối mạng.") }
+                val msg = "Đồng bộ hóa thất bại. Vui lòng kiểm tra kết nối mạng."
+                _uiState.update { it.copy(isSyncing = false, syncSuccess = false, syncError = msg) }
+                emitSnackbar(SnackbarMessage(text = msg, isError = true))
             }
         }
     }
@@ -101,9 +125,12 @@ class SettingsViewModel @Inject constructor(
                     }
                 }
                 onSuccess()
+                emitSnackbar(SnackbarMessage(text = "Sao lưu dữ liệu thành công!"))
             } catch (e: Exception) {
                 e.printStackTrace();
-                onError(e.localizedMessage ?: "Lỗi không xác định khi sao lưu.")
+                val msg = e.localizedMessage ?: "Lỗi không xác định khi sao lưu."
+                onError(msg)
+                emitSnackbar(SnackbarMessage(text = "Sao lưu thất bại: $msg", isError = true))
             }
         }
     }
@@ -126,17 +153,24 @@ class SettingsViewModel @Inject constructor(
                     .onSuccess { success ->
                         if (success) {
                             onSuccess()
+                            emitSnackbar(SnackbarMessage(text = "Khôi phục dữ liệu thành công!"))
                         } else {
-                            onError("Dữ liệu sao lưu không hợp lệ hoặc bị lỗi.")
+                            val msg = "Dữ liệu sao lưu không hợp lệ hoặc bị lỗi."
+                            onError(msg)
+                            emitSnackbar(SnackbarMessage(text = msg, isError = true))
                         }
                     }
                     .onFailure { error ->
                         LocalLogger.e("SettingsViewModel", "Backup restore failed", error)
-                        onError(error.localizedMessage ?: "Lỗi không xác định khi khôi phục.")
+                        val msg = error.localizedMessage ?: "Lỗi không xác định khi khôi phục."
+                        onError(msg)
+                        emitSnackbar(SnackbarMessage(text = "Khôi phục thất bại: $msg", isError = true))
                     }
             } catch (e: java.io.IOException) {
                 LocalLogger.e("SettingsViewModel", "Failed to read backup file", e)
-                onError(e.localizedMessage ?: "Lỗi không xác định khi khôi phục.")
+                val msg = e.localizedMessage ?: "Lỗi không xác định khi khôi phục."
+                onError(msg)
+                emitSnackbar(SnackbarMessage(text = "Khôi phục thất bại: $msg", isError = true))
             }
         }
     }

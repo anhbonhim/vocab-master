@@ -1,5 +1,6 @@
 package com.nhimz.vocabmaster.ui.screens
 
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -7,14 +8,18 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import com.nhimz.vocabmaster.audio.CDNAudioPlayer
 import com.nhimz.vocabmaster.domain.model.quiz.QuizType
+import com.nhimz.vocabmaster.ui.components.SnackbarMessage
+import com.nhimz.vocabmaster.ui.components.showSnackbar
 import com.nhimz.vocabmaster.ui.viewmodel.QuizUiState
 import com.nhimz.vocabmaster.ui.viewmodel.QuizViewModel
+import com.nhimz.vocabmaster.util.LocalLogger
 
 /**
- * Quiz screen Container (Plan 03-02, Task 1).
+ * Quiz screen Container (Plan 03-02, Task 1 — and Plan 03-04 snackbar wiring).
  *
  * Responsibilities (mirrors HomeScreen Container from Plan 03-01):
  *  - Collect UI state from [QuizViewModel]'s StateFlow
@@ -23,19 +28,41 @@ import com.nhimz.vocabmaster.ui.viewmodel.QuizViewModel
  *  - Drive side effects: navigate to ResultScreen on Completed
  *  - Render the leaf states (Loading / Error / Empty) directly when the
  *    state machine reaches them
+ *  - Wire [viewModel.snackbarMessages] to the global [snackbarHostState]
+ *    (Plan 03-04 — D-04 / D-05)
  *
  * Pure UI rendering is delegated to [QuizScreenContent]. Public signature
- * is preserved so existing call sites in [com.nhimz.vocabmaster.ui.VocabMasterApp]
- * need no change.
+ * is preserved (with one optional [snackbarHostState] parameter) so existing
+ * call sites in [com.nhimz.vocabmaster.ui.VocabMasterApp] need no change.
  */
 @Composable
 fun QuizScreen(
     onSessionCompleted: (xpGained: Int, durationSeconds: Int, correctCount: Int, totalCount: Int, averageStability: Double, incorrectCardIds: List<String>, isLevelTest: Boolean, isPassedLevelTest: Boolean) -> Unit,
     onBackToHome: () -> Unit,
     cdnAudioPlayer: CDNAudioPlayer,
-    viewModel: QuizViewModel
+    viewModel: QuizViewModel,
+    snackbarHostState: SnackbarHostState? = null
 ) {
     val uiState by viewModel.uiState.collectAsState()
+
+    // Plan 03-04: wire QuizViewModel.snackbarMessages to the global
+    // SnackbarHostState. `rememberUpdatedState` ensures we always invoke the
+    // latest flow / host even if the parent re-emits (D-04 / D-05).
+    val currentSnackbarHostState by rememberUpdatedState(snackbarHostState)
+    val currentSnackbarMessages = viewModel.snackbarMessages
+    LaunchedEffect(currentSnackbarHostState) {
+        currentSnackbarHostState?.let { host ->
+            currentSnackbarMessages.collect { message: SnackbarMessage ->
+                if (message.isError) {
+                    LocalLogger.e(
+                        tag = "QuizScreen",
+                        message = "Snackbar error surfaced: ${message.text}"
+                    )
+                }
+                host.showSnackbar(message)
+            }
+        }
+    }
 
     // Pass data out to navigate to ResultScreen when Completed
     LaunchedEffect(uiState) {

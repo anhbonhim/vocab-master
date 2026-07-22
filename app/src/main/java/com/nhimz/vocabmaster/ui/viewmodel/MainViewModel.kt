@@ -14,14 +14,18 @@ import com.nhimz.vocabmaster.domain.model.NodeType
 import com.nhimz.vocabmaster.domain.model.Section
 import com.nhimz.vocabmaster.domain.model.Unit
 import com.nhimz.vocabmaster.domain.model.Node
+import com.nhimz.vocabmaster.ui.components.SnackbarMessage
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
@@ -123,6 +127,31 @@ class MainViewModel @Inject constructor(
 
     fun clearStreakFreezeUsedEvent() {
         _streakFreezeUsedEvent.value = false
+    }
+
+    /**
+     * One-shot snackbar messages surfaced from MainViewModel operations.
+     * Backed by a `MutableSharedFlow` with `extraBufferCapacity = 8` so the
+     * Container can collect them via `LaunchedEffect` even if the emission
+     * happens during a recomposition (D-04 / D-05).
+     *
+     * Container screens (e.g. HomeScreen) read [snackbarMessages] and forward
+     * each emission to the global [androidx.compose.material3.SnackbarHostState]
+     * hosted in [com.nhimz.vocabmaster.ui.VocabMasterApp].
+     */
+    private val _snackbarMessages = MutableSharedFlow<SnackbarMessage>(
+        replay = 0,
+        extraBufferCapacity = 8
+    )
+    val snackbarMessages: SharedFlow<SnackbarMessage> = _snackbarMessages.asSharedFlow()
+
+    /**
+     * Emit a [SnackbarMessage] for the Container to display. Suspends if
+     * the buffer is full; callers that want a fire-and-forget signal can
+     * wrap in `viewModelScope.launch { emitSnackbar(...) }`.
+     */
+    suspend fun emitSnackbar(message: SnackbarMessage) {
+        _snackbarMessages.emit(message)
     }
 
     private val _badgeUnlockedEvent = MutableStateFlow<String?>(null)

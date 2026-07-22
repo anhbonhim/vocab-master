@@ -157,7 +157,8 @@ fun vocabMasterEntryProvider(
             onStartGuidebook = { unitId ->
                 mainViewModel.navigateTo(Screen.Guidebook(unitId))
             },
-            viewModel = mainViewModel
+            viewModel = mainViewModel,
+            snackbarHostState = snackbarHostState
         )
     }
 
@@ -176,7 +177,8 @@ fun vocabMasterEntryProvider(
             viewModel = mainViewModel,
             settingsViewModel = settingsViewModel,
             notificationScheduler = notificationScheduler,
-            onNavigateToDebugPanel = { mainViewModel.navigateTo(Screen.DebugPanel) }
+            onNavigateToDebugPanel = { mainViewModel.navigateTo(Screen.DebugPanel) },
+            snackbarHostState = snackbarHostState
         )
     }
 
@@ -213,7 +215,8 @@ fun vocabMasterEntryProvider(
             },
             onBackToHome = { mainViewModel.navigateTopLevel(Screen.Home) },
             cdnAudioPlayer = cdnAudioPlayer,
-            viewModel = quizViewModel
+            viewModel = quizViewModel,
+            snackbarHostState = snackbarHostState
         )
     }
 

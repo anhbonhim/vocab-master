@@ -6,6 +6,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -17,6 +18,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -35,11 +37,14 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ButtonDefaults
 import com.nhimz.vocabmaster.domain.model.NodeType
+import com.nhimz.vocabmaster.ui.components.SnackbarMessage
+import com.nhimz.vocabmaster.ui.components.showSnackbar
 import com.nhimz.vocabmaster.ui.viewmodel.MainViewModel
+import com.nhimz.vocabmaster.util.LocalLogger
 import kotlinx.coroutines.launch
 
 /**
- * Home screen Container (Plan 03-01, Task 2).
+ * Home screen Container (Plan 03-01, Task 2 — and Plan 03-04 snackbar wiring).
  *
  * Responsibilities:
  *  - Collect UI state from [MainViewModel] flows
@@ -47,9 +52,12 @@ import kotlinx.coroutines.launch
  *  - Flatten the curriculum into a [List]<[PathItem]> for the Content
  *  - Drive side effects (LaunchedEffect, Toast)
  *  - Render dialogs and bottom sheets
+ *  - Wire [viewModel.snackbarMessages] to the global [snackbarHostState]
+ *    (Plan 03-04 — D-04 / D-05)
  *
  * Pure UI rendering is delegated to [HomeScreenContent]. Public signature is
- * preserved so existing call sites (e.g. `VocabMasterApp.kt`) need no change.
+ * preserved (with one optional [snackbarHostState] parameter) so existing call
+ * sites (e.g. `VocabMasterApp.kt`) need no change.
  */
 @Composable
 fun HomeScreen(
@@ -62,7 +70,8 @@ fun HomeScreen(
     onStartSectionCheckpoint: (sectionId: String) -> Unit,
     onStartUnitCheckpoint: (unitId: String) -> Unit,
     onStartGuidebook: (unitId: String) -> Unit,
-    viewModel: MainViewModel
+    viewModel: MainViewModel,
+    snackbarHostState: SnackbarHostState? = null
 ) {
     val xpTotal by viewModel.xpTotal.collectAsState()
     val todayStudySeconds by viewModel.todayStudySeconds.collectAsState()
@@ -93,6 +102,25 @@ fun HomeScreen(
     LaunchedEffect(Unit) {
         viewModel.refreshCounts()
         viewModel.triggerCurriculumUpdate()
+    }
+
+    // Plan 03-04: wire MainViewModel.snackbarMessages to the global
+    // SnackbarHostState. `rememberUpdatedState` ensures we always invoke the
+    // latest flow / host even if the parent re-emits (D-04 / D-05).
+    val currentSnackbarHostState by rememberUpdatedState(snackbarHostState)
+    val currentSnackbarMessages = viewModel.snackbarMessages
+    LaunchedEffect(currentSnackbarHostState) {
+        currentSnackbarHostState?.let { host ->
+            currentSnackbarMessages.collect { message: SnackbarMessage ->
+                if (message.isError) {
+                    LocalLogger.e(
+                        tag = "HomeScreen",
+                        message = "Snackbar error surfaced: ${message.text}"
+                    )
+                }
+                host.showSnackbar(message)
+            }
+        }
     }
 
     val minutesStudiedToday = (todayStudySeconds / 60).coerceAtMost(dailyGoal)

@@ -4,22 +4,27 @@ import android.content.Context
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import com.nhimz.vocabmaster.BuildConfig
 import com.nhimz.vocabmaster.notification.NotificationScheduler
+import com.nhimz.vocabmaster.ui.components.SnackbarMessage
+import com.nhimz.vocabmaster.ui.components.showSnackbar
 import com.nhimz.vocabmaster.ui.viewmodel.MainViewModel
 import com.nhimz.vocabmaster.ui.viewmodel.SettingsViewModel
 import com.nhimz.vocabmaster.util.LocalLogger
 
 /**
- * Settings screen Container (Plan 03-01, Task 3).
+ * Settings screen Container (Plan 03-01, Task 3 — and Plan 03-04 snackbar wiring).
  *
  * Responsibilities:
  *  - Collect state from [MainViewModel] and [SettingsViewModel]
@@ -28,20 +33,43 @@ import com.nhimz.vocabmaster.util.LocalLogger
  *    Activity Result launchers for backup/restore, Toast notifications)
  *  - Coordinate with [NotificationScheduler] for daily reminders
  *  - Forward every user-intent to a ViewModel or system primitive
+ *  - Wire [settingsViewModel.snackbarMessages] to the global
+ *    [snackbarHostState] (Plan 03-04 — D-04 / D-05)
  *
  * Pure UI rendering is delegated to [SettingsScreenContent]. Public signature
- * is preserved so existing call sites (e.g. `VocabMasterApp.kt`) need no change.
+ * is preserved (with one optional [snackbarHostState] parameter) so existing
+ * call sites (e.g. `VocabMasterApp.kt`) need no change.
  */
 @Composable
 fun SettingsScreen(
     viewModel: MainViewModel,
     settingsViewModel: SettingsViewModel,
     notificationScheduler: NotificationScheduler,
-    onNavigateToDebugPanel: () -> Unit
+    onNavigateToDebugPanel: () -> Unit,
+    snackbarHostState: SnackbarHostState? = null
 ) {
     val context = LocalContext.current
     var showLicensesDialog by remember { mutableStateOf(false) }
     var destructiveDialog by remember { mutableStateOf(DestructiveDialog.None) }
+
+    // Plan 03-04: wire SettingsViewModel.snackbarMessages to the global
+    // SnackbarHostState. `rememberUpdatedState` ensures we always invoke the
+    // latest flow / host even if the parent re-emits (D-04 / D-05).
+    val currentSnackbarHostState by rememberUpdatedState(snackbarHostState)
+    val currentSnackbarMessages = settingsViewModel.snackbarMessages
+    LaunchedEffect(currentSnackbarHostState) {
+        currentSnackbarHostState?.let { host ->
+            currentSnackbarMessages.collect { message: SnackbarMessage ->
+                if (message.isError) {
+                    LocalLogger.e(
+                        tag = "SettingsScreen",
+                        message = "Snackbar error surfaced: ${message.text}"
+                    )
+                }
+                host.showSnackbar(message)
+            }
+        }
+    }
 
     val exportBackupLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.CreateDocument("application/json")
