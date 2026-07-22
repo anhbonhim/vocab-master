@@ -1,6 +1,6 @@
 # Phase 3: Compose UI Refactoring & Polish - Context
 
-**Gathered:** 2026-07-21
+**Gathered:** 2026-07-22
 **Status:** Ready for planning
 
 <domain>
@@ -25,28 +25,23 @@ Phase 3 delivers a complete refactoring and polish of the presentation layer of 
 ## Implementation Decisions
 
 ### 1. Architectural Pattern & Deconstruction (ARCH-01)
-- **D-01: Container/Content Separation.** Each major screen (Home, Settings, Quiz) must be split into:
-  - A stateful `*Screen` (Container) that handles ViewModel interactions, UI event callbacks, dynamic Route arguments, and Hilt injection.
-  - A stateless `*Content` component that only receives state and event lambdas, making it previewable and unit-testable.
-- **D-02: Granular Widget Hierarchy.** Deconstruct massive screen UI blocks into small reusable widgets inside `app/src/main/java/com/nhimz/vocabmaster/ui/components/`.
+- **D-01:** **Create components from scratch.** Instead of trying to bend existing components (like `DuolingoProgressBar`, `DuolingoOptionCard`), build entirely new stateless UI components from scratch that strictly adhere to the 3D Duolingo design system. This ensures maximum consistency and avoids inheriting legacy technical debt or incorrect padding/sizing from older iterations.
 
-### 2. Type Safety & Casting (ARCH-02)
-- **D-03: Zero Unsafe Operations.** No Kotlin `!!` assertions or raw `as` casts in the presentation layer. Use smart cast mechanisms, sealed interface states (`QuizUiState`), safe casts `as?`, and fallback values via Elvis operators `?:`.
+### 2. Type-Safe Navigation (UX-01)
+- **D-02:** **Convert everything at once.** Replace the entire legacy `Screen` sealed class routing in `VocabMasterApp.kt` and all dependent screens (Home, Quiz, Settings) with Kotlin Serialization-based type-safe routes in a single cohesive update.
 
-### 3. Type-Safe Navigation (UX-01)
-- **D-04: Serialization Routes.** Migrate navigation definitions to standard `@Serializable` objects/data classes. Replace the legacy custom `Screen` sealed class in `ui/navigation/Screen.kt` with modern Kotlin Serialization routes mapped by `NavHost`.
+### 3. Design System & Theme (UI-01)
+- **D-03:** **Shared color palette for Light/Dark mode.** Maintain the core Duolingo colors (Green, Gold, Gray). For Dark Mode, simply darken the background surfaces, keeping the brand colors consistent rather than introducing entirely new neon or pastel palettes.
 
-### 4. SavedStateHandle State Survival (UX-02)
-- **D-05: SavedStateHandle Integration.** Store core quiz state properties (`currentIndex`, list of active questions, answered states) in `SavedStateHandle` to preserve user progress across device rotation.
+### 4. Null-Safety & Error Handling (ARCH-02)
+- **D-04:** **Log and display errors gracefully.** When safe casts (`as?`) fail (e.g., parsing a payload on card click), do not silently swallow the error. Push the state to `UiState.Error` with a user-friendly message, log the detailed stack trace via `LocalLogger`, and display a Snackbar to the user.
 
-### 5. Standardized Duolingo Design System (UI-01, UX-03)
-- **D-06: Custom 3D Components.** Implement benched 3D styling (e.g., `DuolingoButton` and `DuolingoCard`) that features a solid bottom shadow (ledge) which offsets vertically on click/pressed state to mimic tactile interaction.
-- **D-07: Light & Dark Schemes.** Standardize all brand colors (DuolingoGreen, DuolingoGold, DuolingoGray) in `ui/theme/Color.kt` and integrate them systematically into `ColorScheme` in `ui/theme/Theme.kt` to ensure seamless adaptiveness.
-- **D-08: High-Fidelity Feedback Animations.** Provide active feedback in the quiz cards: shake animation on incorrect answer submission, pop/scale/success banner animations on correct answers, and smooth progress transitions.
+### 5. Error & Success Notifications (UX-03)
+- **D-05:** **Prioritize Snackbar.** Use non-blocking Snackbars at the bottom of the screen for routine errors or invalid actions. Reserve center-screen Dialogs only for critical, destructive actions requiring explicit user confirmation.
 
 ### the agent's Discretion
-- The exact layout arrangement of decomposed content (e.g. padding details, grid arrangements, specific icon styles) is delegated to the planning and implementation agents, provided it respects the Duolingo style guidelines.
-- The choice of animation libraries or custom modifier canvas operations for the 3D button press depth is left to the planner.
+- **Quiz State Survival (UX-02):** The agent will determine the most optimal balance of what state properties (index, history, answers) to store in `SavedStateHandle` vs what to re-query from the DB, prioritizing memory efficiency and correct rotation survival.
+- **Feedback Animations (UX-03):** The agent is given full creative freedom to design and implement the exact choreographies (e.g., using `Animatable` or transitions) for correct/incorrect answers, aiming for the most fluid, native-feeling feedback possible.
 </decisions>
 
 <canonical_refs>
@@ -74,22 +69,19 @@ Phase 3 delivers a complete refactoring and polish of the presentation layer of 
 ## Existing Code Insights
 
 ### Reusable Assets
-- **`DuolingoProgressBar` & `DuolingoOptionCard`** (`app/src/main/java/com/nhimz/vocabmaster/ui/components/quiz/`) — existing custom UI assets carrying the target theme. Can be standardized and generalized.
-- **`FeedbackHelper`** (`app/src/main/java/com/nhimz/vocabmaster/ui/util/FeedbackHelper.kt`) — helper utility for haptic and audio feedback. Ensure it is integrated cleanly without swallowing exceptions.
+- **`LocalLogger`** (`app/src/main/java/com/nhimz/vocabmaster/util/LocalLogger.kt`) — Core logging utility to capture failed safe casts (D-04).
 
 ### Established Patterns
-- **Jetpack Compose MVVM & Clean Architecture:** App module holds presentation. Domain handles use cases (already extracted for quiz sessions in Phase 2). Data module handles persistence.
+- **Jetpack Compose MVVM & Clean Architecture:** App module holds presentation.
 - **Sealed Interfaces for State:** `QuizUiState.kt` exposes UDF states. Standardize other viewmodels to expose immutable sealed state interfaces.
 
 ### Integration Points
-- **`VocabMasterApp` navigation host:** NavHost and route navigation hooks are implemented in `VocabMasterApp.kt` and `MainActivity.kt`.
-- **Card and Question models:** Room database entities map directly to domain models. Compose screens must consume domain model types instead of casting raw payloads.
+- **`VocabMasterApp` navigation host:** NavHost and route navigation hooks must be completely overhauled for Kotlin Serialization (D-02).
 </code_context>
 
 <specifics>
 ## Specific Ideas
-- The shake animation can be implemented using a Compose `Animatable(0f)` with a coroutine triggering a series of keyframe offsets (e.g. `0f -> -20f -> 20f -> -10f -> 10f -> 0f`) on submission of an incorrect answer.
-- Check and fix any implicit dependency conflicts in `libs.versions.toml` if adding navigation serialization features.
+- All UI component creation must start from scratch for Phase 3 (D-01) to ensure perfect Duolingo 3D styling without inheriting old padding/margin quirks.
 </specifics>
 
 <deferred>
@@ -99,5 +91,6 @@ Phase 3 delivers a complete refactoring and polish of the presentation layer of 
 </deferred>
 
 ---
-*Phase: 3-Compose UI Refactoring & Polish*
-*Context gathered: 2026-07-21*
+
+*Phase: 03-compose-ui-refactoring-polish*
+*Context gathered: 2026-07-22*
