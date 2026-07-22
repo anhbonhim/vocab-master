@@ -15,6 +15,7 @@ Ensure absolute correctness of the spaced repetition scheduling logic and delive
 - ✓ Basic clean architecture structure (app, domain, data Gradle modules) — existing
 - ✓ Local Room DB storage and basic repository implementations — existing
 - ✓ Basic FastAPI backend structures for synchronization — existing
+- ✓ FSRS algorithm auditing and UI refactoring (Milestone v1.0)
 
 ### Active
 
@@ -29,10 +30,21 @@ Ensure absolute correctness of the spaced repetition scheduling logic and delive
 - [ ] Adding new study modes or curriculum packages beyond the current structure (defer to v2)
 - [ ] Complete replacement of the FastAPI backend framework (keep existing python structure, only fix endpoints if sync contracts break)
 
+## Current Milestone: v1.1 Thiết kế lại bài học (Gamified Learning Experience)
+
+**Goal:** Nâng cấp toàn diện trải nghiệm học tập bằng giao diện sinh động, phản hồi tức thì và bổ sung các loại bài tập tương tác đa dạng được tổ chức theo chủ đề với độ khó tăng dần.
+
+**Target features:**
+- Thiết kế cấu trúc dữ liệu mới (Data Model): Hỗ trợ bài học theo chủ đề (Topics/Lessons), phân cấp độ khó.
+- Giao diện Sinh động (Gamified UI): Redesign hiển thị câu hỏi, đáp án với màu sắc, hình ảnh và hiệu ứng.
+- Luồng học phản hồi tức thì (Instant Feedback UX): Hiển thị đúng/sai lập tức sau khi trả lời, yêu cầu người dùng bấm 'Tiếp tục' để qua câu mới.
+- Đa dạng hóa bài tập: Bổ sung format mới (Nghe, Điền vào chỗ trống, Sắp xếp câu).
+
 ## Context
 
 - The codebase has several known concerns including huge Compose screen files (>900 lines), unsafe unwraps, dynamic JSON asset imports, and data integrity errors detected in `DataIntegrityTests.kt`.
 - Clean Architecture boundaries must be respected: the `domain` module must remain pure Kotlin, `data` handles Room & Retrofit, and `app` focuses on ViewModels and Compose UI.
+- Milestone v1.1 requires ensuring the new gamified data structure integrates smoothly with the existing FSRS algorithm.
 
 ## Constraints
 
@@ -65,4 +77,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-07-20 after initialization*
+*Last updated: 2026-07-22 after milestone v1.1 initialized*

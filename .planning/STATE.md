@@ -1,19 +1,16 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.0
-milestone_name: milestone
-status: Awaiting next milestone
-stopped_at: Phase 4 context gathered
-last_updated: "2026-07-22T09:04:14.874Z"
+milestone: v1.1
+milestone_name: Thiết kế lại bài học (Gamified Learning Experience)
+status: planning
+last_updated: "2026-07-22T11:27:53.020Z"
 last_activity: 2026-07-22
-last_activity_desc: Milestone v1.0 completed and archived
 progress:
-  total_phases: 4
-  completed_phases: 4
-  total_plans: 14
-  completed_plans: 14
-current_phase: 02
-current_phase_name: Business Logic & ViewModel Refactoring
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
@@ -27,10 +24,10 @@ See: .planning/PROJECT.md (updated 2026-07-20)
 
 ## Current Position
 
-Phase: Milestone v1.0 complete
+Phase: Not started (defining requirements)
 Plan: —
-Status: Awaiting next milestone
-Last activity: 2026-07-22 — Milestone v1.0 completed and archived
+Status: Defining requirements
+Last activity: 2026-07-22 — Milestone v1.1 started
 
 ## Performance Metrics
 
