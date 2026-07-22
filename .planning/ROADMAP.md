@@ -91,9 +91,9 @@ Plans:
 
 Plans:
 
-- [ ] 03-01-PLAN.md — Refactor Home and Settings screens into Container/Content pattern and establish the base 3D Duolingo-style UI theme.
-- [ ] 03-02-PLAN.md — Refactor QuizScreen into Container/Content pattern, build Quiz-specific 3D components, and implement SavedStateHandle.
-- [ ] 03-03-PLAN.md — Implement Type-Safe Navigation, Error Handling Snackbars, and Result Screen refactoring.
+- [ ] 03-01-PLAN.md — Refactor Home and Settings screens to Container/Content pattern while applying foundational Theme and core UI components.
+- [ ] 03-02-PLAN.md — Refactor QuizScreen to Container/Content with 3D animations and harden state survival across process death.
+- [ ] 03-03-PLAN.md — Finalize error handling wiring via DuoSnackbar, complete ResultScreen refactoring, and migrate to Type-Safe Navigation.
 
 ### Phase 4: Sync & Integration Verification
 
