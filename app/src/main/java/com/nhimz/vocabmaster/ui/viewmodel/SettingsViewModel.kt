@@ -119,8 +119,7 @@ class SettingsViewModel @Inject constructor(
                         text = msg,
                         actionLabel = "Thử lại",
                         isError = true,
-                        action = { triggerSync() }
-                    )
+                    ).apply { action = { triggerSync() } }
                 )
             }
         }
