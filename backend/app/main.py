@@ -2,7 +2,7 @@ from fastapi import FastAPI, Depends
 from app.config import settings
 from app.utils.firebase_auth import get_current_user_uid
 from app.database import engine, Base
-from app.routers import vocabulary, placement, sync
+from app.routers import vocabulary, placement, sync, curriculum
 
 # Create database tables
 Base.metadata.create_all(bind=engine)
@@ -16,6 +16,7 @@ app = FastAPI(
 app.include_router(vocabulary.router)
 app.include_router(placement.router)
 app.include_router(sync.router)
+app.include_router(curriculum.router)
 
 @app.get("/")
 def read_root():

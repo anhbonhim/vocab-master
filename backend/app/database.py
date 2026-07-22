@@ -19,3 +19,4 @@ import app.models.user
 import app.models.vocabulary
 import app.models.user_progress
 import app.models.placement_session
+import app.models.curriculum
