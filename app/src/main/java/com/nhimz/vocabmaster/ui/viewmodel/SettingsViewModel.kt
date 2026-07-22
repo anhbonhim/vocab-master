@@ -110,7 +110,17 @@ class SettingsViewModel @Inject constructor(
             } else {
                 val msg = "Đồng bộ hóa thất bại. Vui lòng kiểm tra kết nối mạng."
                 _uiState.update { it.copy(isSyncing = false, syncSuccess = false, syncError = msg) }
-                emitSnackbar(SnackbarMessage(text = msg, isError = true))
+                // Per D-01/D-05/D-07: surface a Snackbar with an inline Retry
+                // action so the user can re-trigger the sync without leaving
+                // the current screen.
+                emitSnackbar(
+                    SnackbarMessage(
+                        text = msg,
+                        actionLabel = "Thử lại",
+                        isError = true,
+                        action = { triggerSync() }
+                    )
+                )
             }
         }
     }

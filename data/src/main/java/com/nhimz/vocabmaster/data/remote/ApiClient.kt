@@ -11,10 +11,10 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class ApiClient @Inject constructor(
+open class ApiClient @Inject constructor(
     authInterceptor: AuthInterceptor
 ) {
-    private val BASE_URL = "http://10.0.2.2:8000/"
+    private val BASE_URL = "http://127.0.0.1:8000/"
 
     private val json = Json {
         ignoreUnknownKeys = true
@@ -44,7 +44,7 @@ class ApiClient @Inject constructor(
         retrofit.create(VocabularyApiService::class.java)
     }
 
-    val syncApi: SyncApiService by lazy {
+    open val syncApi: SyncApiService by lazy {
         retrofit.create(SyncApiService::class.java)
     }
 }

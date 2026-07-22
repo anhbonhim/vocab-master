@@ -42,6 +42,16 @@ class SyncManager @Inject constructor(
     private val syncPrefs = context.getSharedPreferences("sync_prefs", Context.MODE_PRIVATE)
     private val LAST_SYNC_KEY = "last_sync_timestamp"
 
+    /**
+     * Pulls the most recent settings, review logs, and FSRS card state from
+     * the cloud and merges them into the local Room database; pushes any
+     * local deltas back to the server.
+     *
+     * Returns `true` when push + pull both succeed, `false` for any
+     * recoverable error (network failure, 5xx, malformed payload, etc.).
+     * Coroutine cancellation is rethrown so callers can still observe it
+     * via structured concurrency.
+     */
     suspend fun sync(): Boolean {
         return try {
             val lastSync = syncPrefs.getLong(LAST_SYNC_KEY, 0L)
@@ -205,6 +215,19 @@ class SyncManager @Inject constructor(
                 Log.e("SyncManager", "Sync Pull failed: ${pullResponse.code()}")
                 false
             }
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            // Rethrow cancellation so structured concurrency can react.
+            throw e
+        } catch (e: java.io.IOException) {
+            // OkHttp / Retrofit network failures (timeout, unknown host, lost
+            // connection, etc.) — recoverable; the caller can show a Retry UI.
+            Log.e("SyncManager", "Network failure during sync", e)
+            false
+        } catch (e: retrofit2.HttpException) {
+            // Non-2xx response that somehow escaped the isSuccessful branches
+            // (e.g. RxJava-style usage); treat as recoverable failure.
+            Log.e("SyncManager", "HTTP error during sync: ${e.code()}", e)
+            false
         } catch (e: Exception) {
             Log.e("SyncManager", "Synchronization error", e)
             false

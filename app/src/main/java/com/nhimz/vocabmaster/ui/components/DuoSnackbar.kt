@@ -59,12 +59,21 @@ fun DuoSnackbarHost(
  */
 suspend fun SnackbarHostState.showSnackbar(
     message: SnackbarMessage
-): androidx.compose.material3.SnackbarResult = showSnackbar(
-    message = message.text,
-    actionLabel = message.actionLabel,
-    withDismissAction = message.actionLabel == null,
-    duration = message.duration
-)
+): androidx.compose.material3.SnackbarResult {
+    val result = showSnackbar(
+        message = message.text,
+        actionLabel = message.actionLabel,
+        withDismissAction = message.actionLabel == null,
+        duration = message.duration
+    )
+    // When the user taps the action label the host returns ActionPerformed;
+    // dispatch the producer-supplied callback so the right behaviour fires
+    // (D-07: "Thử lại" on the sync-error snackbar re-triggers sync, etc.).
+    if (result == androidx.compose.material3.SnackbarResult.ActionPerformed) {
+        message.action?.invoke()
+    }
+    return result
+}
 
 /**
  * Bảng màu Error dùng cho snackbar (đã có sẵn trong `ui.theme.ErrorRed`).

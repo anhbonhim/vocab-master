@@ -26,5 +26,12 @@ data class SnackbarMessage(
     val text: String,
     val actionLabel: String? = null,
     val duration: SnackbarDuration = SnackbarDuration.Short,
-    val isError: Boolean = false
+    val isError: Boolean = false,
+    /**
+     * Optional callback invoked when the user taps the action label on the
+     * snackbar. Kept on the message so the producer (ViewModel/UseCase) can
+     * fully describe the intent (e.g. "Thử lại" → triggerSync()) without the
+     * UI layer needing to know which callback to dispatch for which message.
+     */
+    val action: (() -> Unit)? = null
 )
