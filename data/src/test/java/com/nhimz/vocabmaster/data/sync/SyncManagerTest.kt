@@ -20,13 +20,17 @@ import com.nhimz.vocabmaster.data.remote.AuthInterceptor
 import com.nhimz.vocabmaster.data.remote.SyncApiService
 import com.nhimz.vocabmaster.data.remote.SyncPayload
 import com.nhimz.vocabmaster.data.remote.UserSettingsDto
+import com.nhimz.vocabmaster.data.remote.VocabularyCardDto
+import com.nhimz.vocabmaster.domain.fsrs.v6.State
 import com.nhimz.vocabmaster.domain.model.SettingsRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.runTest
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.ResponseBody.Companion.toResponseBody
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Ignore
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -115,6 +119,180 @@ class SyncManagerTest {
         val result = syncManager.sync()
 
         assertFalse("sync() must return false on HTTP 500 pull", result)
+    }
+
+    // ---------------------------------------------------------------------
+    // Task 2 — SYNC-02: time-based merging & log preservation
+    //
+    // D-03 (Server-wins with Time-Based Merging): the pull must skip an
+    // update when the local card has a newer lastReview than the pulled
+    // lastModified; this prevents an older server payload from
+    // downgrading the FSRS state.
+    //
+    // D-04 (Review Log Preservation): pushSync must not delete local
+    // review logs on failure.
+    // ---------------------------------------------------------------------
+
+    @Test
+    fun testTimeBasedMerging_olderPullDoesNotOverwriteLocalState() = runTest {
+        // Local card has lastReview = 200; pulled card has lastModified = 100.
+        // The merge must SKIP the update so FSRS state is not downgraded.
+        val now = System.currentTimeMillis()
+        val localCard = FsrsCardEntity(
+            questionId = "q1",
+            due = now,
+            stability = 5.0,
+            difficulty = 4.0,
+            step = null,
+            state = State.Review.value,
+            lastReview = 200L,
+            reps = 1,
+            lapses = 0
+        )
+        val pulledCard = VocabularyCardDto(
+            questionId = "q1",
+            due = now.toString(),
+            stability = 99.0,
+            difficulty = 99.0,
+            interval = 0,
+            reps = 999,
+            lapses = 999,
+            state = State.New.value,
+            lastReview = 100L.toString(),
+            lastModified = 100L
+        )
+        val fakeDao = FakeVocabDao(initialCards = listOf(localCard))
+        val api = stubApiService(
+            pushResult = { Response.success(Unit) },
+            pullResult = {
+                Response.success(emptyPayload().copy(vocabularyCards = listOf(pulledCard)))
+            }
+        )
+        val ctx = ApplicationProvider.getApplicationContext<android.content.Context>()
+        val syncManager = SyncManager(
+            context = ctx,
+            vocabDao = fakeDao,
+            settingsRepository = FakeSettingsRepository(),
+            apiClient = FakeApiClient(api)
+        )
+
+        val result = syncManager.sync()
+
+        assertTrue("sync() should succeed when only pull timestamps are stale", result)
+        assertEquals(
+            "updateFsrsCard must NOT be called when the pulled timestamp is older",
+            0,
+            fakeDao.updateFsrsCardCallCount
+        )
+        val stored = fakeDao.getCardByQuestionId("q1")
+        assertEquals(
+            "Local stability must be preserved",
+            5.0,
+            stored?.stability ?: 0.0,
+            0.0001
+        )
+        assertEquals(
+            "Local lastReview must be preserved (200)",
+            200L,
+            stored?.lastReview
+        )
+    }
+
+    @Test
+    fun testTimeBasedMerging_serverWinsWhenNewer() = runTest {
+        val now = System.currentTimeMillis()
+        val localCard = FsrsCardEntity(
+            questionId = "q1",
+            due = now,
+            stability = 5.0,
+            difficulty = 4.0,
+            step = null,
+            state = State.Review.value,
+            lastReview = 100L,
+            reps = 1,
+            lapses = 0
+        )
+        val pulledCard = VocabularyCardDto(
+            questionId = "q1",
+            due = now.toString(),
+            stability = 7.5,
+            difficulty = 3.5,
+            interval = 0,
+            reps = 3,
+            lapses = 0,
+            state = State.Review.value,
+            lastReview = 300L.toString(),
+            lastModified = 300L
+        )
+        val fakeDao = FakeVocabDao(initialCards = listOf(localCard))
+        val api = stubApiService(
+            pushResult = { Response.success(Unit) },
+            pullResult = {
+                Response.success(emptyPayload().copy(vocabularyCards = listOf(pulledCard)))
+            }
+        )
+        val ctx = ApplicationProvider.getApplicationContext<android.content.Context>()
+        val syncManager = SyncManager(
+            context = ctx,
+            vocabDao = fakeDao,
+            settingsRepository = FakeSettingsRepository(),
+            apiClient = FakeApiClient(api)
+        )
+
+        val result = syncManager.sync()
+
+        assertTrue("sync() should succeed when pull is newer", result)
+        assertEquals(
+            "updateFsrsCard must be called exactly once for the server-wins path",
+            1,
+            fakeDao.updateFsrsCardCallCount
+        )
+        val stored = fakeDao.getCardByQuestionId("q1")
+        assertEquals(
+            "Pulled stability must overwrite",
+            7.5,
+            stored?.stability ?: 0.0,
+            0.0001
+        )
+        assertEquals(
+            "Pulled lastReview must overwrite (300)",
+            300L,
+            stored?.lastReview
+        )
+    }
+
+    @Test
+    fun testReviewLogsPreservedOnFailure() = runTest {
+        // Push fails with IOException — local review logs must NOT be deleted.
+        // Per D-04 / SYNC-02.
+        val fakeDao = FakeVocabDao(
+            initialReviewLogs = listOf(
+                ReviewLogEntity(cardId = "q1", rating = 3, reviewDatetime = 1000L, reviewDuration = null),
+                ReviewLogEntity(cardId = "q1", rating = 4, reviewDatetime = 2000L, reviewDuration = 500L)
+            )
+        )
+        val api = throwingApiService(pushError = IOException("push down"))
+        val ctx = ApplicationProvider.getApplicationContext<android.content.Context>()
+        val syncManager = SyncManager(
+            context = ctx,
+            vocabDao = fakeDao,
+            settingsRepository = FakeSettingsRepository(),
+            apiClient = FakeApiClient(api)
+        )
+
+        val result = syncManager.sync()
+
+        assertFalse("sync() must return false on push failure", result)
+        assertEquals(
+            "deleteAllReviewLogs must NEVER be called when push fails",
+            0,
+            fakeDao.deleteAllReviewLogsCallCount
+        )
+        assertEquals(
+            "Local review log count must remain 2 when push fails",
+            2,
+            fakeDao.getAllReviewLogsList().size
+        )
     }
 
     // ---------------------------------------------------------------------
