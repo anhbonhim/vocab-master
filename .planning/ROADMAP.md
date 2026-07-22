@@ -1,124 +1,26 @@
 # Roadmap: VocabMaster Refactor & Audit
 
-## Overview
+## Milestones
 
-VocabMaster is being refactored and audited to build a robust local persistence layer, guarantee 100% mathematical correctness of its FSRS Spaced Repetition engine, establish type-safe Compose architectures with modern visual feedback, and secure local backups. This roadmap structures the transition from the current monolithic and bug-prone codebase into a highly stable and polished production-ready application.
+- ✅ **v1.0 VocabMaster Refactor & Audit** — Phases 1-4 (shipped 2026-07-22)
 
 ## Phases
 
-- [x] **Phase 1: Security & Database Stabilization** - Verify FSRS scheduler calculations with unit tests, configure secure backups, and migrate Room DAOs to Flow/suspend. (completed 2026-07-21)
-- [x] **Phase 2: Business Logic & ViewModel Refactoring** - Decouple ViewModels by moving domain logic to UseCases and implementing strict Unidirectional Data Flow (UDF). (completed 2026-07-21)
-- [x] **Phase 3: Compose UI Refactoring & Polish** - Disassemble monolithic screen layouts, adopt safe Kotlin casts, and implement a modern design system with rich UX transitions. (completed 2026-07-22)
-- [ ] **Phase 4: Sync & Integration Verification** - Audit Remote Sync payload logic and verify conflict resolution flow with FastAPI.
+<details>
+<summary>✅ v1.0 VocabMaster Refactor & Audit (Phases 1-4) — SHIPPED 2026-07-22</summary>
 
----
+- [x] Phase 1: Security & Database Stabilization (7/7 plans) — completed 2026-07-21
+- [x] Phase 2: Business Logic & ViewModel Refactoring (2/2 plans) — completed 2026-07-21
+- [x] Phase 3: Compose UI Refactoring & Polish (4/4 plans) — completed 2026-07-22
+- [x] Phase 4: Sync & Integration Verification (1/1 plans) — completed 2026-07-22
 
-## Phase Details
-
-### Phase 1: Security & Database Stabilization
-
-**Goal**: Establish data safety, secure user database contents from default backups, and ensure mathematical correctness of the FSRS scheduling engine.
-**Depends on**: Nothing (Initial Phase)
-**Requirements**: FSRS-01, FSRS-02, FSRS-03, FSRS-04, FSRS-05, PERS-01, PERS-02, PERS-03, PERS-04
-**Success Criteria** (what must be TRUE):
-
-  1. The app excludes sensitive databases and shared preferences from auto-backup according to XML configurations.
-  2. All FSRS tests run successfully without producing negative stability or interval values.
-  3. String/Locale formats do not cause NumberFormatExceptions in non-US locale runtime tests.
-  4. Database operations utilize Kotlin Coroutines/Flows, executing off the main thread.
-
-**Plans**: 7/7 plans executed
-
-Plans:
-**Wave 1**
-
-- [x] 01-01-PLAN.md — FSRS v6 core port (py-fsrs 6.3.1) + golden-vector generator & committed JSON + GoldenVectorTest
-- [x] 01-04-PLAN.md — Secure backup exclusion rules (modern + legacy) + Room threading audit + data test harness
-
-**Wave 2** *(blocked on Wave 1 completion)*
-
-- [x] 01-02-PLAN.md — py-fsrs parity test suite ported to Kotlin JUnit
-- [x] 01-03-PLAN.md — FSRS optimizer port (parameter training + optimal retention) with property tests
-
-**Wave 3** *(blocked on Wave 2 completion)*
-
-- [x] 01-05-PLAN.md — Room schema v8 cutover to v6 models + atomic recordReview + QuizViewModel swap to v6 Scheduler
-
-**Wave 4** *(blocked on Wave 3 completion)*
-
-- [x] 01-07-PLAN.md — PERS-04: repository JSON error hardening (Result<T>, VocabDataException) + failure-injection tests
-
-**Wave 5** *(blocked on Wave 4 completion)*
-
-- [x] 01-06-PLAN.md — Legacy FSRS deletion + v6 enum migration + VocabDao transaction tests
-
-### Phase 2: Business Logic & ViewModel Refactoring
-
-**Goal**: Hoist logic out of presentation files, separating database queries and scheduling decisions from UI ViewModels.
-**Depends on**: Phase 1
-**Requirements**: ARCH-03, ARCH-04
-**Success Criteria** (what must be TRUE):
-
-  1. ViewModels do not contain raw SQL/Room query queries and use domain UseCases instead.
-  2. Presentation states are modeled as single, immutable UiState data classes exposed as StateFlow.
-  3. Dynamic asset import errors are safely propagated to UI states instead of swallowing exceptions.
-
-**Plans**: 2/2 plans executed
-
-Plans:
-**Wave 1**
-
-- [x] 02-01-PLAN.md — Extract domain UseCases for quiz sessions (Load/Evaluate/SubmitReview/Complete) + quiz types migration to domain.model.quiz
-
-**Wave 2** *(blocked on Wave 1 completion)*
-
-- [x] 02-02-PLAN.md — Refactor QuizViewModel to UDF: QuizUiState sealed interface, SavedStateHandle survival, rapid-tap guards
-
-### Phase 3: Compose UI Refactoring & Polish
-
-**Goal**: Rebuild the UI with a modern design system, decompose monolithic screens, and resolve runtime casting safety issues.
-**Depends on**: Phase 2
-**Requirements**: ARCH-01, ARCH-02, UX-01, UX-02, UX-03, UI-01
-**Success Criteria** (what must be TRUE):
-
-  1. Screen Composables are split into stateful Container and stateless Content components.
-  2. All unsafe forced unwraps (`!!`) and unsafe `as` casts are eliminated in the presentation code.
-  3. Screen navigation handles argument passing in a type-safe manner.
-  4. Quiz screens survive orientation changes without losing current question session states.
-  5. UI components use cohesive typography, padding, color palette, and modern response feedback animations.
-
-**Plans**: 4/4 plans executed
-
-Plans:
-
-- [x] 03-04-PLAN.md
-
-- [x] 03-01-PLAN.md — Refactor Home and Settings screens to Container/Content pattern while applying foundational Theme and core UI components.
-- [x] 03-02-PLAN.md — Refactor QuizScreen to Container/Content with 3D animations and harden state survival across process death.
-- [x] 03-03-PLAN.md — Finalize error handling wiring via DuoSnackbar, complete ResultScreen refactoring, and migrate to Type-Safe Navigation.
-
-### Phase 4: Sync & Integration Verification
-
-**Goal**: Verify synchronization reliability and API contract correctness.
-**Depends on**: Phase 3
-**Requirements**: SYNC-01, SYNC-02
-**Success Criteria** (what must be TRUE):
-
-  1. SyncManager runs without crashing on network failures, applying retries gracefully.
-  2. Client-server data sync does not downgrade or overwrite card scheduling precision.
-
-**Plans**: 1 plans
-
-Plans:
-- [ ] 04-01-PLAN.md — Implement network request resilience and time-based data integrity for synchronization
-
----
+</details>
 
 ## Progress
 
-| Phase | Plans Complete | Status | Completed |
-|-------|----------------|--------|-----------|
-| 1. Security & Database Stabilization | 7/7 | Complete    | 2026-07-21 |
-| 2. Business Logic & ViewModel Refactoring | 2/2 | Complete   | 2026-07-21 |
-| 3. Compose UI Refactoring & Polish | 4/4 | Complete    | 2026-07-22 |
-| 4. Sync & Integration Verification | 0/1 | Not started | - |
+| Phase | Milestone | Plans Complete | Status | Completed |
+|-------|-----------|----------------|--------|-----------|
+| 1. Security & Database Stabilization | v1.0 | 7/7 | Complete | 2026-07-21 |
+| 2. Business Logic & ViewModel Refactoring | v1.0 | 2/2 | Complete | 2026-07-21 |
+| 3. Compose UI Refactoring & Polish | v1.0 | 4/4 | Complete | 2026-07-22 |
+| 4. Sync & Integration Verification | v1.0 | 1/1 | Complete | 2026-07-22 |
