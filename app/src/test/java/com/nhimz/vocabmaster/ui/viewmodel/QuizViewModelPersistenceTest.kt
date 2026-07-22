@@ -88,7 +88,7 @@ class QuizViewModelPersistenceTest {
     }
 
     @Test
-    fun `assert SavedStateHandle only contains whitelisted String or Int keys`() = runTest {
+    fun `assert SavedStateHandle only contains whitelisted String Int Boolean or ArrayList keys`() = runTest {
         val session = Session("s1", "node_1", 0, "Session 1")
         val question = Question("q1", QuestionType.MULTIPLE_CHOICE, "Hello", listOf("Xin chào", "Tạm biệt"), 0)
         vocabRepo.getSessionsByNodeResult = Result.success(listOf(session))
@@ -100,14 +100,21 @@ class QuizViewModelPersistenceTest {
         viewModel.startNodeSession("node_1", 0)
         advanceUntilIdle()
 
-        // Validate SavedStateHandle keys and values types
+        // Plan 03-02: the persistence whitelist now also covers Boolean and
+        // ArrayList<String> for the per-question answer state and the
+        // cumulative incorrect-card list. Anything else written to the
+        // SavedStateHandle is a contract violation.
         for (key in handle.keys()) {
             assertTrue("Key '$key' is not in the whitelist", QuizViewModel.PERSISTENCE_KEYS.contains(key))
             val value = handle.get<Any>(key)
             if (value != null) {
+                val ok = value is String ||
+                    value is Int ||
+                    value is Boolean ||
+                    value is ArrayList<*>
                 assertTrue(
-                    "Value for key '$key' is ${value.javaClass.simpleName}, expected String or Int",
-                    value is String || value is Int
+                    "Value for key '$key' is ${value.javaClass.simpleName}, expected String/Int/Boolean/ArrayList",
+                    ok
                 )
             }
         }

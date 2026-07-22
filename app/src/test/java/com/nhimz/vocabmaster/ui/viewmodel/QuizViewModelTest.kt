@@ -237,4 +237,140 @@ class QuizViewModelTest {
         assertTrue("Expected Completed state but got $state", state is QuizUiState.Completed)
         assertEquals(1, vocabRepo.markNodeCompletedCalls)
     }
+
+    // ===== Plan 03-02: SavedStateHandle hardening tests =====
+
+    @Test
+    fun `submitAnswer persists correct count and xp gained to SavedStateHandle`() = runTest {
+        val session = Session("s1", "node_1", 0, "Session 1")
+        val question = Question(
+            id = "q1",
+            type = QuestionType.MULTIPLE_CHOICE,
+            prompt = "Hello",
+            options = listOf("Xin chào", "Tạm biệt"),
+            correctIndex = 0
+        )
+        vocabRepo.getSessionsByNodeResult = Result.success(listOf(session))
+        vocabRepo.getQuestionsBySessionResult = Result.success(listOf(question))
+
+        val handle = SavedStateHandle()
+        val viewModel = createViewModel(handle)
+        viewModel.startNodeSession("node_1", 0)
+        advanceUntilIdle()
+
+        viewModel.submitAnswer(optionIndex = 0) // correct
+        advanceUntilIdle()
+
+        assertEquals(1, handle.get<Int>("quiz_correct_count"))
+        assertEquals(10, handle.get<Int>("quiz_xp_gained")) // correct = 10 XP
+        assertEquals(true, handle.get<Boolean>("quiz_is_answer_revealed"))
+        assertEquals(0, handle.get<Int>("quiz_selected_option"))
+    }
+
+    @Test
+    fun `submitAnswer wrong answer persists incorrect card ids to SavedStateHandle`() = runTest {
+        val session = Session("s1", "node_1", 0, "Session 1")
+        val question = Question(
+            id = "q1",
+            type = QuestionType.MULTIPLE_CHOICE,
+            prompt = "Hello",
+            options = listOf("Xin chào", "Tạm biệt"),
+            correctIndex = 0
+        )
+        vocabRepo.getSessionsByNodeResult = Result.success(listOf(session))
+        vocabRepo.getQuestionsBySessionResult = Result.success(listOf(question))
+        vocabRepo.getCardByQuestionIdResult = Card(cardId = "card_42")
+
+        val handle = SavedStateHandle()
+        val viewModel = createViewModel(handle)
+        viewModel.startNodeSession("node_1", 0)
+        advanceUntilIdle()
+
+        viewModel.submitAnswer(optionIndex = 1) // wrong
+        advanceUntilIdle()
+
+        val incorrect = handle.get<ArrayList<String>>("quiz_incorrect_card_ids")
+        assertNotNull(incorrect)
+        assertEquals(listOf("card_42"), incorrect!!.toList())
+    }
+
+    @Test
+    fun `nextQuestion preserves cumulative state but clears per-question answer state`() = runTest {
+        val session = Session("s1", "node_1", 0, "Session 1")
+        val questions = listOf(
+            Question("q1", QuestionType.MULTIPLE_CHOICE, "Prompt 1", listOf("O1", "O2"), 0),
+            Question("q2", QuestionType.MULTIPLE_CHOICE, "Prompt 2", listOf("O1", "O2"), 0)
+        )
+        vocabRepo.getSessionsByNodeResult = Result.success(listOf(session))
+        vocabRepo.getQuestionsBySessionResult = Result.success(questions)
+
+        val handle = SavedStateHandle()
+        val viewModel = createViewModel(handle)
+        viewModel.startNodeSession("node_1", 0)
+        advanceUntilIdle()
+
+        // Answer the first question correctly to bump the cumulative counters.
+        viewModel.submitAnswer(optionIndex = 0)
+        advanceUntilIdle()
+
+        assertEquals(1, handle.get<Int>("quiz_correct_count"))
+        assertEquals(true, handle.get<Boolean>("quiz_is_answer_revealed"))
+        assertEquals(0, handle.get<Int>("quiz_selected_option"))
+
+        viewModel.nextQuestion()
+        advanceUntilIdle()
+
+        // Cumulative state preserved
+        assertEquals(1, handle.get<Int>("quiz_correct_count"))
+        assertEquals(10, handle.get<Int>("quiz_xp_gained"))
+
+        // Per-question answer state cleared
+        assertEquals(1, handle.get<Int>("quiz_current_index"))
+        assertNull(handle.get<Int>("quiz_selected_option"))
+        assertEquals(false, handle.get<Boolean>("quiz_is_answer_revealed"))
+        assertEquals(false, handle.get<Boolean>("quiz_is_fsrs_rating_selected"))
+    }
+
+    @Test
+    fun `fresh ViewModel restores cumulative state from SavedStateHandle across process death`() = runTest {
+        val session = Session("s1", "node_1", 0, "Session 1")
+        val questions = listOf(
+            Question("q1", QuestionType.MULTIPLE_CHOICE, "Prompt 1", listOf("O1", "O2"), 0),
+            Question("q2", QuestionType.MULTIPLE_CHOICE, "Prompt 2", listOf("O1", "O2"), 0),
+            Question("q3", QuestionType.MULTIPLE_CHOICE, "Prompt 3", listOf("O1", "O2"), 0)
+        )
+        vocabRepo.getSessionsByNodeResult = Result.success(listOf(session))
+        vocabRepo.getQuestionsBySessionResult = Result.success(questions)
+
+        // Simulate a process death: SavedStateHandle has the persisted state
+        // from a previous ViewModel instance. A new ViewModel is created and
+        // must restore every field, not just currentIndex.
+        val handle = SavedStateHandle(
+            mapOf(
+                "quiz_kind" to "NODE",
+                "quiz_node_id" to "node_1",
+                "quiz_session_index" to 0,
+                "quiz_current_index" to 2,
+                "quiz_correct_count" to 1,
+                "quiz_xp_gained" to 10,
+                "quiz_incorrect_card_ids" to arrayListOf("card_old"),
+                "quiz_selected_option" to 1,
+                "quiz_is_answer_revealed" to true,
+                "quiz_is_fsrs_rating_selected" to false
+            )
+        )
+
+        val viewModel = createViewModel(handle)
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertTrue("Expected Active state but got $state", state is QuizUiState.Active)
+        val active = state as QuizUiState.Active
+        assertEquals(2, active.currentIndex)
+        assertEquals(1, active.correctAnswersCount)
+        assertEquals(10, active.xpGained)
+        assertEquals(listOf("card_old"), active.incorrectCardIds)
+        assertEquals(1, active.selectedOption)
+        assertTrue(active.isAnswerRevealed)
+    }
 }

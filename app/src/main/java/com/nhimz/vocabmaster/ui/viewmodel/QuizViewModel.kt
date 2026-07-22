@@ -15,6 +15,30 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+/**
+ * Quiz session ViewModel (Plan 03-02, Task 2).
+ *
+ * Survives configuration changes AND process death via [SavedStateHandle].
+ * The whitelisted persistence keys cover everything the user-visible Quiz UI
+ * needs to render correctly after the host process is killed (low memory)
+ * and recreated:
+ *
+ *  - Quiz kind (NODE / REVIEW / UNIT_CHECKPOINT / JUMP_TEST /
+ *    SECTION_CHECKPOINT / MISTAKE_REVIEW) so the matching
+ *    [LoadQuizSessionUseCase] request can be rebuilt.
+ *  - The IDs/parameters that distinguish the quiz (nodeId, unitId, etc.)
+ *  - The active question index so the user lands back on the same question.
+ *  - The per-session cumulative state (correctAnswersCount, xpGained,
+ *    incorrectCardIds) so progress is not lost.
+ *  - The revealed-answer state of the current question (selectedOption,
+ *    isAnswerRevealed, isFSRSRatingSelected) so the user does not have to
+ *    re-answer a question they already submitted.
+ *
+ * Per the threat model in 03-02-PLAN.md (T-03-02), only primitive
+ * Bundle-safe values (String / Int / Boolean / ArrayList<String>) are stored
+ * — no PII, no card bodies, no full question lists. Large payloads would
+ * also risk the ~1MB Bundle limit on rotation.
+ */
 @HiltViewModel
 class QuizViewModel @Inject constructor(
     private val savedStateHandle: SavedStateHandle,
@@ -28,24 +52,45 @@ class QuizViewModel @Inject constructor(
         private const val TAG = "QuizViewModel"
         private const val DEFAULT_LOAD_ERROR = "Không tải được nội dung bài học"
 
-        // Keys for SavedStateHandle persistence
+        // ====== Keys for SavedStateHandle persistence ======
+        // Quiz-kind discriminator + identifying parameters
         private const val KEY_QUIZ_KIND = "quiz_kind"
         private const val KEY_NODE_ID = "quiz_node_id"
         private const val KEY_SESSION_INDEX = "quiz_session_index"
-        private const val KEY_CURRENT_INDEX = "quiz_current_index"
         private const val KEY_UNIT_ID = "quiz_unit_id"
         private const val KEY_SECTION_ID = "quiz_section_id"
         private const val KEY_NEXT_CEFR = "quiz_next_cefr"
-        
-        // Whitelist of valid persistence keys for verification in tests
+
+        // Active question + per-question UI state
+        private const val KEY_CURRENT_INDEX = "quiz_current_index"
+        private const val KEY_SELECTED_OPTION = "quiz_selected_option"
+        private const val KEY_IS_ANSWER_REVEALED = "quiz_is_answer_revealed"
+        private const val KEY_IS_FSRS_RATING_SELECTED = "quiz_is_fsrs_rating_selected"
+
+        // Cumulative session progress (Plan 03-02 hardening)
+        private const val KEY_CORRECT_COUNT = "quiz_correct_count"
+        private const val KEY_XP_GAINED = "quiz_xp_gained"
+        private const val KEY_INCORRECT_CARD_IDS = "quiz_incorrect_card_ids"
+
+        /**
+         * Whitelist of valid persistence keys for verification in tests.
+         * If a new key is added to [SavedStateHandle] in this ViewModel, it
+         * MUST be added here so the persistence test stays accurate.
+         */
         val PERSISTENCE_KEYS = setOf(
             KEY_QUIZ_KIND,
             KEY_NODE_ID,
             KEY_SESSION_INDEX,
             KEY_CURRENT_INDEX,
+            KEY_SELECTED_OPTION,
+            KEY_IS_ANSWER_REVEALED,
+            KEY_IS_FSRS_RATING_SELECTED,
             KEY_UNIT_ID,
             KEY_SECTION_ID,
-            KEY_NEXT_CEFR
+            KEY_NEXT_CEFR,
+            KEY_CORRECT_COUNT,
+            KEY_XP_GAINED,
+            KEY_INCORRECT_CARD_IDS
         )
     }
 
@@ -54,12 +99,14 @@ class QuizViewModel @Inject constructor(
 
     private var sessionStartTime: Long = 0
     private var pendingRestoreIndex: Int? = null
+    private var pendingRestoreFromSavedState: Boolean = false
 
     init {
         val restoredKind = savedStateHandle.get<String>(KEY_QUIZ_KIND)
         if (restoredKind != null) {
             val restoredIndex = savedStateHandle.get<Int>(KEY_CURRENT_INDEX) ?: 0
             pendingRestoreIndex = restoredIndex
+            pendingRestoreFromSavedState = true
             restoreSession(restoredKind)
         }
     }
@@ -120,19 +167,45 @@ class QuizViewModel @Inject constructor(
         }
 
         val restoredIndex = pendingRestoreIndex ?: 0
+        val isRestoring = pendingRestoreFromSavedState
         pendingRestoreIndex = null
+        pendingRestoreFromSavedState = false
         val targetIndex = restoredIndex.coerceIn(0, data.questions.lastIndex)
         savedStateHandle[KEY_CURRENT_INDEX] = targetIndex
 
-        _uiState.value = QuizUiState.Active(
+        // Plan 03-02 hardening: if we are restoring from a saved state, pull
+        // the cumulative progress + per-question answer state back out of the
+        // SavedStateHandle. On a fresh start, default everything to zero/null.
+        val restoredCorrectCount = if (isRestoring) {
+            savedStateHandle.get<Int>(KEY_CORRECT_COUNT) ?: 0
+        } else 0
+        val restoredXpGained = if (isRestoring) {
+            savedStateHandle.get<Int>(KEY_XP_GAINED) ?: 0
+        } else 0
+        val restoredIncorrectCardIds = if (isRestoring) {
+            savedStateHandle.get<ArrayList<String>>(KEY_INCORRECT_CARD_IDS)?.toList()
+                ?: emptyList()
+        } else emptyList()
+        val restoredSelectedOption = if (isRestoring) {
+            savedStateHandle.get<Int>(KEY_SELECTED_OPTION)
+        } else null
+        val restoredIsAnswerRevealed = if (isRestoring) {
+            savedStateHandle.get<Boolean>(KEY_IS_ANSWER_REVEALED) ?: false
+        } else false
+        val restoredIsFsrsRatingSelected = if (isRestoring) {
+            savedStateHandle.get<Boolean>(KEY_IS_FSRS_RATING_SELECTED) ?: false
+        } else false
+
+        val active = QuizUiState.Active(
             questions = data.questions,
             currentIndex = targetIndex,
-            correctAnswersCount = 0,
-            xpGained = 0,
-            selectedOption = null,
-            isAnswerRevealed = false,
+            correctAnswersCount = restoredCorrectCount,
+            xpGained = restoredXpGained,
+            selectedOption = restoredSelectedOption,
+            isAnswerRevealed = restoredIsAnswerRevealed,
             startTimeMillis = System.currentTimeMillis(),
-            incorrectCardIds = emptyList(),
+            incorrectCardIds = restoredIncorrectCardIds,
+            isFSRSRatingSelected = restoredIsFsrsRatingSelected,
             nodeId = data.nodeId,
             sessionId = data.sessionId,
             isSectionCheckpoint = data.isSectionCheckpoint,
@@ -142,6 +215,28 @@ class QuizViewModel @Inject constructor(
             unitIdForJumpTest = data.unitIdForJumpTest,
             unitIdForUnitCheckpoint = data.unitIdForUnitCheckpoint
         )
+        _uiState.value = active
+
+        // Persist the resolved cumulative state so a subsequent process
+        // death immediately after restore still sees the same numbers.
+        persistActiveState(active)
+    }
+
+    /**
+     * Mirror every persistable field of an [QuizUiState.Active] into the
+     * [SavedStateHandle]. Called after every state transition that updates
+     * any of these fields.
+     */
+    private fun persistActiveState(state: QuizUiState.Active) {
+        savedStateHandle[KEY_CURRENT_INDEX] = state.currentIndex
+        savedStateHandle[KEY_SELECTED_OPTION] = state.selectedOption
+        savedStateHandle[KEY_IS_ANSWER_REVEALED] = state.isAnswerRevealed
+        savedStateHandle[KEY_IS_FSRS_RATING_SELECTED] = state.isFSRSRatingSelected
+        savedStateHandle[KEY_CORRECT_COUNT] = state.correctAnswersCount
+        savedStateHandle[KEY_XP_GAINED] = state.xpGained
+        // ArrayList is a Bundle-safe collection type; List<String> would
+        // crash the SavedStateHandle.encode pipeline.
+        savedStateHandle[KEY_INCORRECT_CARD_IDS] = ArrayList(state.incorrectCardIds)
     }
 
     private fun clearPersistenceKeys() {
@@ -149,9 +244,15 @@ class QuizViewModel @Inject constructor(
         savedStateHandle.remove<String>(KEY_NODE_ID)
         savedStateHandle.remove<Int>(KEY_SESSION_INDEX)
         savedStateHandle.remove<Int>(KEY_CURRENT_INDEX)
+        savedStateHandle.remove<Int>(KEY_SELECTED_OPTION)
+        savedStateHandle.remove<Boolean>(KEY_IS_ANSWER_REVEALED)
+        savedStateHandle.remove<Boolean>(KEY_IS_FSRS_RATING_SELECTED)
         savedStateHandle.remove<String>(KEY_UNIT_ID)
         savedStateHandle.remove<String>(KEY_SECTION_ID)
         savedStateHandle.remove<String>(KEY_NEXT_CEFR)
+        savedStateHandle.remove<Int>(KEY_CORRECT_COUNT)
+        savedStateHandle.remove<Int>(KEY_XP_GAINED)
+        savedStateHandle.remove<ArrayList<String>>(KEY_INCORRECT_CARD_IDS)
     }
 
     private fun setupPersistenceKeys(kind: String, block: () -> Unit) {
@@ -325,7 +426,7 @@ class QuizViewModel @Inject constructor(
                 }
 
                 // Synchronously flip the state to revealed Active to guard against rapid double tap
-                _uiState.value = state.copy(
+                val nextState = state.copy(
                     questions = updatedQuestions,
                     selectedOption = optionIndex,
                     isAnswerRevealed = true,
@@ -334,6 +435,12 @@ class QuizViewModel @Inject constructor(
                     isFSRSRatingSelected = fsrsRating != null || answerResult.rating != null,
                     incorrectCardIds = updatedIncorrectCardIds.distinct()
                 )
+                _uiState.value = nextState
+
+                // Plan 03-02 hardening: persist the updated cumulative state
+                // so a process death at this exact moment does not lose the
+                // correct/incorrect count, the XP, or the selected option.
+                persistActiveState(nextState)
 
                 // Launch coroutine to submit the review asynchronously
                 viewModelScope.launch {
@@ -407,14 +514,26 @@ class QuizViewModel @Inject constructor(
                 )
             }
         } else {
+            // Plan 03-02 hardening: when advancing to the next question we
+            // clear the per-question answer state in the SavedStateHandle
+            // (selectedOption / isAnswerRevealed / isFSRSRatingSelected) but
+            // keep the cumulative progress (correctCount, xpGained,
+            // incorrectCardIds) untouched.
             savedStateHandle[KEY_CURRENT_INDEX] = nextIndex
-            _uiState.value = state.copy(
+            savedStateHandle[KEY_SELECTED_OPTION] = null
+            savedStateHandle[KEY_IS_ANSWER_REVEALED] = false
+            savedStateHandle[KEY_IS_FSRS_RATING_SELECTED] = false
+            val nextState = state.copy(
                 currentIndex = nextIndex,
                 selectedOption = null,
                 isAnswerRevealed = false,
                 isFSRSRatingSelected = false,
                 startTimeMillis = System.currentTimeMillis()
             )
+            _uiState.value = nextState
+            // Re-persist so currentIndex + cleared per-question state are
+            // durable together.
+            persistActiveState(nextState)
         }
     }
 }
