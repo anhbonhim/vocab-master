@@ -1,116 +1,74 @@
-# Architecture Patterns: Spaced Repetition Apps
+# Architecture Patterns
 
-**Domain:** Android Spaced Repetition (Jetpack Compose / Clean Architecture / FSRS)
-**Researched:** 2026-07-20
+**Domain:** Educational App / Language Learning
+**Researched:** 2026-07-22
 
 ## Recommended Architecture
 
-Modern spaced repetition applications heavily favor **Clean Architecture with offline-first local persistence** (Room/SQLite), where the complex scheduling algorithm (like FSRS or SM-2) is isolated as a pure mathematical module within the Domain layer. 
-
-```text
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                             Presentation Layer (app)                        │
-│                                (Jetpack Compose)                            │
-├─────────────────────┬─────────────────────────┬─────────────────────────────┤
-│  StudySession Flow  │  Deck/List Management   │   Algorithm Tuning / Debug  │
-│ (QuizScreen + VM)   │ (HomeScreen + VM)       │  (SettingsScreen + VM)      │
-└────────┬────────────┴────────────┬────────────┴────────────┬────────────────┘
-         │                         │                         │
-         ▼                         ▼                         ▼
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                               Domain Layer (domain)                         │
-│                                  (Pure Kotlin)                              │
-├─────────────────────┬─────────────────────────┬─────────────────────────────┤
-│  Study UseCases     │   Data Interfaces       │       FSRS Engine           │
-│ (SubmitReviewUseCase) (VocabularyRepository)  │ (calculate(card, grade))    │
-└────────┬────────────┴────────────┬────────────┴────────────┬────────────────┘
-         │                         │                         │
-         ▼                         ▼                         ▼
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                               Data Layer (data)                             │
-│                                (Room + Retrofit)                            │
-├──────────────────────────────────┬──────────────────────────────────────────┤
-│           Local DB (Room)        │             Sync / Remote API            │
-│  (Cards, Decks, ReviewHistory)   │       (FastAPI SyncManager)              │
-└──────────────────────────────────┴──────────────────────────────────────────┘
-```
+The architecture will remain Clean Architecture (App, Domain, Data) with additions specifically targeted at gamification, instant feedback, and the new data structures. The FSRS algorithm remains core and untouched in its mathematical operation, but the way sessions are generated and evaluated changes.
 
 ### Component Boundaries
 
 | Component | Responsibility | Communicates With |
 |-----------|---------------|-------------------|
-| **Spaced Repetition Engine (FSRS)** | Pure math module. Calculates new stability, difficulty, interval, and due dates based on the previous state and user grade (`Again`, `Hard`, `Good`, `Easy`). | Called by `SubmitReviewUseCase`. Knows nothing about Android, Room, or UI. |
-| **Study UseCases** | Orchestrates a review. Fetches due cards, passes user responses to the FSRS engine, and tells the Repository to persist the updated card and review log. | `FSRS Engine`, `ReviewRepository`, `CardRepository`. |
-| **Review / Card Repository (Room)** | The Source of Truth. Stores card data, current FSRS state (stability, difficulty, elapsed days), and an append-only log of every review event. | Implements interfaces from Domain. Backed by Room DAOs. |
-| **Study ViewModel (QuizViewModel)** | Holds the active session queue, manages the reveal state (front/back), and buffers UI feedback. Should NOT calculate spaced repetition logic. | Observes `CardRepository` flows, calls `Study UseCases`. |
-| **Sync Manager** | Handles bidirectional or server-authoritative sync. Spaced repetition data (intervals, review logs) must sync reliably without losing precision. | `Backend API`, `Local DB (Room)`. |
+| `app:ui:screens:QuizScreen` | Displays the gamified quiz UI, manages immediate correct/incorrect feedback states, visual progress. | `app:ui:viewmodel:QuizViewModel` |
+| `app:ui:components:quiz:*` | Renders specific question types (Scrambled, Listening, Fill-in-the-blank, etc.) and instant feedback banners. | `app:ui:screens:QuizScreenContent` |
+| `app:ui:viewmodel:QuizViewModel` | Manages the state machine of the quiz (Question -> Answered (Feedback) -> Next Question). Processes immediate answer evaluations. | `domain:usecase:EvaluateAnswerUseCase`, `domain:usecase:CompleteQuizSessionUseCase` |
+| `domain:usecase:EvaluateAnswerUseCase` | Evaluates raw user input (text, selections, scrambled order) against `Question` models to return `AnswerResult`. | `app:ui:viewmodel:QuizViewModel` |
+| `domain:model:Curriculum` | Defines the new `Unit`, `Section`, `Node`, `Session`, and `Question` data classes. | Data mappers, UI ViewModels |
+| `domain:fsrs:v6:Scheduler` | Schedules reviews based on FSRS. Untouched, but its outputs (Cards) might be interleaved with standard curriculum Questions. | `domain:usecase:LoadQuizSessionUseCase` |
+| `data:database:entity:*` | Room entities corresponding to `Curriculum` models (e.g., `QuestionEntity`, `SessionEntity`, `UnitEntity`). | `data:database:VocabDao`, `data:repository:*` |
+| `data:repository:VocabularyRepositoryImpl` | Maps Room entities to Domain models and provides them to use cases. | `data:database:VocabDao`, Domain UseCases |
 
-### Data Flow: The Review Loop
+### Data Flow
 
-The core flow of any spaced repetition app is the study loop. 
-
-1. **Load Due Cards:** `QuizViewModel` requests due cards from `CardRepository` (via a UseCase) based on current timestamp vs card `due_date`.
-2. **Display & Grade:** UI shows the front, user reveals the back, user selects a grade (e.g., `Good`).
-3. **Calculate:** `ViewModel` dispatches the grade to `SubmitReviewUseCase`. The UseCase passes the card's current FSRS metrics and the grade to the `FSRS Engine`.
-4. **Persist:** The `FSRS Engine` returns a *new* card state (new interval, new stability, new due date) and a *Review Log* entry. The UseCase saves both atomically in a Room Transaction via the Repository.
-5. **Next Card:** The UI reacts to the updated queue or state flow, animating to the next card.
+1. **Session Load:** User selects a `Node` (Lesson). `LoadQuizSessionUseCase` queries `VocabularyRepositoryImpl` to load a `Session` and its list of `Question`s. If it's a review session, it might interleave FSRS `Card`s by querying the FSRS scheduler.
+2. **UI Rendering:** `QuizViewModel` exposes the first `Question` in its `UiState`. `QuizScreen` renders the appropriate component based on `QuestionType` (e.g., `ScrambledQuizCard`).
+3. **User Action:** User inputs an answer and taps "Check".
+4. **Instant Evaluation:** `QuizViewModel` calls `EvaluateAnswerUseCase`.
+5. **Feedback Loop:** `EvaluateAnswerUseCase` returns true/false. `QuizViewModel` updates state to `Answered(isCorrect)`. The UI displays a `FeedbackBanner` (Green for correct, Red for incorrect) and changes the primary button to "Continue".
+6. **Progression:** User taps "Continue". `QuizViewModel` advances to the next question.
+7. **Session Completion:** When all questions are answered, `CompleteQuizSessionUseCase` is called to save progress, calculate XP, and update FSRS states for any interleaved review cards.
 
 ## Patterns to Follow
 
-### Pattern 1: Pure Mathematical Domain Model
-**What:** The spaced repetition algorithm (FSRS) must be entirely decoupled from Android frameworks and persistence layers. 
-**When:** Always.
+### Pattern 1: State Machine for Quiz Progression
+**What:** The `QuizViewModel` should manage the quiz state explicitly using a sealed interface representing the phases of a single question interaction.
+**When:** Managing the "Instant Feedback UX".
 **Example:**
 ```kotlin
-// In domain module - Pure Kotlin, easily unit testable with golden vectors
-fun calculate(cardState: FsrsState, grade: Grade): FsrsResult {
-    // Pure math operations
-    return FsrsResult(newStability, newDifficulty, newIntervalDays)
+sealed interface QuizInteractionState {
+    data class WaitingForInput(val question: Question) : QuizInteractionState
+    data class AnswerEvaluated(val question: Question, val isCorrect: Boolean, val feedbackText: String) : QuizInteractionState
+    object Finished : QuizInteractionState
 }
 ```
 
-### Pattern 2: Immutable Review Logs
-**What:** Every time a user grades a card, append a record to a `review_logs` table (Timestamp, CardID, Grade, previous State, new State) in addition to updating the card's current state.
-**Why:** Critical for analytics, undo functionality, algorithm training/tuning in the future, and resolving sync conflicts.
-
-### Pattern 3: Granular Compose State Management
-**What:** Split monolithic ViewModels. A `QuizViewModel` should manage the UI state of the session (card queue, current side, animation triggers) and delegate the actual business logic (processing the grade) to UseCases.
+### Pattern 2: Domain-Driven Question Types
+**What:** Use the existing `QuizType` sealed class (or expand `QuestionType` enum in `Curriculum.kt`) in the domain layer to drive UI rendering. The UI should use exhaustive `when` statements to render the correct Compose component.
+**When:** Building the "Đa dạng hóa bài tập" (Diverse Exercises) feature.
 
 ## Anti-Patterns to Avoid
 
-### Anti-Pattern 1: UI-Bound Algorithm State
-**What:** Calculating intervals, stability, or difficulty directly inside `QuizViewModel` or, worse, inside a Compose screen based on UI events.
-**Why bad:** Makes the core value of the app (the algorithm) untestable in isolation, prone to lifecycle bugs, and impossible to run in background sync tasks.
-**Instead:** Keep FSRS logic strictly in the Domain layer as pure functions.
+### Anti-Pattern 1: Leaking FSRS logic into the Curriculum UI
+**What:** Trying to mix FSRS rating buttons (Again, Hard, Good, Easy) directly into the new gamified `QuestionType`s (like Scrambled Sentence).
+**Why bad:** Gamified learning relies on binary (Correct/Incorrect) or graded XP feedback. FSRS is for reviewing known items.
+**Instead:** Keep them separate in the UI flow. A `Session` can contain both `QuizType` (gamified) and `FSRSTailFlashcard` types. When presenting a gamified question, use the "Check" -> "Continue" flow. When presenting an FSRS card (usually at the end or in a dedicated review node), show the 4 rating buttons.
 
-### Anti-Pattern 2: Destructive Updates (No Logs)
-**What:** Updating a card's interval and due date without saving a history of the review event.
-**Why bad:** If the algorithm has a bug (like the negative stability anomaly in VocabMaster), you have no historical data to reconstruct the correct state or debug *how* it reached that state.
-**Instead:** Use Pattern 2 (Immutable Review Logs) and atomic transactions.
-
-### Anti-Pattern 3: God-Object ViewModels & Screens
-**What:** A `HomeScreen.kt` with 900+ lines doing data parsing, UI layout, and state manipulation.
-**Why bad:** Compose recomposition becomes unpredictable, performance suffers, and null-safety issues (`!!`, raw `as` casts) proliferate to handle complex local state.
-**Instead:** Break screens down into layout components (`DeckList`, `StatsCard`) and hoist business state to scoped ViewModels.
+### Anti-Pattern 2: Fat ViewModels handling business rules
+**What:** Putting the logic that determines *if* a scrambled sentence is correct inside the ViewModel.
+**Why bad:** Hard to test, violates Clean Architecture.
+**Instead:** Rely heavily on `EvaluateAnswerUseCase` (which already exists and handles `QuizType` logic) to perform the validation.
 
 ## Scalability Considerations
 
-| Concern | At 100 Cards | At 10K Cards | At 1M Reviews |
+| Concern | At 100 users | At 10K users | At 1M users |
 |---------|--------------|--------------|-------------|
-| **Initial Load** | Parse JSON asset entirely. | Chunked JSON parsing or direct SQLite prepopulation (avoid blocking main thread). | Must use paginated DB queries; cannot hold all cards in memory. |
-| **Due Card Queries** | `SELECT * WHERE due < now` is fine. | Requires index on `due_date` and `deck_id` in Room. | Requires index on `due_date`; fetch in batches of ~50 for study sessions. |
-| **Syncing** | Full JSON payload sync. | Incremental sync (timestamp-based) of updated cards and review logs only. | Background worker sync, server-authoritative conflict resolution based on review logs. |
-
-## Application to VocabMaster (Build Order Implications)
-
-To refactor VocabMaster safely, the dependency graph dictates this build order:
-
-1. **Domain (FSRS Engine):** Audit and fix the FSRS math first. Create unit tests against golden vectors. If the engine is wrong, everything else is wrong.
-2. **Data (Room):** Ensure atomic transactions exist for updating a Card and writing a Review Log simultaneously.
-3. **Presentation (ViewModels):** Extract logic from the 647-line `QuizViewModel` into UseCases that call the now-stable FSRS engine.
-4. **Presentation (UI):** Finally, break apart the 900-line Compose screens, replacing unsafe unwraps (`!!`) with proper state observing from the cleaned-up ViewModels.
+| **Database Size** | Local Room DB handles curriculum fine. | Optimize JSON serialization in `QuestionEntity` options/scrambledWords if tables get large. | Pre-package curriculum in SQLite asset instead of relying entirely on initial sync. |
+| **Syncing Curriculum** | Simple REST calls work. | Delta syncing (only download updated Units/Lessons) becomes necessary to save bandwidth. | CDN distribution for static curriculum JSON/SQLite files. |
 
 ## Sources
-- [Flashcards Open Source App (GitHub) - FSRS Implementation & Parity Testing Architecture](https://github.com/kirill-markin/flashcards-open-source-app)
-- [VocabVault Architecture (GitHub) - Offline First & Clean Arch](https://github.com/alireza-malek/vocabvault)
-- [StudyBuddy Architecture (GitHub) - SM-2 & Repository Pattern](https://github.com/giovergos/study-buddy)
+
+- Project analysis of `/domain/src/main/java/com/nhimz/vocabmaster/domain/model/Curriculum.kt`
+- Project analysis of `/domain/src/main/java/com/nhimz/vocabmaster/domain/usecase/EvaluateAnswerUseCase.kt`
+- Project analysis of `/data/src/main/java/com/nhimz/vocabmaster/data/database/entity/QuestionEntity.kt`

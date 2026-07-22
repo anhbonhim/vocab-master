@@ -1,46 +1,37 @@
 # Technology Stack
 
-**Project:** VocabMaster Refactor & Audit
-**Researched:** 2026-07-20
+**Project:** VocabMaster
+**Researched:** 2026-07-22
 
 ## Recommended Stack
 
 ### Core Framework
 | Technology | Version | Purpose | Why |
 |------------|---------|---------|-----|
-| Jetpack Compose | 2026.03.01 (BOM) | UI Framework | Standard declarative UI toolkit for Android. Must be used with Unidirectional Data Flow (UDF). Massive screens should be split into "Screen" (state connector) and "Content" (stateless renderer) composables. |
-| Kotlin | 2.3.20 | Language | Standard for Android. K2 compiler offers advanced smart casting (e.g. across `or` checks and inline closures), eliminating the need for many unsafe `as` casts. |
-| Hilt | 2.60.1 | Dependency Injection | Official Google recommendation. Reduces boilerplate over Dagger. Provides easy scoping (`@Singleton`, `@HiltViewModel`) for components like Room DBs and ViewModels. |
+| Kotlin | 1.9+ | Core Language | Standard for modern Android development. |
+| Jetpack Compose | BOM 2024.02+ | UI Framework | Declarative UI, essential for complex, reactive gamified states. |
+| Hilt | 2.50+ | Dependency Injection | Standard, simplifies scoping and testing in Clean Architecture. |
 
-### Database
+### Database & State
 | Technology | Version | Purpose | Why |
 |------------|---------|---------|-----|
-| Room | 2.7.1 | Local Persistence | Standard abstraction over SQLite. Seamlessly integrates with Coroutines (`Flow` for reactive reads, `suspend` for one-shot reads/writes). Provides compile-time query verification. |
-| DataStore | 1.1.1 | Key-Value Storage | Modern replacement for SharedPreferences. Type-safe and async (using Coroutines/Flow). |
+| Room Database | 2.6+ | Local Persistence | Provides compile-time SQL verification, Flow support for reactive UI, and structured relations. |
+| Kotlin Coroutines & Flow | 1.8+ | Asynchronous Data & State | Seamless integration with Room and Compose for reactive, non-blocking data streams. |
 
-### Infrastructure
+### UI & Animations
 | Technology | Version | Purpose | Why |
 |------------|---------|---------|-----|
-| Retrofit / OkHttp | 2.11.0 / 4.12.0 | Networking | Industry standard for type-safe HTTP clients communicating with the FastAPI backend. |
-| Kotlinx Coroutines | 1.10.2 | Concurrency | Preferred async mechanism. Standard for Room/Retrofit operations and managing background threads. |
-| Kotlinx Serialization | 1.7.3 | JSON parsing | Fast, compile-time safe, multiplatform-ready JSON parser. Better integration with Kotlin features than Gson. |
+| DotLottie / Lottie-Compose | 6.4+ | Complex Animations & Feedback | Vector-based, scalable, programmable animations. Far superior to GIFs for performance and state-driven control (Success/Failure states). |
 
 ## Alternatives Considered
 
 | Category | Recommended | Alternative | Why Not |
 |----------|-------------|-------------|---------|
-| UI State Management | `StateFlow` + single `UiState` data class | Multiple `MutableState` variables in Composable | Spreading state across multiple `remember` variables in a UI leads to recomposition bugs, unpredictable UI states, and monolithic composables. A single immutable data class in a ViewModel is the standard UDF pattern. |
-| Casting & Type Checks | `as?` (safe cast) or `is` (smart cast) | `as` (unsafe cast) or `!!` (force unwrap) | `as` and `!!` throw `ClassCastException` and `NullPointerException` respectively, leading to app crashes. Kotlin 2.3's improved K2 compiler makes `is` smart casting very powerful; fallback to `as?` with Elvis operators when needed. |
-| Backup Strategy | Explicit XML rules via `dataExtractionRules` | Default Auto Backup | Default backup includes sensitive app data (DBs, SharedPreferences). This can leak user credentials or FSRS learning states to Google Drive or during D2D transfers. Must define `data_extraction_rules.xml` to exclude these domains. |
-| Exception Handling | Explicit `try/catch` or `runCatching` with specific types | Catching generic `Exception` and swallowing | Swallowing generic exceptions hides bugs (especially in dynamic JSON parsing or FSRS state updates). Must explicitly handle or log specific failures and update UI state (e.g., `UiState.Error`). |
-
-## Installation
-
-```bash
-# Handled via gradle/libs.versions.toml
-# Ensure KSP is enabled for Room and Hilt instead of KAPT
-```
+| UI Animations | DotLottie | Coil + GIFs | GIFs are heavy, don't scale well across screen densities, and lack programmatic control over playback state (e.g., pausing halfway or triggering specific frame ranges on success/failure). |
+| Database | Room | Realm / SQLite directly | Room provides the best balance of safety (compile-time checks), Coroutine/Flow integration, and adherence to Android recommended architectures. SQLite is too low-level; Realm adds unnecessary SDK weight. |
 
 ## Sources
 
-- [Context7/official sources] (Medium Confidence based on latest Android Developer Documentation & Community Best Practices 2026)
+- Room Clean Architecture: [Room Setup with Koin & Clean Architecture | by Saif M.](https://medium.com/@maliksaif070/room-setup-with-koin-clean-architecture-11e7e87e0f6f) (Confidence: HIGH)
+- Lottie Compose: [From GIFs to Lottie: Mastering Lottie Animations in Android with Jetpack Compose](https://medium.com/pickme-engineering-blog/from-gifs-to-lottie-mastering-lottie-animations-in-android-with-jetpack-compose-58ae0451195a) (Confidence: HIGH)
+- DotLottie Android: [DotLottie Android Interactivity Documentation](https://developers.lottiefiles.com/docs/dotlottie-player/dotlottie-android/usage/interactivity/) (Confidence: HIGH)
