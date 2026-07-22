@@ -101,6 +101,7 @@ class SettingsViewModel @Inject constructor(
     }
 
     fun triggerSync() {
+        if (_uiState.value.isSyncing) return
         viewModelScope.launch {
             _uiState.update { it.copy(isSyncing = true, syncSuccess = null, syncError = null) }
             val success = syncManager.sync()
