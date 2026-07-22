@@ -1,0 +1,13 @@
+{
+  "source_path": "/data/data/com.termux/files/home/vocab-master/specs/changes/alpha-debug-panel/tasks.md",
+  "type": "SPEC",
+  "confidence": "high",
+  "manifest_override": true,
+  "title": "Tasks: alpha-debug-panel",
+  "summary": "Implementation tasks for a debug panel with logging, UI modules, and release guard.",
+  "scope": ["LocalLogger", "DebugPanelScreen", "Audio QC", "FSRS/DB", "Quiz/Log"],
+  "cross_refs": [],
+  "locked": false,
+  "precedence": null,
+  "notes": ""
+}

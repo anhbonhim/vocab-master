@@ -1,0 +1,13 @@
+{
+  "source_path": "/data/data/com.termux/files/home/vocab-master/specs/changes/archive/20260711-duolingo-overhaul/proposal.md",
+  "type": "SPEC",
+  "confidence": "high",
+  "manifest_override": true,
+  "title": "Proposal: Duolingo UX Overhaul",
+  "summary": "Proposal to upgrade UX/UI of exercise screens following Duolingo principles with new shared components.",
+  "scope": ["DuolingoOptionCard", "FeedbackBanner", "DuolingoProgressBar", "PlacementTestScreen", "FirstWinScreen", "QuizScreen", "SettingsRepository"],
+  "cross_refs": [],
+  "locked": false,
+  "precedence": null,
+  "notes": ""
+}

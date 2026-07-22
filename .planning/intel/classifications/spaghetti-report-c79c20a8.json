@@ -1,0 +1,13 @@
+{
+  "source_path": "/data/data/com.termux/files/home/vocab-master/docs/audit/spaghetti-report.md",
+  "type": "DOC",
+  "confidence": "high",
+  "manifest_override": true,
+  "title": "Spaghetti Code Audit & Incremental Refactor",
+  "summary": "Audit report identifying spaghetti code hotspots with incremental refactor plans for the VocabMaster app.",
+  "scope": ["StatisticsScreen", "ScrambledQuizCard", "MainActivity", "Detekt", "code refactoring", "UI components"],
+  "cross_refs": [],
+  "locked": false,
+  "precedence": null,
+  "notes": ""
+}

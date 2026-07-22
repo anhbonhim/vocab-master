@@ -1,0 +1,13 @@
+{
+  "source_path": "/data/data/com.termux/files/home/vocab-master/specs/changes/archive/20260711-duolingo-overhaul/spec.md",
+  "type": "SPEC",
+  "confidence": "high",
+  "manifest_override": true,
+  "title": "Delta Spec: duolingo-overhaul",
+  "summary": "Delta spec for Duolingo-style UI overhaul — shared components, wrong answer queue, dynamic first win, and placement test.",
+  "scope": ["DuolingoOptionCard", "FeedbackBanner", "Wrong Answer Queue", "FirstWinScreen", "QuizScreen", "Placement Test", "SettingsRepository"],
+  "cross_refs": [],
+  "locked": false,
+  "precedence": null,
+  "notes": ""
+}

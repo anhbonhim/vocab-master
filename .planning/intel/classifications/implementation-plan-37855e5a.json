@@ -1,0 +1,13 @@
+{
+  "source_path": "/data/data/com.termux/files/home/vocab-master/implementation_plan.md",
+  "type": "SPEC",
+  "confidence": "high",
+  "manifest_override": true,
+  "title": "Vocab Master — Agentic Team Implementation Plan (Final V5)",
+  "summary": "Technical specification for Vocab Master Android app with FSRS v6, gamification, and Compose UI.",
+  "scope": ["Vocab Master", "FSRS v6", "gamification", "Android", "Jetpack Compose", "MVVM", "Clean Architecture", "Hilt DI", "Room DB", "DataStore"],
+  "cross_refs": ["file:///C:/Users/nhimz/Downloads/IMPLEMENTATION_PLAN_V4.md"],
+  "locked": false,
+  "precedence": null,
+  "notes": "Type set via MANIFEST_TYPE override."
+}

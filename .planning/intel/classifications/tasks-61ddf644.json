@@ -1,0 +1,13 @@
+{
+  "source_path": "/data/data/com.termux/files/home/vocab-master/specs/changes/archive/20260711-duolingo-overhaul/tasks.md",
+  "type": "SPEC",
+  "confidence": "high",
+  "manifest_override": true,
+  "title": "Tasks: duolingo-overhaul",
+  "summary": "Task breakdown for Duolingo-style UI overhaul across 4 phases covering infrastructure, components, logic, and screens.",
+  "scope": ["Duolingo-styled UI overhaul", "Shared UI components", "Lottie animations", "quiz logic", "PlacementTest", "FirstWin"],
+  "cross_refs": ["specs/changes/duolingo-overhaul/spec.md"],
+  "locked": false,
+  "precedence": null,
+  "notes": ""
+}

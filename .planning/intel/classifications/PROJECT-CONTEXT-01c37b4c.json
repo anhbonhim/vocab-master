@@ -1,0 +1,13 @@
+{
+  "source_path": "/data/data/com.termux/files/home/vocab-master/PROJECT_CONTEXT.md",
+  "type": "DOC",
+  "confidence": "high",
+  "manifest_override": true,
+  "title": "Dự án Vocab Master - Context",
+  "summary": "Project context overview for Vocab Master Android app — architecture, structure, phases, and technical decisions.",
+  "scope": ["Vocab Master", "Android app", "vocabulary learning", "FSRS v6", "Jetpack Compose", "MVVM", "Clean Architecture", "Room", "DataStore", "gamification"],
+  "cross_refs": [],
+  "locked": false,
+  "precedence": null,
+  "notes": ""
+}

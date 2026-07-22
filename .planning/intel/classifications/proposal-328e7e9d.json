@@ -1,0 +1,24 @@
+{
+  "source_path": "/data/data/com.termux/files/home/vocab-master/specs/changes/content-pipeline-v3/proposal.md",
+  "type": "SPEC",
+  "confidence": "high",
+  "manifest_override": true,
+  "title": "Intent",
+  "summary": "Replace AI-only exercise pipeline with hybrid deterministic generation from 4 open data sources for 7 exercise types.",
+  "scope": [
+    "CEFR-J Wordlist",
+    "Open English WordNet 2025",
+    "Tatoeba",
+    "Wiktionary",
+    "vocab_structured.json",
+    "deterministic question generator",
+    "Edge-TTS",
+    "hybrid audio pipeline",
+    "MVP validation",
+    "lessons_v3.json"
+  ],
+  "cross_refs": [],
+  "locked": false,
+  "precedence": null,
+  "notes": ""
+}

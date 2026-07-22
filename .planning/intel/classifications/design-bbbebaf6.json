@@ -1,0 +1,13 @@
+{
+  "source_path": "/data/data/com.termux/files/home/vocab-master/specs/changes/feature-parity-overhaul/design.md",
+  "type": "SPEC",
+  "confidence": "high",
+  "manifest_override": true,
+  "title": "Design: feature-parity-overhaul",
+  "summary": "Design spec for feature parity overhaul covering CDN audio, data model, and quiz engine changes.",
+  "scope": ["CDN Audio System", "Data Model", "Room database", "Quiz Engine", "VocabularyCardEntity", "AudioPlayer", "QuizViewModel"],
+  "cross_refs": [],
+  "locked": false,
+  "precedence": null,
+  "notes": ""
+}

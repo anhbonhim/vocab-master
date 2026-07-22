@@ -1,0 +1,13 @@
+{
+  "source_path": "/data/data/com.termux/files/home/vocab-master/specs/changes/feature-parity-overhaul/spec.md",
+  "type": "SPEC",
+  "confidence": "high",
+  "manifest_override": true,
+  "title": "Delta Spec: feature-parity-overhaul",
+  "summary": "Delta spec for feature parity overhaul — multimedia CDN caching, interactive quizzes, FSRS visualization, topic personalization.",
+  "scope": ["multimedia CDN", "local caching", "interactive quizzes", "FSRS visualization", "topic personalization"],
+  "cross_refs": [],
+  "locked": false,
+  "precedence": null,
+  "notes": ""
+}

@@ -1,0 +1,28 @@
+{
+  "source_path": "/data/data/com.termux/files/home/vocab-master/specs/changes/content-pipeline-v3/design.md",
+  "type": "SPEC",
+  "confidence": "high",
+  "manifest_override": true,
+  "title": "Technical Design: content-pipeline-v3",
+  "summary": "Technical design for content-pipeline-v3 covering data schema, extraction, question generation, audio, and cleanup.",
+  "scope": [
+    "content-pipeline-v3",
+    "vocab_structured.json",
+    "lessons_v3.json",
+    "CEFR-J wordlist",
+    "OEWN",
+    "Tatoeba",
+    "question generation algorithms",
+    "audio pipeline",
+    "Edge-TTS"
+  ],
+  "cross_refs": [
+    "VocabularyRepositoryImpl.kt",
+    "QuizViewModel.kt",
+    "CEFRJ_wordlist_ver1.6.xlsx",
+    "generate_audio_edge_tts_v2.py"
+  ],
+  "locked": false,
+  "precedence": null,
+  "notes": ""
+}

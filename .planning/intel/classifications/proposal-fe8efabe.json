@@ -1,0 +1,20 @@
+{
+  "source_path": "/data/data/com.termux/files/home/vocab-master/specs/changes/feature-parity-overhaul/proposal.md",
+  "type": "SPEC",
+  "confidence": "high",
+  "manifest_override": true,
+  "title": "Intent",
+  "summary": "Thu hẹp khoảng cách giữa Vocab Master và các ứng dụng phổ biến bằng cách đại tu 4 khía cạnh.",
+  "scope": [
+    "data layer",
+    "multimedia",
+    "UI/UX",
+    "personalization",
+    "FSRS",
+    "Audio CDN offline"
+  ],
+  "cross_refs": [],
+  "locked": false,
+  "precedence": null,
+  "notes": ""
+}
