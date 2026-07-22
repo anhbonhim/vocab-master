@@ -38,6 +38,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import retrofit2.Response
 import java.io.IOException
+import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
@@ -56,6 +57,8 @@ import java.time.format.DateTimeFormatter
 @Config(sdk = [34])
 @Ignore("Robolectric Conscrypt native library is unavailable on this Termux aarch64 environment.")
 class SyncManagerTest {
+
+    private val formatter = DateTimeFormatter.ISO_LOCAL_DATE_TIME
 
     // ---------------------------------------------------------------------
     // Task 1 — SYNC-01: network resilience
@@ -154,14 +157,14 @@ class SyncManagerTest {
         )
         val pulledCard = VocabularyCardDto(
             questionId = "q1",
-            due = now.toString(),
+            due = Instant.ofEpochMilli(now).atOffset(ZoneOffset.UTC).format(formatter),
             stability = 99.0,
             difficulty = 99.0,
             interval = 0,
             reps = 999,
             lapses = 999,
             state = State.New.value,
-            lastReview = 100L.toString(),
+            lastReview = Instant.ofEpochMilli(100L).atOffset(ZoneOffset.UTC).format(formatter),
             lastModified = 100L
         )
         val fakeDao = FakeVocabDao(initialCards = listOf(localCard))
@@ -217,14 +220,14 @@ class SyncManagerTest {
         )
         val pulledCard = VocabularyCardDto(
             questionId = "q1",
-            due = now.toString(),
+            due = Instant.ofEpochMilli(now).atOffset(ZoneOffset.UTC).format(formatter),
             stability = 7.5,
             difficulty = 3.5,
             interval = 0,
             reps = 3,
             lapses = 0,
             state = State.Review.value,
-            lastReview = 300L.toString(),
+            lastReview = Instant.ofEpochMilli(300L).atOffset(ZoneOffset.UTC).format(formatter),
             lastModified = 300L
         )
         val fakeDao = FakeVocabDao(initialCards = listOf(localCard))
