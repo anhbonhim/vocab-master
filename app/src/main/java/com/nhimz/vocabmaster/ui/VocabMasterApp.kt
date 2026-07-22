@@ -9,10 +9,12 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -31,6 +33,7 @@ import com.nhimz.vocabmaster.domain.model.BackupRepository
 import com.nhimz.vocabmaster.domain.model.ReviewRepository
 import com.nhimz.vocabmaster.domain.model.SettingsRepository
 import com.nhimz.vocabmaster.domain.model.VocabularyRepository
+import com.nhimz.vocabmaster.ui.components.DuoSnackbarHost
 import com.nhimz.vocabmaster.ui.screens.SettingsScreen
 import com.nhimz.vocabmaster.ui.screens.StatisticsScreen
 import com.nhimz.vocabmaster.ui.screens.WelcomeScreen
@@ -86,6 +89,11 @@ fun VocabMasterApp(
         val currentScreen by mainViewModel.currentScreen.collectAsState()
         val isLoading by mainViewModel.isLoading.collectAsState()
 
+        // Global SnackbarHost (D-04, D-05): hoisted to the top so any Container
+        // screen can push messages via the per-flow `snackbarHostState` param
+        // and have them appear in the bottom snackbar slot.
+        val snackbarHostState = remember { SnackbarHostState() }
+
         if (isLoading) {
             LoadingSplash()
         } else {
@@ -95,7 +103,8 @@ fun VocabMasterApp(
                         currentScreen = currentScreen,
                         mainViewModel = mainViewModel,
                         placementTestViewModel = placementTestViewModel,
-                        settingsViewModel = settingsViewModel
+                        settingsViewModel = settingsViewModel,
+                        snackbarHostState = snackbarHostState
                     )
                 }
                 is Screen.Quiz, is Screen.Result -> {
@@ -103,7 +112,8 @@ fun VocabMasterApp(
                         currentScreen = currentScreen,
                         mainViewModel = mainViewModel,
                         quizViewModel = quizViewModel,
-                        cdnAudioPlayer = cdnAudioPlayer
+                        cdnAudioPlayer = cdnAudioPlayer,
+                        snackbarHostState = snackbarHostState
                     )
                 }
                 is Screen.Home, is Screen.Statistics, is Screen.Settings, is Screen.DebugPanel, is Screen.Guidebook, is Screen.JumpTest, is Screen.SectionCheckpoint, is Screen.UnitCheckpoint -> {
@@ -119,7 +129,8 @@ fun VocabMasterApp(
                         vocabularyRepository = vocabularyRepository,
                         reviewRepository = reviewRepository,
                         settingsRepository = settingsRepository,
-                        backupRepository = backupRepository
+                        backupRepository = backupRepository,
+                        snackbarHostState = snackbarHostState
                     )
                 }
             }
@@ -149,35 +160,40 @@ private fun OnboardingFlow(
     currentScreen: Screen,
     mainViewModel: MainViewModel,
     placementTestViewModel: PlacementTestViewModel,
-    settingsViewModel: SettingsViewModel
+    settingsViewModel: SettingsViewModel,
+    snackbarHostState: SnackbarHostState
 ) {
-    when (currentScreen) {
-        is Screen.Welcome -> WelcomeScreen(
-            onStartClick = { mainViewModel.navigateTo(Screen.Login) } // Navigate to Login first!
-        )
-        is Screen.Login -> LoginScreen(
-            onLoginSuccess = { mainViewModel.navigateTo(Screen.GoalPicker) }
-        )
-        is Screen.GoalPicker -> GoalPickerScreen(
-            onGoalSelected = { minutes ->
-                settingsViewModel.setDailyGoal(minutes)
-                mainViewModel.navigateTo(Screen.PlacementTest)
-            }
-        )
-        is Screen.PlacementTest -> PlacementTestScreen(
-            onFinished = { levelStr ->
-                if (levelStr != null) {
-                    mainViewModel.savePlacementLevel(levelStr)
+    Scaffold(
+        snackbarHost = { DuoSnackbarHost(snackbarHostState) }
+    ) { _ ->
+        when (currentScreen) {
+            is Screen.Welcome -> WelcomeScreen(
+                onStartClick = { mainViewModel.navigateTo(Screen.Login) } // Navigate to Login first!
+            )
+            is Screen.Login -> LoginScreen(
+                onLoginSuccess = { mainViewModel.navigateTo(Screen.GoalPicker) }
+            )
+            is Screen.GoalPicker -> GoalPickerScreen(
+                onGoalSelected = { minutes ->
+                    settingsViewModel.setDailyGoal(minutes)
+                    mainViewModel.navigateTo(Screen.PlacementTest)
                 }
-                mainViewModel.navigateTo(Screen.FirstWin)
-            },
-            onBack = { mainViewModel.navigateTo(Screen.Login) },
-            viewModel = placementTestViewModel
-        )
-        is Screen.FirstWin -> FirstWinScreen(
-            onFinished = { mainViewModel.completeOnboarding() }
-        )
-        else -> {}
+            )
+            is Screen.PlacementTest -> PlacementTestScreen(
+                onFinished = { levelStr ->
+                    if (levelStr != null) {
+                        mainViewModel.savePlacementLevel(levelStr)
+                    }
+                    mainViewModel.navigateTo(Screen.FirstWin)
+                },
+                onBack = { mainViewModel.navigateTo(Screen.Login) },
+                viewModel = placementTestViewModel
+            )
+            is Screen.FirstWin -> FirstWinScreen(
+                onFinished = { mainViewModel.completeOnboarding() }
+            )
+            else -> {}
+        }
     }
 }
 
@@ -186,40 +202,46 @@ private fun StudyFlow(
     currentScreen: Screen,
     mainViewModel: MainViewModel,
     quizViewModel: QuizViewModel,
-    cdnAudioPlayer: CDNAudioPlayer
+    cdnAudioPlayer: CDNAudioPlayer,
+    snackbarHostState: SnackbarHostState
 ) {
-    when (currentScreen) {
-        is Screen.Quiz -> QuizScreen(
-            onSessionCompleted = { xp, duration, correct, total, stability, incorrectCardIds, isLevelTest, isPassedLevelTest ->
-                mainViewModel.addStudyTime(duration)
-                mainViewModel.navigateTo(Screen.Result(xp, duration, correct, total, stability, incorrectCardIds, isLevelTest, isPassedLevelTest))
-            },
-            onBackToHome = { mainViewModel.navigateTo(Screen.Home) },
-            cdnAudioPlayer = cdnAudioPlayer,
-            viewModel = quizViewModel
-        )
-        is Screen.Result -> {
-            val result = currentScreen as Screen.Result
-            ResultScreen(
-                xpGained = result.xpGained,
-                durationSeconds = result.durationSeconds,
-                correctCount = result.correctCount,
-                totalCount = result.totalCount,
-                averageStability = result.sessionStability,
-                incorrectCardIds = result.incorrectCardIds,
-                isLevelTest = result.isLevelTest,
-                isPassedLevelTest = result.isPassedLevelTest,
-                onBackToHome = {
-                    mainViewModel.updateStreak()
-                    mainViewModel.navigateTo(Screen.Home)
+    Scaffold(
+        snackbarHost = { DuoSnackbarHost(snackbarHostState) }
+    ) { _ ->
+        when (currentScreen) {
+            is Screen.Quiz -> QuizScreen(
+                onSessionCompleted = { xp, duration, correct, total, stability, incorrectCardIds, isLevelTest, isPassedLevelTest ->
+                    mainViewModel.addStudyTime(duration)
+                    mainViewModel.navigateTo(Screen.Result(xp, duration, correct, total, stability, incorrectCardIds, isLevelTest, isPassedLevelTest))
                 },
-                onReviewMistakes = { ids ->
-                    // Fallback using old review mechanics, could be updated if ReviewGym changed
-                    mainViewModel.navigateTo(Screen.Quiz(ids))
-                }
+                onBackToHome = { mainViewModel.navigateTo(Screen.Home) },
+                cdnAudioPlayer = cdnAudioPlayer,
+                viewModel = quizViewModel
             )
+            is Screen.Result -> {
+                val result = currentScreen as Screen.Result
+                ResultScreen(
+                    xpGained = result.xpGained,
+                    durationSeconds = result.durationSeconds,
+                    correctCount = result.correctCount,
+                    totalCount = result.totalCount,
+                    averageStability = result.sessionStability,
+                    incorrectCardIds = result.incorrectCardIds,
+                    isLevelTest = result.isLevelTest,
+                    isPassedLevelTest = result.isPassedLevelTest,
+                    onBackToHome = {
+                        mainViewModel.updateStreak()
+                        mainViewModel.navigateTo(Screen.Home)
+                    },
+                    onReviewMistakes = { ids ->
+                        // Fallback using old review mechanics, could be updated if ReviewGym changed
+                        mainViewModel.navigateTo(Screen.Quiz(ids))
+                    },
+                    snackbarHostState = snackbarHostState
+                )
+            }
+            else -> {}
         }
-        else -> {}
     }
 }
 
@@ -237,9 +259,11 @@ private fun MainAppScaffold(
     vocabularyRepository: VocabularyRepository,
     reviewRepository: ReviewRepository,
     settingsRepository: SettingsRepository,
-    backupRepository: BackupRepository
+    backupRepository: BackupRepository,
+    snackbarHostState: SnackbarHostState
 ) {
     Scaffold(
+        snackbarHost = { DuoSnackbarHost(snackbarHostState) },
         bottomBar = {
             NavigationBar(
                 containerColor = MaterialTheme.colorScheme.surface,
