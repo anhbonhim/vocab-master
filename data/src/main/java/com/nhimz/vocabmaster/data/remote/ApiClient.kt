@@ -1,5 +1,6 @@
 package com.nhimz.vocabmaster.data.remote
 
+import com.nhimz.vocabmaster.data.BuildConfig
 import retrofit2.converter.kotlinx.serialization.asConverterFactory
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
@@ -14,7 +15,7 @@ import javax.inject.Singleton
 open class ApiClient @Inject constructor(
     authInterceptor: AuthInterceptor
 ) {
-    private val BASE_URL = "http://127.0.0.1:8000/"
+    private val BASE_URL = BuildConfig.API_BASE_URL
 
     private val json = Json {
         ignoreUnknownKeys = true
@@ -24,7 +25,8 @@ open class ApiClient @Inject constructor(
     private val okHttpClient = OkHttpClient.Builder()
         .addInterceptor(authInterceptor)
         .addInterceptor(HttpLoggingInterceptor().apply {
-            level = HttpLoggingInterceptor.Level.BODY
+            level = if (BuildConfig.DEBUG) HttpLoggingInterceptor.Level.BODY
+                    else HttpLoggingInterceptor.Level.NONE
         })
         .connectTimeout(30, TimeUnit.SECONDS)
         .readTimeout(30, TimeUnit.SECONDS)
