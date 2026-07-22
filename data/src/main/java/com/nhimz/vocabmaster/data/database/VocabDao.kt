@@ -286,7 +286,7 @@ interface VocabDao {
     @Transaction
     suspend fun mergePulledCards(
         pulledCards: List<VocabularyCardDto>,
-        formatter: DateTimeFormatter = DateTimeFormatter.ISO_LOCAL_DATE_TIME
+        formatter: DateTimeFormatter
     ) {
         for (c in pulledCards) {
             val existing = getCardByQuestionId(c.questionId)
