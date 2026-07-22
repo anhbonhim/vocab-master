@@ -38,6 +38,9 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import retrofit2.Response
 import java.io.IOException
+import java.time.LocalDateTime
+import java.time.ZoneOffset
+import java.time.format.DateTimeFormatter
 
 /**
  * Unit tests for [SyncManager].
@@ -390,6 +393,52 @@ class SyncManagerTest {
 
         override suspend fun getAllReviewLogsList(): List<ReviewLogEntity> =
             reviewLogs.toList()
+
+        override suspend fun mergePulledCards(
+            pulledCards: List<VocabularyCardDto>,
+            formatter: DateTimeFormatter
+        ) {
+            for (c in pulledCards) {
+                val existing = getCardByQuestionId(c.questionId)
+                val dueMillis = LocalDateTime.parse(c.due, formatter)
+                    .toInstant(ZoneOffset.UTC).toEpochMilli()
+                val lastReviewMillis = c.lastReview?.let {
+                    LocalDateTime.parse(it, formatter).toInstant(ZoneOffset.UTC).toEpochMilli()
+                }
+                val stateEnum = State.entries.firstOrNull { it.value == c.state } ?: State.New
+                if (existing != null) {
+                    if (existing.lastReview != null && c.lastModified < existing.lastReview) {
+                        continue
+                    }
+                    updateFsrsCard(
+                        existing.copy(
+                            due = dueMillis,
+                            stability = c.stability,
+                            difficulty = c.difficulty,
+                            step = existing.step,
+                            reps = c.reps,
+                            lapses = c.lapses,
+                            state = stateEnum.value,
+                            lastReview = lastReviewMillis
+                        )
+                    )
+                } else {
+                    insertCard(
+                        FsrsCardEntity(
+                            questionId = c.questionId,
+                            due = dueMillis,
+                            stability = c.stability,
+                            difficulty = c.difficulty,
+                            step = 0,
+                            reps = c.reps,
+                            lapses = c.lapses,
+                            state = stateEnum.value,
+                            lastReview = lastReviewMillis
+                        )
+                    )
+                }
+            }
+        }
 
         override suspend fun deleteAllReviewLogs() {
             deleteAllReviewLogsCallCount++

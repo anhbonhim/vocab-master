@@ -4,7 +4,6 @@ import android.content.Context
 import android.util.Log
 import com.nhimz.vocabmaster.data.database.VocabDao
 import com.nhimz.vocabmaster.data.database.entity.ReviewLogEntity
-import com.nhimz.vocabmaster.data.database.entity.FsrsCardEntity
 import com.nhimz.vocabmaster.data.remote.ApiClient
 import com.nhimz.vocabmaster.data.remote.ReviewLogDto
 import com.nhimz.vocabmaster.data.remote.SyncPayload
@@ -149,41 +148,11 @@ class SyncManager @Inject constructor(
                 ps.placementLevel?.let { settingsRepository.setPlacementLevel(it) }
                 settingsRepository.setSelectedTopic(ps.selectedTopic)
                 
-                val allCardsList = vocabDao.getAllCards()
-                for (c in pulledPayload.vocabularyCards) {
-                    val existing = allCardsList.find { it.questionId == c.questionId }
-                    val dueLdt = LocalDateTime.parse(c.due, formatter)
-                    val lastReviewLdt = c.lastReview?.let { LocalDateTime.parse(it, formatter) }
-                    
-                    val stateEnum = State.entries.find { it.value == c.state } ?: State.New
-                        
-                    if (existing != null) {
-                        val updated = existing.copy(
-                            due = dueLdt.toInstant(ZoneOffset.UTC).toEpochMilli(),
-                            stability = c.stability,
-                            difficulty = c.difficulty,
-                            step = existing.step,
-                            reps = c.reps,
-                            lapses = c.lapses,
-                            state = stateEnum.value,
-                            lastReview = lastReviewLdt?.toInstant(ZoneOffset.UTC)?.toEpochMilli()
-                        )
-                        vocabDao.updateFsrsCard(updated)
-                    } else {
-                        val newCard = FsrsCardEntity(
-                            questionId = c.questionId,
-                            due = dueLdt.toInstant(ZoneOffset.UTC).toEpochMilli(),
-                            stability = c.stability,
-                            difficulty = c.difficulty,
-                            step = 0,
-                            reps = c.reps,
-                            lapses = c.lapses,
-                            state = stateEnum.value,
-                            lastReview = lastReviewLdt?.toInstant(ZoneOffset.UTC)?.toEpochMilli()
-                        )
-                        vocabDao.insertCard(newCard)
-                    }
-                }
+                // D-03 / SYNC-02: the merge logic lives in the data layer
+                // (VocabDao) so SyncManager stays at the API tier. The DAO
+                // compares pulled lastModified against local lastReview and
+                // skips updates that would downgrade FSRS state.
+                vocabDao.mergePulledCards(pulledPayload.vocabularyCards, formatter)
 
                 // Process pulled review logs
                 val refreshedCardsList = vocabDao.getAllCards()
