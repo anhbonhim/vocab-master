@@ -208,9 +208,9 @@ class QuizViewModel(savedStateHandle: SavedStateHandle): ViewModel() {
 |---|-------|---------|---------------|
 | A1 | Navigation Compose 2.8.0 is available and compatible with the project's Compose BOM. | Standard Stack | Build failures if versions clash. |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **Quiz State Complexity**
+1. **Quiz State Complexity** (RESOLVED)
    - What we know: `QuizUiState` contains complex objects like `List<QuizQuestion>`.
    - What's unclear: Storing a massive list of questions in `SavedStateHandle` might exceed Bundle size limits during process death.
    - Recommendation: Store only the `sessionId` or `nodeId` and the `currentIndex` in `SavedStateHandle`. On recreation, reload the questions from the DB using the ID, then jump to the saved index.
