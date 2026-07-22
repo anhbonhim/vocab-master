@@ -55,3 +55,68 @@ def test_get_topics_returns_empty_list_when_no_topics(client):
     response = client.get("/api/v1/curriculum/topics")
     assert response.status_code == 200
     assert response.json() == []
+
+
+def test_list_lessons_by_topic_returns_empty_list(client, db_session):
+    """
+    GET /api/v1/curriculum/topics/{topic_id}/lessons should return [] for
+    a Topic with no Lessons yet. Seeds a Topic to avoid the 404 branch.
+    """
+    from app.models.curriculum import Topic
+    topic = Topic(title="Travel", difficulty_level="A2", order_index=1)
+    db_session.add(topic)
+    db_session.commit()
+    db_session.refresh(topic)
+
+    response = client.get(f"/api/v1/curriculum/topics/{topic.id}/lessons")
+    assert response.status_code == 200
+    assert response.json() == []
+
+
+def test_list_lessons_by_topic_returns_exercises_data(client, db_session):
+    """
+    Lessons expose their exercises_data field as a parsed JSON list (D-01).
+    This verifies the JSON column is correctly serialized through Pydantic.
+    """
+    from app.models.curriculum import Topic, Lesson
+    topic = Topic(title="Food", difficulty_level="A2", order_index=2)
+    db_session.add(topic)
+    db_session.commit()
+    db_session.refresh(topic)
+
+    sample_exercises = [
+        {
+            "type": "multiple_choice",
+            "question": "What is 'apple' in Vietnamese?",
+            "options": ["Quả táo", "Quả cam", "Quả nho", "Quả chuối"],
+            "correct_answer": "Quả táo",
+        },
+        {
+            "type": "fill_blank",
+            "question": "I ___ an apple.",
+            "correct_answer": "eat",
+        },
+    ]
+    lesson = Lesson(
+        topic_id=topic.id,
+        title="Fruits",
+        order_index=1,
+        exercises_data=sample_exercises,
+    )
+    db_session.add(lesson)
+    db_session.commit()
+
+    response = client.get(f"/api/v1/curriculum/topics/{topic.id}/lessons")
+    assert response.status_code == 200
+    body = response.json()
+    assert len(body) == 1
+    assert body[0]["title"] == "Fruits"
+    assert body[0]["exercises_data"] == sample_exercises
+
+
+def test_list_lessons_by_unknown_topic_returns_404(client):
+    """
+    Hitting lessons for a non-existent topic must surface a 404, not 200 [].
+    """
+    response = client.get("/api/v1/curriculum/topics/9999/lessons")
+    assert response.status_code == 404
