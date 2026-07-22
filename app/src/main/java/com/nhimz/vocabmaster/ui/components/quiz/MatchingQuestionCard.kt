@@ -37,13 +37,15 @@ fun MatchingQuestionCard(
 
     // Check match when both are selected
     LaunchedEffect(selectedLeft, selectedRight) {
-        if (selectedLeft != null && selectedRight != null) {
-            val pair = type.pairs.find { it.left == selectedLeft && it.right == selectedRight }
+        val leftPick = selectedLeft
+        val rightPick = selectedRight
+        if (leftPick != null && rightPick != null) {
+            val pair = type.pairs.find { it.left == leftPick && it.right == rightPick }
             if (pair != null) {
                 // Match correct
-                matchedLefts.add(selectedLeft!!)
-                matchedRights.add(selectedRight!!)
-                
+                matchedLefts.add(leftPick)
+                matchedRights.add(rightPick)
+
                 // Check if all matched
                 if (matchedLefts.size == type.pairs.size) {
                     onPairsMatched()

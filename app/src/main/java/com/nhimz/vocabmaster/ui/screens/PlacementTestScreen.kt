@@ -35,7 +35,7 @@ fun PlacementTestScreen(
     if (uiState.error != null) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(uiState.error!!, color = MaterialTheme.colorScheme.error)
+                Text(uiState.error.orEmpty(), color = MaterialTheme.colorScheme.error)
                 Spacer(modifier = Modifier.height(16.dp))
                 Button(onClick = onBack) {
                     Text("Go Back")
@@ -78,12 +78,13 @@ fun PlacementTestScreen(
         Spacer(modifier = Modifier.height(24.dp))
 
         Text(
-            text = "What is the meaning of:",
+            text = "Hoàn thành câu sau:",
             style = MaterialTheme.typography.titleMedium
         )
         Text(
-            text = uiState.currentWord,
-            style = MaterialTheme.typography.displaySmall,
+            text = uiState.prompt,
+            style = MaterialTheme.typography.titleLarge,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
             modifier = Modifier.padding(vertical = 16.dp)
         )
 

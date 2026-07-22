@@ -16,6 +16,7 @@ fun LoginScreen(
     viewModel: LoginViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val context = androidx.compose.ui.platform.LocalContext.current
 
     LaunchedEffect(uiState.isSuccess) {
         if (uiState.isSuccess) {
@@ -51,7 +52,7 @@ fun LoginScreen(
                 CircularProgressIndicator()
             } else {
                 Button(
-                    onClick = { viewModel.signInWithGoogle() },
+                    onClick = { viewModel.signInWithGoogle(context) },
                     modifier = Modifier.fillMaxWidth().height(56.dp)
                 ) {
                     Text("Đăng nhập bằng Google", style = MaterialTheme.typography.titleMedium)
@@ -60,14 +61,14 @@ fun LoginScreen(
                 Spacer(modifier = Modifier.height(16.dp))
                 
                 TextButton(onClick = onLoginSuccess) {
-                    Text("Bỏ qua (Học Offline)")
+                    Text("Tiếp tục không cần Đăng Nhập")
                 }
             }
             
             if (uiState.error != null) {
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
-                    text = uiState.error!!,
+                    text = uiState.error.orEmpty(),
                     color = MaterialTheme.colorScheme.error,
                     style = MaterialTheme.typography.bodyMedium
                 )

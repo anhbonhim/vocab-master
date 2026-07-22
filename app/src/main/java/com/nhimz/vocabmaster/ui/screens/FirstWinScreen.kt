@@ -1,5 +1,6 @@
 package com.nhimz.vocabmaster.ui.screens
 
+import com.nhimz.vocabmaster.domain.model.displayTitle
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.animateFloatAsState
@@ -117,6 +118,11 @@ fun FirstWinScreen(
     )
 
     // Celebration confetti simulation loop
+    val configuration = androidx.compose.ui.platform.LocalConfiguration.current
+    val density = androidx.compose.ui.platform.LocalDensity.current
+    val screenWidthPx = with(density) { configuration.screenWidthDp.dp.toPx() }
+    val screenHeightPx = with(density) { configuration.screenHeightDp.dp.toPx() }
+
     LaunchedEffect(sessionState) {
         if (sessionState is FirstWinSessionState.Completed) {
             celebrationTriggered = true
@@ -131,8 +137,8 @@ fun FirstWinScreen(
                 val speed = Random.nextFloat() * 15f + 10f
                 particles.add(
                     FirstWinConfettiParticle(
-                        x = 540f,
-                        y = 800f,
+                        x = screenWidthPx / 2f,
+                        y = screenHeightPx * 0.4f,
                         size = Random.nextFloat() * 15f + 15f,
                         color = colors.random(),
                         vx = (cos(angle) * speed).toFloat(),
@@ -158,9 +164,9 @@ fun FirstWinScreen(
                         p.rotation += p.rotationSpeed
 
                         // Recycle falling particles
-                        if (p.y > 2200f) {
+                        if (p.y > screenHeightPx) {
                             p.y = -50f
-                            p.x = Random.nextFloat() * 1080f
+                            p.x = Random.nextFloat() * screenWidthPx
                             p.vy = Random.nextFloat() * 5f + 2f
                             p.vx = Random.nextFloat() * 4f - 2f
                         }
@@ -280,15 +286,15 @@ fun FirstWinScreen(
                             // Dynamic options with DuolingoOptionCard
                             activeQuestion.options.forEachIndexed { index, option ->
                                 val isSelected = selectedOptionIndex == index
-                                val isCorrectState = if (hasAnswered) {
-                                    index == activeQuestion.correctIndex
+                                val finalCorrectState = if (hasAnswered) {
+                                    if (index == activeQuestion.correctIndex) {
+                                        true
+                                    } else if (isSelected) {
+                                        false
+                                    } else {
+                                        null
+                                    }
                                 } else null
-
-                                val isWrongState = if (hasAnswered && isSelected && !isCorrectState!!) {
-                                    false
-                                } else null
-
-                                val finalCorrectState = isCorrectState ?: isWrongState
 
                                 DuolingoOptionCard(
                                     optionText = option,
@@ -310,19 +316,18 @@ fun FirstWinScreen(
                     if (!hasAnswered) {
                         Button(
                             onClick = {
-                                if (selectedOptionIndex != null) {
-                                    val isCorrect = selectedOptionIndex == question.correctIndex
-                                    if (!isCorrect) {
-                                        scope.launch {
-                                            repeat(3) {
-                                                shakeOffset.animateTo(15f, tween(40))
-                                                shakeOffset.animateTo(-15f, tween(40))
-                                            }
-                                            shakeOffset.animateTo(0f, tween(40))
+                                val pickedIndex = selectedOptionIndex ?: return@Button
+                                val isCorrect = pickedIndex == question.correctIndex
+                                if (!isCorrect) {
+                                    scope.launch {
+                                        repeat(3) {
+                                            shakeOffset.animateTo(15f, tween(40))
+                                            shakeOffset.animateTo(-15f, tween(40))
                                         }
+                                        shakeOffset.animateTo(0f, tween(40))
                                     }
-                                    viewModel.submitAnswer(selectedOptionIndex!!)
                                 }
+                                viewModel.submitAnswer(pickedIndex)
                             },
                             enabled = selectedOptionIndex != null,
                             modifier = Modifier
@@ -350,7 +355,7 @@ fun FirstWinScreen(
                 if (hasAnswered) {
                     FeedbackBanner(
                         isCorrect = state.isCorrectAnswer,
-                        correctAnswerText = question.item.definition,
+                        correctAnswerText = question.item.question.translation ?: "",
                         onContinueClick = {
                             viewModel.nextQuestion()
                             selectedOptionIndex = null
