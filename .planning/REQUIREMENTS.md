@@ -1,95 +1,79 @@
-# Requirements: VocabMaster Refactor & Audit
+# Requirements: VocabMaster
 
-**Defined:** 2026-07-20
+**Defined:** 2026-07-22
 **Core Value:** Ensure absolute correctness of the spaced repetition scheduling logic and deliver a highly polished, intuitive, and modern user experience.
 
-## v1 Requirements
+## v1.1 Requirements
 
-Requirements for the refactored and audited application, mapped directly to roadmap phases.
+### Content & Data Quality (New)
 
-### FSRS Algorithm & Math Engine
+- [ ] **CONT-01**: Thiết kế API endpoints trên FastAPI backend để cấp phát dữ liệu Topic, Lesson và bài tập (hỗ trợ tải động theo nhu cầu).
+- [ ] **CONT-02**: Tích hợp luồng sử dụng AI (LLM) ở backend để tự động sinh bài tập (nghe, điền từ, sắp xếp) từ bộ từ vựng, đi kèm script kiểm định chất lượng nội dung.
+- [ ] **CONT-03**: Xây dựng Schema Validation (ví dụ bằng Pydantic trên backend) để đảm bảo dữ liệu sinh ra hoặc nhập vào luôn đúng cấu trúc và phân cấp độ khó.
+- [ ] **CONT-04**: Thêm tính năng "Báo lỗi câu hỏi" (User Report) trong UI bài học để người dùng gửi phản hồi về nội dung sai lệch về backend.
 
-- [x] **FSRS-01**: The FSRS scheduler calculations must be mathematically correct, eliminating negative stability and difficulty values.
-- [x] **FSRS-02**: All FSRS computations must prevent out-of-bounds intervals, ensuring computed intervals are positive integers.
-- [x] **FSRS-03**: FSRS math must be fully localized, removing formatting calls (like `String.format`) that cause decimal separator crashes in non-US locales.
-- [x] **FSRS-04**: Core FSRS scheduling math must be covered by comprehensive unit tests with golden vectors.
-- [x] **FSRS-05**: Port the py-fsrs optimizer (parameter training from review logs) to Kotlin so custom FSRS weights can be trained from user review history. (Moved here from Out-of-Scope during Phase 1 discuss-phase on 2026-07-20 — full py-fsrs port was chosen as the FSRS fix strategy.)
+### Architecture & Data
 
-### Database & Local Persistence
+- [ ] **ARCH-01**: Implement Curriculum Data Models (Topic, Lesson, Exercise) in Room and Domain, cleanly separated from FSRS state.
+- [ ] **ARCH-02**: Implement `QuizInteractionState` machine in `QuizViewModel` to handle Waiting, Answered (Instant Feedback), and Finished states.
+- [ ] **ARCH-03**: Integrate `androidx.media3:media3-exoplayer` via a cleanly decoupled `AudioPlayerUseCase` for listening exercises.
 
-- [x] **PERS-01**: Configure explicit XML data extraction rules (`data_extraction_rules.xml`) to prevent Room DB and Datastore keys from leaking through default cloud backups.
-- [x] **PERS-02**: Ensure all Room DAO operations run on appropriate background threads (using `suspend` for writes and `Flow` for reads) to prevent UI blocking.
-- [x] **PERS-03**: Implement database transaction bounds for atomic cards and review logs updates to prevent desynchronization.
-- [x] **PERS-04**: Replace dynamic, unsafe JSON asset parsing fallbacks in repositories with robust error handling and specific exception catching.
+### Gamified UI
 
-### UI & Presentation Layer Architecture
+- [ ] **UI-01**: Refactor `QuizScreen` to use a polymorphic UI pattern (delegating to separate Composables based on `QuestionType`).
+- [ ] **UI-02**: Implement instant visual feedback using `DotLottie` animations for Correct/Incorrect states without causing unstable recomposition.
+- [ ] **UI-03**: Ensure smooth transitions between questions when the user taps 'Tiếp tục' (Continue) after receiving feedback.
 
-- [ ] **ARCH-01**: Refactor large monolithic Compose screens (e.g., `HomeScreen.kt` and `QuizScreen.kt`) into Screen/Content patterns, separating state/events from pure UI layout.
-- [ ] **ARCH-02**: Eliminate all unsafe forced unwraps (`!!`) and raw unsafe casts (`as`) in ViewModels and UI, replacing them with safe type casting (`as?`) and Elvis operators.
-- [ ] **ARCH-03**: Expose UI state from ViewModels using structured, immutable `UiState` classes via Kotlin `StateFlow` (UDF pattern).
-- [ ] **ARCH-04**: Hoist scheduling and quiz logic from ViewModels into clean domain Use Cases (e.g. `SubmitReviewUseCase`).
+### Exercise Types
 
-### UX Flow & Redesign
+- [ ] **EXER-01**: Implement gamified UI and state handling for Multiple Choice exercises.
+- [ ] **EXER-02**: Implement UI and audio playback for Listening (Audio) exercises.
+- [ ] **EXER-03**: Implement UI and text input parsing for Fill-in-the-blanks exercises.
+- [ ] **EXER-04**: Implement UI and interaction logic (tap-to-select chips or drag-and-drop) for Sentence Arrangement exercises.
 
-- [ ] **UX-01**: Implement smooth navigation transitions using type-safe argument passing APIs.
-- [ ] **UX-02**: Refactor Quiz flow to handle screen orientation changes without losing active session progress.
-- [ ] **UX-03**: Build user feedback states during quizzes (correct/incorrect answer highlights, card scheduling preview) with high-fidelity visual indicators.
-- [ ] **UI-01**: Standardize spacing, typography, and theme across all Compose screens using a clean, modern design system layout.
+## Future Requirements
 
-### Sync & Networking
+Deferred to future release. Tracked but not in current roadmap.
 
-- [ ] **SYNC-01**: Verify data sync flow and ensure `SyncManager` handles backend request failures gracefully with retry mechanisms.
-- [ ] **SYNC-02**: Ensure bidirectional data synchronization does not corrupt or downgrade FSRS card states.
+### [Category]
 
-## v2 Requirements
-
-### Advanced AI Integrations
-
-- **AI-01**: AI-generated context mnemonics and dynamic example sentences based on CEFR levels.
-- **AI-02**: Extraction of vocabulary directly from PDF or YouTube link inputs.
-
-### Analytics & Custom Decks
-
-- **ANL-01**: Advanced learning progress charts and FSRS parameter tuning dashboard.
-- **DK-01**: Custom user-generated vocabulary decks sharing and community reviews.
+- **[CAT]-01**: [Requirement description]
 
 ## Out of Scope
 
+Explicitly excluded. Documented to prevent scope creep.
+
 | Feature | Reason |
 |---------|--------|
-| Multi-module restructure | gradle module architecture is already modular (`app`, `domain`, `data`) and functional |
-| Full backend rewrite | fastapi backend structure is locked; only adjust endpoints or sync payloads if contracts break |
+| Complex 3D Canvas Animations | Too high engineering effort; sticking to DotLottie for now. |
+| Mixed FSRS rating during Gamified Quiz | Gamified UI uses Check -> Continue. FSRS ratings (Again/Hard/Good/Easy) must remain separate. |
 
 ## Traceability
 
+Which phases cover which requirements. Updated during roadmap creation.
+
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| FSRS-01 | Phase 1 | Complete |
-| FSRS-02 | Phase 1 | Complete |
-| FSRS-03 | Phase 1 | Complete |
-| FSRS-04 | Phase 1 | Complete |
-| FSRS-05 | Phase 1 | Complete |
-| PERS-01 | Phase 1 | Complete |
-| PERS-02 | Phase 1 | Complete |
-| PERS-03 | Phase 1 | Complete |
-| PERS-04 | Phase 1 | Complete |
+| CONT-01 | Phase 1 | Pending |
+| CONT-02 | Phase 1 | Pending |
+| CONT-03 | Phase 1 | Pending |
+| CONT-04 | Phase 1 | Pending |
+| ARCH-01 | Phase 2 | Pending |
+| ARCH-02 | Phase 2 | Pending |
 | ARCH-03 | Phase 2 | Pending |
-| ARCH-04 | Phase 2 | Pending |
-| ARCH-01 | Phase 3 | Pending |
-| ARCH-02 | Phase 3 | Pending |
-| UX-01 | Phase 3 | Pending |
-| UX-02 | Phase 3 | Pending |
-| UX-03 | Phase 3 | Pending |
 | UI-01 | Phase 3 | Pending |
-| SYNC-01 | Phase 4 | Pending |
-| SYNC-02 | Phase 4 | Pending |
+| UI-02 | Phase 3 | Pending |
+| UI-03 | Phase 3 | Pending |
+| EXER-01 | Phase 4 | Pending |
+| EXER-02 | Phase 4 | Pending |
+| EXER-03 | Phase 4 | Pending |
+| EXER-04 | Phase 4 | Pending |
 
 **Coverage:**
-
-- v1 requirements: 19 total
-- Mapped to phases: 19
-- Unmapped: 0 ✓
+- v1 requirements: 14 total
+- Mapped to phases: 0
+- Unmapped: 14 ⚠️
 
 ---
-*Requirements defined: 2026-07-20*
-*Last updated: 2026-07-20 after initial definition*
+*Requirements defined: 2026-07-22*
+*Last updated: 2026-07-22 after adding Content Quality requirements*
