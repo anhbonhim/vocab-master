@@ -91,9 +91,9 @@ Plans:
 
 Plans:
 
-- [ ] 03-01: Decouple Monolithic Screen Composables (HomeScreen & SettingsScreen)
-- [ ] 03-02: Refactor QuizScreen and Add UX Feedback/State Transition Animations
-- [ ] 03-03: Type-safe Navigation Compose Migration and Theme Standardization
+- [ ] 03-01-PLAN.md — Refactor Home/Settings to Container/Content & Base 3D Theme
+- [ ] 03-02-PLAN.md — Refactor QuizScreen, 3D Components, and SavedStateHandle
+- [ ] 03-03-PLAN.md — Type-Safe Navigation Compose Migration
 
 ### Phase 4: Sync & Integration Verification
 
