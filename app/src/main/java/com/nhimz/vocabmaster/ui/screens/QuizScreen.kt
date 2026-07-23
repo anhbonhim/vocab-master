@@ -10,7 +10,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
-import com.nhimz.vocabmaster.audio.CDNAudioPlayer
 import com.nhimz.vocabmaster.domain.model.quiz.QuizType
 import com.nhimz.vocabmaster.ui.components.SnackbarMessage
 import com.nhimz.vocabmaster.ui.components.showSnackbar
@@ -39,7 +38,6 @@ import com.nhimz.vocabmaster.util.LocalLogger
 fun QuizScreen(
     onSessionCompleted: (xpGained: Int, durationSeconds: Int, correctCount: Int, totalCount: Int, averageStability: Double, incorrectCardIds: List<String>, isLevelTest: Boolean, isPassedLevelTest: Boolean) -> Unit,
     onBackToHome: () -> Unit,
-    cdnAudioPlayer: CDNAudioPlayer,
     viewModel: QuizViewModel,
     snackbarHostState: SnackbarHostState? = null
 ) {
@@ -182,14 +180,16 @@ fun QuizScreen(
                 },
                 onFsrsRating = { r ->
                     viewModel.submitAnswer(fsrsRating = r)
+                },
+                onPlayAudio = { url ->
+                    viewModel.playAudio(url)
                 }
             )
 
             key(state.currentIndex) {
                 QuizScreenContent(
                     state = contentState,
-                    actions = actions,
-                    cdnAudioPlayer = cdnAudioPlayer
+                    actions = actions
                 )
             }
         }

@@ -214,7 +214,6 @@ fun vocabMasterEntryProvider(
                 )
             },
             onBackToHome = { mainViewModel.navigateTopLevel(Screen.Home) },
-            cdnAudioPlayer = cdnAudioPlayer,
             viewModel = quizViewModel,
             snackbarHostState = snackbarHostState
         )

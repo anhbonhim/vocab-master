@@ -34,7 +34,7 @@ import kotlin.math.sin
 @Composable
 fun FSRSTreeProgressBar(
     stability: Double, // FSRS stability value
-    maxStability: Double = 365.0, // Assume 1 year is a fully grown tree
+    maxStability: Double = 30.0, // Assume 1 month is a fully grown tree
     modifier: Modifier = Modifier
 ) {
     // Normalize progress between 0f and 1f
@@ -52,7 +52,7 @@ fun FSRSTreeProgressBar(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         val stageLabel = when {
-            animatedProgress < 0.1f -> "Hạt giống mầm"
+            animatedProgress < 0.05f -> "Hạt giống mầm"
             animatedProgress < 0.4f -> "Cây non"
             animatedProgress < 0.8f -> "Cây đang lớn"
             else -> "Cây trưởng thành"
@@ -101,9 +101,9 @@ fun FSRSTreeProgressBar(
                     )
 
                     // 3. Draw Leaves/Branches based on stage
-                    if (animatedProgress >= 0.1f) {
+                    if (animatedProgress >= 0.05f) {
                         // Sprout stage (small leaf)
-                        val leafScale = if (animatedProgress < 0.4f) (animatedProgress - 0.1f) / 0.3f else 1f
+                        val leafScale = if (animatedProgress < 0.4f) (animatedProgress - 0.05f) / 0.35f else 1f
                         drawCircle(
                             color = treeColor.copy(alpha = 0.8f),
                             radius = 15f * leafScale,

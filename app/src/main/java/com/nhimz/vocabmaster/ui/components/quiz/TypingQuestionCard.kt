@@ -13,7 +13,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.nhimz.vocabmaster.audio.CDNAudioPlayer
 import com.nhimz.vocabmaster.domain.model.quiz.QuizType
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -23,7 +22,7 @@ fun TypingQuestionCard(
     hasAnswered: Boolean,
     typedText: String,
     onTextChanged: (String) -> Unit,
-    cdnAudioPlayer: CDNAudioPlayer
+    onPlayAudio: (String?) -> Unit
 ) {
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -37,7 +36,7 @@ fun TypingQuestionCard(
                 modifier = Modifier.padding(vertical = 16.dp)
             ) {
                 Button(
-                    onClick = { cdnAudioPlayer.playAudio(type.audioUrl) },
+                    onClick = { onPlayAudio(type.audioUrl) },
                     modifier = Modifier.size(70.dp),
                     shape = CircleShape,
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
@@ -48,7 +47,7 @@ fun TypingQuestionCard(
                 type.audioUrlSlow?.let { slowUrl ->
                     Spacer(modifier = Modifier.width(16.dp))
                     Button(
-                        onClick = { cdnAudioPlayer.playAudio(slowUrl) },
+                        onClick = { onPlayAudio(slowUrl) },
                         modifier = Modifier.size(50.dp),
                         shape = CircleShape,
                         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)

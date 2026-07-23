@@ -12,7 +12,20 @@
           "package_name": "com.nhimz.vocabmaster"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "170306776528-2svmvsmun51ki0qh7r8qhki1t2rjv19q.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.nhimz.vocabmaster",
+            "certificate_hash": "1aee73d2ab3b859e9cf985cae147b2709942dcad"
+          }
+        },
+        {
+          "client_id": "170306776528-cl98eh785k2s5cto0nmd0uudkjo9lkji.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyDFNMrOD5SjpH5nW_0ALWRQCSuVNKqAEy8"
@@ -20,7 +33,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "170306776528-cl98eh785k2s5cto0nmd0uudkjo9lkji.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

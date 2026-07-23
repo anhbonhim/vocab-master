@@ -15,46 +15,34 @@ class PlacementTestUseCase @Inject constructor() {
     fun answerQuestion(session: PlacementTestSession, isCorrect: Boolean): PlacementTestSession {
         if (session.isFinished) return session
 
-        val nextQuestionsAsked = session.questionsAskedInCurrentLevel + 1
-        val nextCorrectAnswers = session.correctAnswersInCurrentLevel + (if (isCorrect) 1 else 0)
+        val totalQuestionsAsked = session.totalQuestionsAsked + 1
+        var consecutiveWrongAnswers = session.consecutiveWrongAnswers
+        var currentLevel = session.currentLevel
 
-        val questionsPerLevel = 8
-        if (nextQuestionsAsked < questionsPerLevel) {
-            return session.copy(
-                questionsAskedInCurrentLevel = nextQuestionsAsked,
-                correctAnswersInCurrentLevel = nextCorrectAnswers
-            )
+        if (isCorrect) {
+            consecutiveWrongAnswers = 0
+            currentLevel = getNextLevel(currentLevel) ?: currentLevel
         } else {
-            // Level completed. Evaluate if correctness >= 70% (which is 5.6, i.e. >= 6 out of 8)
-            val correctness = nextCorrectAnswers.toDouble() / questionsPerLevel
-            if (correctness >= 0.70) {
-                // Passed current level! Move up
-                val nextLevel = getNextLevel(session.currentLevel)
-                if (nextLevel != null) {
-                    return session.copy(
-                        currentLevel = nextLevel,
-                        questionsAskedInCurrentLevel = 0,
-                        correctAnswersInCurrentLevel = 0,
-                        completedLevels = session.completedLevels + session.currentLevel
-                    )
-                } else {
-                    // Passed the highest level (C2). Finish test successfully!
-                    return session.copy(
-                        isFinished = true,
-                        resultLevel = session.currentLevel,
-                        completedLevels = session.completedLevels + session.currentLevel
-                    )
-                }
-            } else {
-                // Failed current level! Stop the test.
-                // The placement result is the previous level (the last one passed), or A1 if they failed A2.
-                val resultLevel = getPreviousLevel(session.currentLevel) ?: DifficultyLevel.A1
-                return session.copy(
-                    isFinished = true,
-                    resultLevel = resultLevel
-                )
+            consecutiveWrongAnswers += 1
+            if (consecutiveWrongAnswers >= 2) {
+                currentLevel = getPreviousLevel(currentLevel) ?: currentLevel
+                consecutiveWrongAnswers = 0
             }
         }
+
+        val isFinished = totalQuestionsAsked >= 15 || 
+                (totalQuestionsAsked >= 8 && (
+                        (currentLevel == DifficultyLevel.C2 && isCorrect) || 
+                        (currentLevel == DifficultyLevel.A1 && !isCorrect)
+                ))
+
+        return session.copy(
+            currentLevel = currentLevel,
+            totalQuestionsAsked = totalQuestionsAsked,
+            consecutiveWrongAnswers = consecutiveWrongAnswers,
+            isFinished = isFinished,
+            resultLevel = if (isFinished) currentLevel else null
+        )
     }
 
     private fun getNextLevel(level: DifficultyLevel): DifficultyLevel? {

@@ -7,9 +7,9 @@
 
 ### Content & Data Quality (New)
 
-- [ ] **CONT-01**: Thiết kế API endpoints trên FastAPI backend để cấp phát dữ liệu Topic, Lesson và bài tập (hỗ trợ tải động theo nhu cầu).
-- [ ] **CONT-02**: Tích hợp luồng sử dụng AI (LLM) ở backend để tự động sinh bài tập (nghe, điền từ, sắp xếp) từ bộ từ vựng, đi kèm script kiểm định chất lượng nội dung.
-- [ ] **CONT-03**: Xây dựng Schema Validation (ví dụ bằng Pydantic trên backend) để đảm bảo dữ liệu sinh ra hoặc nhập vào luôn đúng cấu trúc và phân cấp độ khó.
+- [x] **CONT-01**: Thiết kế API endpoints trên FastAPI backend để cấp phát dữ liệu Topic, Lesson và bài tập (hỗ trợ tải động theo nhu cầu).
+- [x] **CONT-02**: Tích hợp luồng sử dụng AI (LLM) ở backend để tự động sinh bài tập (nghe, điền từ, sắp xếp) từ bộ từ vựng, đi kèm script kiểm định chất lượng nội dung.
+- [x] **CONT-03**: Xây dựng Schema Validation (ví dụ bằng Pydantic trên backend) để đảm bảo dữ liệu sinh ra hoặc nhập vào luôn đúng cấu trúc và phân cấp độ khó.
 - [ ] **CONT-04**: Thêm tính năng "Báo lỗi câu hỏi" (User Report) trong UI bài học để người dùng gửi phản hồi về nội dung sai lệch về backend.
 
 ### Architecture & Data
@@ -54,9 +54,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| CONT-01 | Phase 5 | Pending |
-| CONT-02 | Phase 5 | Pending |
-| CONT-03 | Phase 5 | Pending |
+| CONT-01 | Phase 5 | Complete |
+| CONT-02 | Phase 5 | Complete |
+| CONT-03 | Phase 5 | Complete |
 | CONT-04 | Phase 7 | Pending |
 | ARCH-01 | Phase 6 | Pending |
 | ARCH-02 | Phase 6 | Pending |
@@ -70,6 +70,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | EXER-04 | Phase 8 | Pending |
 
 **Coverage:**
+
 - v1 requirements: 14 total
 - Mapped to phases: 14
 - Unmapped: 0 ✓

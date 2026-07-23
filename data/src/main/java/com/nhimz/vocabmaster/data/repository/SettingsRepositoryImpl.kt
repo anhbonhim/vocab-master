@@ -30,7 +30,7 @@ class SettingsRepositoryImpl @Inject constructor(
 ) : SettingsRepository {
 
     private object PreferencesKeys {
-        val DAILY_GOAL_MINUTES = intPreferencesKey("daily_goal_minutes")
+        val DAILY_GOAL_XP = intPreferencesKey("daily_goal_xp")
         val CURRENT_STREAK = intPreferencesKey("current_streak")
         val LONGEST_STREAK = intPreferencesKey("longest_streak")
         val AVAILABLE_FREEZES = intPreferencesKey("available_freezes")
@@ -49,7 +49,7 @@ class SettingsRepositoryImpl @Inject constructor(
 
     private val dataStore = context.dataStore
 
-    override val dailyGoalMinutes: Flow<Int> = dataStore.data
+    override val dailyGoalXp: Flow<Int> = dataStore.data
         .catch { exception ->
             if (exception is IOException) {
                 emit(emptyPreferences())
@@ -57,12 +57,12 @@ class SettingsRepositoryImpl @Inject constructor(
                 throw exception
             }
         }.map { preferences ->
-            preferences[PreferencesKeys.DAILY_GOAL_MINUTES] ?: 5
+            preferences[PreferencesKeys.DAILY_GOAL_XP] ?: 50
         }
 
-    override suspend fun setDailyGoalMinutes(minutes: Int) {
+    override suspend fun updateDailyGoal(xp: Int) {
         dataStore.edit { preferences ->
-            preferences[PreferencesKeys.DAILY_GOAL_MINUTES] = minutes
+            preferences[PreferencesKeys.DAILY_GOAL_XP] = xp
         }
     }
 
@@ -319,6 +319,12 @@ class SettingsRepositoryImpl @Inject constructor(
     override suspend fun setUseLocalDevServer(enabled: Boolean) {
         dataStore.edit { preferences ->
             preferences[PreferencesKeys.USE_LOCAL_DEV_SERVER] = enabled
+        }
+    }
+
+    suspend fun resetForMigrationV6() {
+        dataStore.edit { preferences ->
+            preferences.clear()
         }
     }
 }

@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -101,7 +102,7 @@ private fun SelectedWordsArea(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(100.dp)
+                .defaultMinSize(minHeight = 100.dp)
                 .padding(16.dp),
             contentAlignment = Alignment.TopStart
         ) {

@@ -16,7 +16,7 @@ class UserSettingsSchema(BaseModel):
     selectedTopic: str
 
 class VocabularyCardSchema(BaseModel):
-    word: str
+    questionId: str
     due: str
     stability: float
     difficulty: float
@@ -28,7 +28,7 @@ class VocabularyCardSchema(BaseModel):
     lastModified: int
 
 class ReviewLogSchema(BaseModel):
-    word: str
+    questionId: str
     rating: int
     elapsed_days: int
     scheduled_days: int

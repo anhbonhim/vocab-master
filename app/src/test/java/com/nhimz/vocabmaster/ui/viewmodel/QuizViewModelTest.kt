@@ -50,12 +50,19 @@ class QuizViewModelTest {
     }
 
     private fun createViewModel(savedStateHandle: SavedStateHandle = SavedStateHandle()): QuizViewModel {
+        val fakeAudioPlayer = object : com.nhimz.vocabmaster.domain.audio.AudioPlayer {
+            override fun playAudio(url: String?) {}
+            override fun stop() {}
+            override fun shutdown() {}
+        }
+        val audioPlayerUseCase = AudioPlayerUseCase(fakeAudioPlayer)
         return QuizViewModel(
             savedStateHandle = savedStateHandle,
             loadQuizSessionUseCase = loadQuizSessionUseCase,
             evaluateAnswerUseCase = evaluateAnswerUseCase,
             submitReviewUseCase = submitReviewUseCase,
-            completeQuizSessionUseCase = completeQuizSessionUseCase
+            completeQuizSessionUseCase = completeQuizSessionUseCase,
+            audioPlayerUseCase = audioPlayerUseCase
         )
     }
 

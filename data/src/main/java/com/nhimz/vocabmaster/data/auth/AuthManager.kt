@@ -43,7 +43,7 @@ class AuthManager @Inject constructor(
         }
     }
 
-    suspend fun signInWithGoogle(): Result<AppUser> {
+    suspend fun signInWithGoogle(activityContext: Context): Result<AppUser> {
         return try {
             val webClientId = "170306776528-cl98eh785k2s5cto0nmd0uudkjo9lkji.apps.googleusercontent.com" 
             
@@ -57,7 +57,8 @@ class AuthManager @Inject constructor(
                 .addCredentialOption(googleIdOption)
                 .build()
 
-            val result = credentialManager.getCredential(context, request)
+            val localCredentialManager = CredentialManager.create(activityContext)
+            val result = localCredentialManager.getCredential(activityContext, request)
             handleSignIn(result)
         } catch (e: Exception) {
             Log.e("AuthManager", "Google Sign In Failed", e)

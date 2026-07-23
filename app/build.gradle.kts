@@ -4,7 +4,7 @@ plugins {
   alias(libs.plugins.kotlin.serialization)
   alias(libs.plugins.ksp)
   alias(libs.plugins.hilt)
-    alias(libs.plugins.google.services)
+  alias(libs.plugins.google.services)
 }
 
 android {
@@ -16,11 +16,16 @@ android {
         targetSdk = 36
         versionCode = 1
         versionName = "1.0"
+        multiDexEnabled = true
     }
 
     buildTypes {
-        release {
+        debug {
             isMinifyEnabled = false
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+        }
+        release {
+            isMinifyEnabled = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }
@@ -96,6 +101,10 @@ dependencies {
   // Hilt Dependency Injection
   implementation(libs.hilt.android)
   ksp(libs.hilt.compiler)
+  
+  // Hilt multi-module compiler workaround
+  kspTest(libs.hilt.compiler)
+  kspAndroidTest(libs.hilt.compiler)
 
   // Room DB dependency in app module for debug db tools
   implementation(libs.room.runtime)
@@ -104,15 +113,12 @@ dependencies {
   // Lottie Animation
   implementation(libs.lottie.compose)
 
+  // Coil for SVG
+  implementation(libs.coil.compose)
+  implementation(libs.coil.svg)
+
   // Media3 / ExoPlayer for CDN Audio
   implementation(libs.androidx.media3.exoplayer)
   implementation(libs.androidx.media3.ui)
-}
-
-dependencies {
-    
-}
-
-dependencies {
-    implementation(libs.androidx.hilt.navigation.compose)
+  implementation(libs.androidx.hilt.navigation.compose)
 }

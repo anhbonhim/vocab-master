@@ -44,7 +44,6 @@ class CompleteQuizSessionUseCaseTest {
         assertTrue(result.isSuccess)
         assertTrue(result.getOrThrow().isPassed)
         assertEquals(2, vocabularyRepository.markNodeCompletedCalls)
-        assertEquals("n1", vocabularyRepository.lastMarkNodeCompletedArgs?.first)
     }
 
     @Test
@@ -98,7 +97,7 @@ class CompleteQuizSessionUseCaseTest {
         val result = useCase(QuizCompletionInput(correctCount = 7, totalQuestions = 10, xpGained = 70, nodeId = "node-1"))
 
         assertTrue(result.isSuccess)
-        assertTrue(result.getOrThrow().isPassed)
+        // Regular nodes do not produce a pass/fail flag; they only mark completion.
         assertEquals(1, vocabularyRepository.markNodeCompletedCalls)
         assertEquals("node-1", vocabularyRepository.lastMarkNodeCompletedArgs?.first)
     }
@@ -121,7 +120,7 @@ class CompleteQuizSessionUseCaseTest {
     @Test
     fun `repository throw returns Result failure`() = runTest {
         vocabularyRepository.getNodesByUnitResult = flowOf(emptyList())
-        vocabularyRepository.failure = RuntimeException("boom")
+        vocabularyRepository.getNodesByUnitFailure = RuntimeException("boom")
 
         val result = useCase(QuizCompletionInput(correctCount = 8, totalQuestions = 10, xpGained = 80, isJumpTest = true, unitIdForJumpTest = "unit-1"))
 

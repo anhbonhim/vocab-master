@@ -38,6 +38,15 @@ object LocalLogger {
         appendLog(LogEvent(level = "I", tag = tag, message = message))
     }
 
+    fun w(tag: String, message: String) {
+        Log.w(tag, message)
+        appendLog(LogEvent(level = "W", tag = tag, message = message))
+    }
+
+    fun section(tag: String, title: String) {
+        i(tag, "═══ [$title] ═══")
+    }
+
     fun e(tag: String, message: String, throwable: Throwable? = null) {
         Log.e(tag, message, throwable)
         val fullMessage = if (throwable != null) "$message\n${throwable.stackTraceToString()}" else message

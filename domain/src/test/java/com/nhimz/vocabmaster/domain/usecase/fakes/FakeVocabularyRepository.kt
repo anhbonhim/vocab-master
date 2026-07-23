@@ -21,6 +21,7 @@ open class FakeVocabularyRepository : VocabularyRepository {
     var getDueCardsResult: Flow<List<QuestionWithCard>> = flowOf(emptyList())
     var getMistakesResult: List<QuestionWithCard> = emptyList()
     var getNodesByUnitResult: Flow<List<Node>> = flowOf(emptyList())
+    var getNodesByUnitFailure: Throwable? = null
     var failure: Throwable? = null
 
     var markNodeCompletedCalls: Int = 0
@@ -46,7 +47,8 @@ open class FakeVocabularyRepository : VocabularyRepository {
 
     override suspend fun getMistakes(limit: Int): List<QuestionWithCard> = getMistakesResult
 
-    override fun getNodesByUnit(unitId: String): Flow<List<Node>> = getNodesByUnitResult
+    override fun getNodesByUnit(unitId: String): Flow<List<Node>> =
+        getNodesByUnitFailure?.let { throw it } ?: getNodesByUnitResult
 
     override suspend fun markNodeCompleted(nodeId: String, accuracy: Float, bestScore: Int) {
         markNodeCompletedCalls++

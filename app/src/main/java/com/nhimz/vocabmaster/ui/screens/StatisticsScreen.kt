@@ -34,7 +34,8 @@ import com.nhimz.vocabmaster.ui.viewmodel.StatisticsViewModel
 
 @Composable
 fun StatisticsScreen(
-    viewModel: StatisticsViewModel
+    viewModel: StatisticsViewModel,
+    onReviewMistakes: (List<String>) -> Unit
 ) {
     var selectedTab by remember { mutableIntStateOf(0) }
     val tabs = listOf("Tổng quan", "Huy hiệu", "Sổ sai lầm")
@@ -77,7 +78,7 @@ fun StatisticsScreen(
             when (selectedTab) {
                 0 -> OverviewTab(xpHistory, stats)
                 1 -> BadgesTab(badges)
-                2 -> MistakeBankTab(mistakeCards)
+                2 -> MistakeBankTab(mistakeCards, onReviewMistakes)
             }
         }
     }

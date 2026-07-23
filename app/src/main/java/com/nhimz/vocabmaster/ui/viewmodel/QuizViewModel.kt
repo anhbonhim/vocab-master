@@ -49,7 +49,8 @@ class QuizViewModel @Inject constructor(
     private val loadQuizSessionUseCase: LoadQuizSessionUseCase,
     private val evaluateAnswerUseCase: EvaluateAnswerUseCase,
     private val submitReviewUseCase: SubmitReviewUseCase,
-    private val completeQuizSessionUseCase: CompleteQuizSessionUseCase
+    private val completeQuizSessionUseCase: CompleteQuizSessionUseCase,
+    private val audioPlayerUseCase: AudioPlayerUseCase
 ) : ViewModel() {
 
     companion object {
@@ -585,5 +586,14 @@ class QuizViewModel @Inject constructor(
             // durable together.
             persistActiveState(nextState)
         }
+    }
+
+    fun playAudio(url: String?) {
+        audioPlayerUseCase.playAudio(url)
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        audioPlayerUseCase.stop()
     }
 }

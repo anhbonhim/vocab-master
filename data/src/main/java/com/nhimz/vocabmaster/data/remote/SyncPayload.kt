@@ -4,7 +4,7 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class UserSettingsDto(
-    val dailyGoalMinutes: Int,
+    val dailyGoalXp: Int,
     val currentStreak: Int,
     val longestStreak: Int,
     val availableFreezes: Int,
@@ -19,7 +19,7 @@ data class UserSettingsDto(
 
 @Serializable
 data class VocabularyCardDto(
-    val word: String,
+    val questionId: String,
     val due: String, // ISO String
     val stability: Double,
     val difficulty: Double,
@@ -33,7 +33,7 @@ data class VocabularyCardDto(
 
 @Serializable
 data class ReviewLogDto(
-    val word: String,
+    val questionId: String,
     val rating: Int,
     val elapsed_days: Int,
     val scheduled_days: Int,

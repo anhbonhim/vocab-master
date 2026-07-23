@@ -7,7 +7,7 @@ class UserCard(Base):
 
     id = Column(BigInteger, primary_key=True, autoincrement=True)
     user_id = Column(String, index=True) # References users.id
-    word = Column(String, index=True)    # Natural key linking to vocabulary.word
+    questionId = Column(String, index=True)    # Natural key linking to vocabulary.word
     
     # FSRS fields
     due = Column(DateTime(timezone=True))
@@ -26,7 +26,7 @@ class ReviewLog(Base):
 
     id = Column(BigInteger, primary_key=True, autoincrement=True)
     user_id = Column(String, index=True)
-    word = Column(String, index=True)
+    questionId = Column(String, index=True)
     
     rating = Column(Integer)
     elapsed_days = Column(Integer)

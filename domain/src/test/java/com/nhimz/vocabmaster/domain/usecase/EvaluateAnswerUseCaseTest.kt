@@ -1,7 +1,7 @@
 package com.nhimz.vocabmaster.domain.usecase
 
+import com.nhimz.vocabmaster.domain.fsrs.v6.Card
 import com.nhimz.vocabmaster.domain.fsrs.v6.Rating
-import com.nhimz.vocabmaster.domain.model.Card
 import com.nhimz.vocabmaster.domain.model.MatchPair
 import com.nhimz.vocabmaster.domain.model.Question
 import com.nhimz.vocabmaster.domain.model.QuestionType

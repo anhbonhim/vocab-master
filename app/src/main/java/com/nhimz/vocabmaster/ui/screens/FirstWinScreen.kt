@@ -316,18 +316,20 @@ fun FirstWinScreen(
                     if (!hasAnswered) {
                         Button(
                             onClick = {
-                                val pickedIndex = selectedOptionIndex ?: return@Button
-                                val isCorrect = pickedIndex == question.correctIndex
-                                if (!isCorrect) {
-                                    scope.launch {
-                                        repeat(3) {
-                                            shakeOffset.animateTo(15f, tween(40))
-                                            shakeOffset.animateTo(-15f, tween(40))
+                                val pickedIndex = selectedOptionIndex
+                                if (pickedIndex != null) {
+                                    val isCorrect = pickedIndex == question.correctIndex
+                                    if (!isCorrect) {
+                                        scope.launch {
+                                            repeat(3) {
+                                                shakeOffset.animateTo(15f, tween(40))
+                                                shakeOffset.animateTo(-15f, tween(40))
+                                            }
+                                            shakeOffset.animateTo(0f, tween(40))
                                         }
-                                        shakeOffset.animateTo(0f, tween(40))
                                     }
+                                    viewModel.submitAnswer(pickedIndex)
                                 }
-                                viewModel.submitAnswer(pickedIndex)
                             },
                             enabled = selectedOptionIndex != null,
                             modifier = Modifier

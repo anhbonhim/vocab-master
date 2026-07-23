@@ -3,10 +3,10 @@ package com.nhimz.vocabmaster.ui.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.nhimz.vocabmaster.domain.model.DifficultyLevel
-import com.nhimz.vocabmaster.domain.model.VocabularyItem
+import com.nhimz.vocabmaster.domain.model.displayTitle
+import com.nhimz.vocabmaster.domain.model.QuestionType
 import com.nhimz.vocabmaster.domain.model.VocabularyRepository
 import com.nhimz.vocabmaster.domain.model.SettingsRepository
-import com.nhimz.vocabmaster.domain.usecase.GenerateDistractorsUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -16,7 +16,7 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 data class FirstWinQuestion(
-    val item: VocabularyItem,
+    val item: com.nhimz.vocabmaster.domain.model.QuestionWithCard,
     val prompt: String,
     val options: List<String>,
     val correctIndex: Int
@@ -38,8 +38,7 @@ sealed class FirstWinSessionState {
 @HiltViewModel
 class FirstWinViewModel @Inject constructor(
     private val vocabularyRepository: VocabularyRepository,
-    private val settingsRepository: SettingsRepository,
-    private val generateDistractorsUseCase: GenerateDistractorsUseCase
+    private val settingsRepository: SettingsRepository
 ) : ViewModel() {
 
     private val _sessionState = MutableStateFlow<FirstWinSessionState>(FirstWinSessionState.Loading)
@@ -61,36 +60,28 @@ class FirstWinViewModel @Inject constructor(
                 DifficultyLevel.A2
             }
 
-            // 2. Load all vocabulary for generating distractors
-            val allList = mutableListOf<VocabularyItem>()
-            for (l in DifficultyLevel.values()) {
-                val levelCards = vocabularyRepository.getCardsByLevel(l).first()
-                allList.addAll(levelCards.map { it.vocabulary })
-            }
-
-            // 3. Load cards for the specific level
-            val levelWords = vocabularyRepository.getCardsByLevel(level).first().map { it.vocabulary }
+            // Load cards (questions)
+            val levelCards = vocabularyRepository.getCardsByLevel(level).first()
             
-            // 4. Generate 7 random questions
-            val selectedWords = if (levelWords.size >= 7) {
-                levelWords.shuffled().take(7)
-            } else {
-                allList.shuffled().take(7)
+            // Filter MULTIPLE_CHOICE or FILL_IN_BLANK
+            val eligibleCards = levelCards.filter { 
+                it.question.type == QuestionType.MULTIPLE_CHOICE || it.question.type == QuestionType.FILL_IN_BLANK 
             }
 
-            val questions = selectedWords.map { wordItem ->
-                val distractorsPool = generateDistractorsUseCase.execute(
-                    correctItem = wordItem,
-                    allVocabulary = allList,
-                    count = 20
-                )
-                val otherTexts = distractorsPool.map { it.definition }.filter { it != wordItem.definition }.distinct().take(3)
-                val optionsList = (otherTexts + wordItem.definition).shuffled()
-                val correctIdx = optionsList.indexOf(wordItem.definition)
+            val selectedCards = if (eligibleCards.size >= 7) {
+                eligibleCards.shuffled().take(7)
+            } else {
+                eligibleCards // Just take what we have
+            }
+
+            val questions = selectedCards.map { cardItem ->
+                val q = cardItem.question
+                val optionsList = q.options ?: emptyList()
+                val correctIdx = q.correctIndex ?: 0
 
                 FirstWinQuestion(
-                    item = wordItem,
-                    prompt = wordItem.word,
+                    item = cardItem,
+                    prompt = q.prompt,
                     options = optionsList,
                     correctIndex = correctIdx
                 )

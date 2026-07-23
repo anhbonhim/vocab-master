@@ -8,7 +8,6 @@ import androidx.activity.viewModels
 import com.nhimz.vocabmaster.audio.CDNAudioPlayer
 import com.nhimz.vocabmaster.notification.NotificationScheduler
 import com.nhimz.vocabmaster.ui.VocabMasterApp
-import com.nhimz.vocabmaster.ui.viewmodel.FlashcardViewModel
 import com.nhimz.vocabmaster.ui.viewmodel.MainViewModel
 import com.nhimz.vocabmaster.ui.viewmodel.PlacementTestViewModel
 import com.nhimz.vocabmaster.ui.viewmodel.QuizViewModel
@@ -49,7 +48,6 @@ class MainActivity : ComponentActivity() {
     private val mainViewModel: MainViewModel by viewModels()
     private val placementTestViewModel: PlacementTestViewModel by viewModels()
     private val quizViewModel: QuizViewModel by viewModels()
-    private val flashcardViewModel: FlashcardViewModel by viewModels()
     private val statisticsViewModel: StatisticsViewModel by viewModels()
     private val settingsViewModel: SettingsViewModel by viewModels()
 
@@ -66,7 +64,6 @@ class MainActivity : ComponentActivity() {
                 mainViewModel = mainViewModel,
                 placementTestViewModel = placementTestViewModel,
                 quizViewModel = quizViewModel,
-                flashcardViewModel = flashcardViewModel,
                 statisticsViewModel = statisticsViewModel,
                 settingsViewModel = settingsViewModel,
                 cdnAudioPlayer = cdnAudioPlayer,

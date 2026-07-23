@@ -43,7 +43,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.nhimz.vocabmaster.audio.CDNAudioPlayer
 import com.nhimz.vocabmaster.domain.fsrs.v6.Rating
 import com.nhimz.vocabmaster.domain.model.displayTitle
 import com.nhimz.vocabmaster.domain.model.quiz.QuizQuestion
@@ -106,7 +105,8 @@ data class QuizScreenActions(
     val onFlipFlashcard: () -> Unit,
     val onSubmit: () -> Unit,
     val onContinue: () -> Unit,
-    val onFsrsRating: (Rating) -> Unit
+    val onFsrsRating: (Rating) -> Unit,
+    val onPlayAudio: (String?) -> Unit
 )
 
 /**
@@ -140,7 +140,6 @@ internal data class QuestionFormState(
 fun QuizScreenContent(
     state: QuizScreenUiState,
     actions: QuizScreenActions,
-    cdnAudioPlayer: CDNAudioPlayer,
     modifier: Modifier = Modifier
 ) {
     val question = state.currentQuestion ?: return
@@ -206,7 +205,7 @@ fun QuizScreenContent(
                 isFlipped = state.isFlipped,
                 selectedOptionIndex = resolvedSelectedOption,
                 onOptionSelected = actions.onOptionSelected,
-                cdnAudioPlayer = cdnAudioPlayer,
+                onPlayAudio = actions.onPlayAudio,
                 typedText = state.typedText,
                 onTypedTextChanged = actions.onTypedTextChanged,
                 selectedScrambledWords = state.selectedScrambledWords,
@@ -300,7 +299,7 @@ private fun QuestionContentWithShake(
     isFlipped: Boolean,
     selectedOptionIndex: Int?,
     onOptionSelected: (Int) -> Unit,
-    cdnAudioPlayer: CDNAudioPlayer,
+    onPlayAudio: (String?) -> Unit,
     typedText: String,
     onTypedTextChanged: (String) -> Unit,
     selectedScrambledWords: List<String>,
@@ -365,7 +364,7 @@ private fun QuestionContentWithShake(
                 isFlipped = isFlipped,
                 selectedOptionIndex = selectedOptionIndex,
                 onOptionSelected = onOptionSelected,
-                cdnAudioPlayer = cdnAudioPlayer,
+                onPlayAudio = onPlayAudio,
                 typedText = typedText,
                 onTypedTextChanged = onTypedTextChanged,
                 selectedScrambledWords = selectedScrambledWords,
@@ -424,7 +423,7 @@ private fun QuestionFrontFace(
     isFlipped: Boolean,
     selectedOptionIndex: Int?,
     onOptionSelected: (Int) -> Unit,
-    cdnAudioPlayer: CDNAudioPlayer,
+    onPlayAudio: (String?) -> Unit,
     typedText: String,
     onTypedTextChanged: (String) -> Unit,
     selectedScrambledWords: List<String>,
@@ -439,7 +438,7 @@ private fun QuestionFrontFace(
                 itemWithCard = type.itemWithCard,
                 prompt = type.prompt,
                 audioUrl = type.audioUrl,
-                cdnAudioPlayer = cdnAudioPlayer
+                onPlayAudio = onPlayAudio
             )
         }
         is QuizType.MultipleChoice -> {
@@ -456,7 +455,7 @@ private fun QuestionFrontFace(
                 hasAnswered = hasAnswered,
                 selectedOptionIndex = selectedOptionIndex,
                 onOptionSelected = onOptionSelected,
-                cdnAudioPlayer = cdnAudioPlayer
+                onPlayAudio = onPlayAudio
             )
         }
         is QuizType.Matching -> {
@@ -474,7 +473,7 @@ private fun QuestionFrontFace(
                 hasAnswered = hasAnswered,
                 typedText = typedText,
                 onTextChanged = onTypedTextChanged,
-                cdnAudioPlayer = cdnAudioPlayer
+                onPlayAudio = onPlayAudio
             )
         }
         is QuizType.ScrambledSentence -> {

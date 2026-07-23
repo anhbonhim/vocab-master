@@ -9,8 +9,8 @@ import com.nhimz.vocabmaster.domain.model.QuestionType
 import com.nhimz.vocabmaster.domain.model.QuestionWithCard
 import com.nhimz.vocabmaster.domain.model.Session
 import com.nhimz.vocabmaster.domain.model.quiz.QuestionDirection
-import com.nhimz.vocabmaster.domain.model.quiz.QuizSessionRequest
 import com.nhimz.vocabmaster.domain.model.quiz.QuizType
+import com.nhimz.vocabmaster.domain.usecase.QuizSessionRequest
 import com.nhimz.vocabmaster.domain.usecase.fakes.FakeVocabularyRepository
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
@@ -142,7 +142,7 @@ class LoadQuizSessionUseCaseTest {
             questionWithCard("card-1", QuestionType.TYPING),
             questionWithCard("card-2", QuestionType.TYPING)
         )
-        vocabularyRepository.getDueCardsResult = flowOf(dueCards)
+        vocabularyRepository.getDueCardsScopedResult = dueCards
 
         val result = useCase(QuizSessionRequest.ReviewNode("node-1", "unit-1", "section-1"))
 

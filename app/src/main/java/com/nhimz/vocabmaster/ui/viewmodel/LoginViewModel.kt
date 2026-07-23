@@ -36,10 +36,10 @@ class LoginViewModel @Inject constructor(
         }
     }
 
-    fun signInWithGoogle() {
+    fun signInWithGoogle(context: android.content.Context) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
-            val result = authManager.signInWithGoogle()
+            val result = authManager.signInWithGoogle(context)
             result.onSuccess {
                 _uiState.update { it.copy(isLoading = false, isSuccess = true) }
             }.onFailure { exception ->

@@ -26,11 +26,13 @@ import java.io.File
 import javax.inject.Inject
 import javax.inject.Singleton
 
+import com.nhimz.vocabmaster.domain.audio.AudioPlayer
+
 @Singleton
 class CDNAudioPlayer @Inject constructor(
     @param:ApplicationContext private val context: Context,
     private val settingsRepository: SettingsRepository
-) : DefaultLifecycleObserver {
+) : DefaultLifecycleObserver, AudioPlayer {
 
     private val cacheSize: Long = 90 * 1024 * 1024 // 90MB cache for OGG files
     private var simpleCache: SimpleCache? = null
@@ -83,7 +85,7 @@ class CDNAudioPlayer @Inject constructor(
         return cache.getCachedSpans(cacheKey).isNotEmpty()
     }
 
-    fun playAudio(url: String?) {
+    override fun playAudio(url: String?) {
         if (url.isNullOrBlank()) {
             LocalLogger.d("CDNAudioPlayer", "URL is null or blank. Silent fallback.")
             return
@@ -116,7 +118,7 @@ class CDNAudioPlayer @Inject constructor(
         }
     }
 
-    fun stop() {
+    override fun stop() {
         exoPlayer?.stop()
     }
 
@@ -125,7 +127,7 @@ class CDNAudioPlayer @Inject constructor(
         shutdown()
     }
 
-    fun shutdown() {
+    override fun shutdown() {
         exoPlayer?.stop()
         exoPlayer?.release()
         exoPlayer = null

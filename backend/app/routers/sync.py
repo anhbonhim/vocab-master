@@ -50,7 +50,7 @@ def sync_push(
     for card_schema in payload.vocabularyCards:
         existing = db.query(UserCard).filter(
             UserCard.user_id == user.id,
-            UserCard.word == card_schema.word
+            UserCard.questionId == card_schema.questionId
         ).first()
         
         due_dt = datetime.fromisoformat(card_schema.due)
@@ -60,7 +60,7 @@ def sync_push(
             # Create new record
             new_card = UserCard(
                 user_id=user.id,
-                word=card_schema.word,
+                questionId=card_schema.questionId,
                 due=due_dt,
                 stability=card_schema.stability,
                 difficulty=card_schema.difficulty,
@@ -90,14 +90,14 @@ def sync_push(
         log_time = datetime.fromisoformat(log_schema.timestamp)
         existing_log = db.query(ReviewLog).filter(
             ReviewLog.user_id == user.id,
-            ReviewLog.word == log_schema.word,
+            ReviewLog.questionId == log_schema.questionId,
             ReviewLog.timestamp == log_time
         ).first()
         
         if not existing_log:
             new_log = ReviewLog(
                 user_id=user.id,
-                word=log_schema.word,
+                questionId=log_schema.questionId,
                 rating=log_schema.rating,
                 elapsed_days=log_schema.elapsed_days,
                 scheduled_days=log_schema.scheduled_days,
@@ -150,7 +150,7 @@ def sync_pull(
     cards_schemas = []
     for c in cards:
         cards_schemas.append(VocabularyCardSchema(
-            word=c.word,
+            questionId=c.questionId,
             due=c.due.isoformat(),
             stability=c.stability,
             difficulty=c.difficulty,
@@ -174,7 +174,7 @@ def sync_pull(
     logs_schemas = []
     for l in logs:
         logs_schemas.append(ReviewLogSchema(
-            word=l.word,
+            questionId=l.questionId,
             rating=l.rating,
             elapsed_days=l.elapsed_days,
             scheduled_days=l.scheduled_days,

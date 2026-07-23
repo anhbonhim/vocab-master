@@ -13,7 +13,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.nhimz.vocabmaster.audio.CDNAudioPlayer
 import com.nhimz.vocabmaster.domain.model.quiz.QuizType
 
 @Composable
@@ -22,7 +21,7 @@ fun ListeningQuestionCard(
     hasAnswered: Boolean,
     selectedOptionIndex: Int?,
     onOptionSelected: (Int) -> Unit,
-    cdnAudioPlayer: CDNAudioPlayer
+    onPlayAudio: (String?) -> Unit
 ) {
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -38,7 +37,7 @@ fun ListeningQuestionCard(
             Button(
                 onClick = { 
                     type.audioUrl?.let { url ->
-                        cdnAudioPlayer.playAudio(url)
+                        onPlayAudio(url)
                     }
                 },
                 modifier = Modifier.size(80.dp),
@@ -54,10 +53,10 @@ fun ListeningQuestionCard(
             Button(
                 onClick = {
                     type.audioUrlSlow?.let { url ->
-                        cdnAudioPlayer.playAudio(url)
+                        onPlayAudio(url)
                     } ?: type.audioUrl?.let { url ->
                         // Fallback to normal if slow is missing
-                        cdnAudioPlayer.playAudio(url)
+                        onPlayAudio(url)
                     }
                 },
                 modifier = Modifier.size(60.dp),

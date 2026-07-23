@@ -14,9 +14,11 @@ data class PlacementOptionDto(
 
 @Serializable
 data class PlacementQuestionDto(
-    val vocab_id: Int,
-    val word: String,
-    val options: List<PlacementOptionDto>
+    val question_id: String,
+    val prompt: String,
+    val correct_option_id: Int,
+    val options: List<PlacementOptionDto>,
+    val type: Int = 2 // MULTIPLE_CHOICE
 )
 
 @Serializable
@@ -27,10 +29,18 @@ data class PlacementStartResponse(
 )
 
 @Serializable
-data class AnswerRequestDto(
-    val vocab_id: Int,
+data class AnswerItemDto(
+    val question_id: String,
     val is_correct: Boolean,
     val response_time_ms: Int
+)
+
+@Serializable
+data class AnswerRequestDto(
+    val responses: List<AnswerItemDto>?,
+    val latest_question_id: String,
+    val latest_is_correct: Boolean,
+    val latest_response_time_ms: Int
 )
 
 @Serializable

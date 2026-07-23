@@ -5,7 +5,8 @@ import androidx.room.PrimaryKey
 
 @Entity(tableName = "flagged_items")
 data class FlaggedItemEntity(
-    @PrimaryKey val word: String,
+    @PrimaryKey val questionId: String,
+    val word: String?, // For display fallback
     val issueType: String, // "AUDIO_ISSUE", "DATA_ISSUE"
     val details: String,
     val timestamp: Long
