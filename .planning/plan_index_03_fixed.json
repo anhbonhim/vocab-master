@@ -1,0 +1,75 @@
+{
+  "phase": "03",
+  "plans": [
+    {
+      "id": "03-01",
+      "wave": 1,
+      "depends_on": [],
+      "autonomous": true,
+      "objective": "Refactor Home and Settings screens to Container/Content pattern while applying foundational Theme and core UI components. E2E verification of rendering.",
+      "files_modified": [
+        "app/src/main/java/com/vocabmaster/theme/Theme.kt",
+        "app/src/main/java/com/vocabmaster/components/Duo3DCard.kt",
+        "app/src/main/java/com/vocabmaster/ui/home/HomeScreen.kt",
+        "app/src/main/java/com/vocabmaster/ui/home/HomeScreenContent.kt",
+        "app/src/main/java/com/vocabmaster/ui/settings/SettingsScreen.kt",
+        "app/src/main/java/com/vocabmaster/ui/settings/SettingsScreenContent.kt"
+      ],
+      "task_count": 3,
+      "has_summary": false
+    },
+    {
+      "id": "03-02",
+      "wave": 2,
+      "depends_on": [
+        "03-01"
+      ],
+      "autonomous": true,
+      "objective": "Refactor QuizScreen to Container/Content with 3D animations and harden state survival across process death.",
+      "files_modified": [
+        "app/src/main/java/com/vocabmaster/ui/quiz/QuizScreen.kt",
+        "app/src/main/java/com/vocabmaster/ui/quiz/QuizScreenContent.kt",
+        "app/src/main/java/com/vocabmaster/ui/quiz/QuizViewModel.kt",
+        "app/src/test/java/com/vocabmaster/ui/quiz/QuizViewModelTest.kt"
+      ],
+      "task_count": 2,
+      "has_summary": false
+    },
+    {
+      "id": "03-03",
+      "wave": 3,
+      "depends_on": [
+        "03-02"
+      ],
+      "autonomous": false,
+      "objective": "Finalize error handling wiring via DuoSnackbar, complete ResultScreen refactoring, and migrate to Type-Safe Navigation.",
+      "files_modified": [
+        "app/src/main/java/com/vocabmaster/VocabMasterApp.kt",
+        "app/src/main/java/com/vocabmaster/components/DuoSnackbar.kt",
+        "app/src/main/java/com/vocabmaster/ui/result/ResultScreen.kt",
+        "app/src/main/java/com/vocabmaster/ui/result/ResultScreenContent.kt",
+        "app/src/main/java/com/vocabmaster/navigation/NavGraph.kt",
+        "app/src/androidTest/java/com/vocabmaster/navigation/NavGraphTest.kt"
+      ],
+      "task_count": 3,
+      "has_summary": false
+    }
+  ],
+  "waves": {
+    "1": [
+      "03-01"
+    ],
+    "2": [
+      "03-02"
+    ],
+    "3": [
+      "03-03"
+    ]
+  },
+  "incomplete": [
+    "03-01",
+    "03-02",
+    "03-03"
+  ],
+  "has_checkpoints": true
+}

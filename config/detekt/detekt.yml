@@ -1,0 +1,28 @@
+complexity:
+  active: true
+  ComplexCondition:
+    active: true
+  ComplexInterface:
+    active: true
+  ComplexMethod:
+    active: true
+  CyclomaticComplexMethod:
+    active: true
+  LabeledExpression:
+    active: true
+  LargeClass:
+    active: true
+  LongMethod:
+    active: true
+  LongParameterList:
+    active: true
+  MethodOverloading:
+    active: true
+  NestedBlockDepth:
+    active: true
+  ReplaceSafeCallChainWithRun:
+    active: true
+  StringLiteralDuplication:
+    active: true
+  TooManyFunctions:
+    active: true

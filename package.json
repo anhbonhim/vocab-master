@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "opencode-betterglob": "^0.1.0",
+    "opencode-bettergrep": "^0.1.0"
+  }
+}

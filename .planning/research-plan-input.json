@@ -1,0 +1,10 @@
+{
+  "ecosystem": "npm",
+  "config": { "exa_search": false, "brave_search": false, "firecrawl": false, "tavily_search": false },
+  "questions": [
+    { "text": "Type-Safe Navigation Compose using Kotlin Serialization", "kind": "docs", "library": "androidx.navigation:navigation-compose" },
+    { "text": "Migrating Navigation Compose to Serialization DSL", "kind": "docs", "library": "androidx.navigation:navigation-compose" },
+    { "text": "State survival across config changes with SavedStateHandle in ViewModel", "kind": "docs", "library": "androidx.lifecycle:lifecycle-viewmodel-savedstate" },
+    { "text": "Best practices for extracting Compose Screen into Container/Content pattern", "kind": "web" }
+  ]
+}
