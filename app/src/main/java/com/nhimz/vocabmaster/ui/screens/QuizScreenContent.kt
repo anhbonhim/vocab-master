@@ -263,6 +263,21 @@ fun QuizScreenContent(
             }
         }
 
+        val showLottie = state.hasAnswered && state.feedbackBannerCorrect == true
+        if (showLottie) {
+            val composition by rememberLottieComposition(LottieCompositionSpec.RawRes(R.raw.celebration))
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                LottieAnimation(
+                    composition = composition,
+                    iterations = 1,
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
+        }
+
         // Feedback Banner (If Answered) anchored to the bottom of the Box
         if (state.hasAnswered && !state.isFsrsFlashcard) {
             FeedbackBanner(
@@ -284,21 +299,6 @@ fun QuizScreenContent(
                     .fillMaxWidth()
                     .align(Alignment.BottomCenter)
             )
-        }
-
-        val showLottie = state.hasAnswered && state.feedbackBannerCorrect == true
-        if (showLottie) {
-            val composition by rememberLottieComposition(LottieCompositionSpec.RawRes(R.raw.celebration))
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                LottieAnimation(
-                    composition = composition,
-                    iterations = 1,
-                    modifier = Modifier.fillMaxSize()
-                )
-            }
         }
     }
 }
