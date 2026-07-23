@@ -43,6 +43,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.airbnb.lottie.compose.LottieAnimation
+import com.airbnb.lottie.compose.LottieCompositionSpec
+import com.airbnb.lottie.compose.rememberLottieComposition
+import com.nhimz.vocabmaster.R
 import com.nhimz.vocabmaster.domain.fsrs.v6.Rating
 import com.nhimz.vocabmaster.domain.model.displayTitle
 import com.nhimz.vocabmaster.domain.model.quiz.QuizQuestion
@@ -280,6 +284,21 @@ fun QuizScreenContent(
                     .fillMaxWidth()
                     .align(Alignment.BottomCenter)
             )
+        }
+
+        val showLottie = state.hasAnswered && state.feedbackBannerCorrect == true
+        if (showLottie) {
+            val composition by rememberLottieComposition(LottieCompositionSpec.RawRes(R.raw.celebration))
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                LottieAnimation(
+                    composition = composition,
+                    iterations = 1,
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
         }
     }
 }
