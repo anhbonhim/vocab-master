@@ -79,7 +79,7 @@ fun HomeScreen(
     val xpTotal by viewModel.xpTotal.collectAsState()
     val todayStudySeconds by viewModel.todayStudySeconds.collectAsState()
     val currentStreak by viewModel.currentStreak.collectAsState()
-    val dailyGoal by viewModel.dailyGoalXp.collectAsState()
+    val dailyGoal by viewModel.dailyGoalMinutes.collectAsState()
     val dueCount = viewModel.dueCount.collectAsState().value
     val mistakeCount by viewModel.mistakeCount.collectAsState()
     val curriculumStatus = viewModel.curriculumStatus.collectAsState().value
@@ -180,7 +180,7 @@ fun HomeScreen(
     val uiState = HomeScreenUiState(
         xpTotal = xpTotal,
         todayStudySeconds = todayStudySeconds,
-        dailyGoalXp = dailyGoal,
+        dailyGoalMinutes = dailyGoal,
         currentStreak = currentStreak,
         availableFreezes = availableFreezes,
         dueCount = dueCount,

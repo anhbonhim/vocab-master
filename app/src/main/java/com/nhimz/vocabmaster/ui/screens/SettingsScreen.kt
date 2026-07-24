@@ -104,7 +104,7 @@ fun SettingsScreen(
         }
     }
 
-    val dailyGoal by settingsViewModel.dailyGoalXp.collectAsState()
+    val dailyGoal by settingsViewModel.dailyGoalMinutes.collectAsState()
     val theme by settingsViewModel.theme.collectAsState()
     val language by settingsViewModel.language.collectAsState()
     val desiredRetention by settingsViewModel.desiredRetention.collectAsState()
@@ -134,12 +134,9 @@ fun SettingsScreen(
     }
 
     val state = SettingsUiModel(
-        dailyGoalXp = dailyGoal,
+        dailyGoalMinutes = dailyGoal,
         theme = theme,
         desiredRetention = desiredRetention,
-        isSyncing = settingsState.isSyncing,
-        syncSuccess = settingsState.syncSuccess,
-        syncError = settingsState.syncError,
         reminderHour = hour,
         reminderMinute = minute,
         reminderEnabled = isReminderEnabled,
@@ -150,7 +147,6 @@ fun SettingsScreen(
         onDailyGoalChange = { settingsViewModel.setDailyGoal(it) },
         onRetentionChange = { settingsViewModel.setDesiredRetention(it) },
         onThemeChange = { settingsViewModel.setTheme(it) },
-        onSync = { settingsViewModel.triggerSync() },
         onBackup = {
             exportBackupLauncher.launch("vocab_master_backup.json")
         },
@@ -161,16 +157,7 @@ fun SettingsScreen(
         onRequestResetProgress = { destructiveDialog = DestructiveDialog.ResetProgress },
         onRequestDeleteAccount = { destructiveDialog = DestructiveDialog.DeleteAccount },
         onResetProgress = {
-            // Plan 03-01 Task 3: destructive action requires a confirmation
-            // dialog (D-05). The actual data wipe is wired through a future
-            // use-case; for now we log via LocalLogger and surface a Toast so
-            // the user sees immediate feedback (and the dialog flow is proven).
-            LocalLogger.w("SettingsScreen", "Reset progress confirmed by user")
-            Toast.makeText(
-                context,
-                "Đã ghi nhận yêu cầu đặt lại tiến trình.",
-                Toast.LENGTH_SHORT
-            ).show()
+            settingsViewModel.resetAllProgress { /* dialog dismissed by Content; snackbar emitted by VM */ }
         },
         onDeleteAccount = {
             // Plan 03-01 Task 3: destructive action requires a confirmation

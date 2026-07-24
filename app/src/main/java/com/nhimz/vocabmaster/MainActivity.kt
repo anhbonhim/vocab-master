@@ -13,7 +13,8 @@ import com.nhimz.vocabmaster.ui.viewmodel.PlacementTestViewModel
 import com.nhimz.vocabmaster.ui.viewmodel.QuizViewModel
 import com.nhimz.vocabmaster.ui.viewmodel.SettingsViewModel
 import com.nhimz.vocabmaster.ui.viewmodel.StatisticsViewModel
-import com.nhimz.vocabmaster.data.database.VocabDatabase
+import com.nhimz.vocabmaster.data.database.CurriculumDao
+import com.nhimz.vocabmaster.data.database.UserDataDao
 import com.nhimz.vocabmaster.domain.model.BackupRepository
 import com.nhimz.vocabmaster.domain.model.ReviewRepository
 import com.nhimz.vocabmaster.domain.model.SettingsRepository
@@ -31,7 +32,10 @@ class MainActivity : ComponentActivity() {
     lateinit var notificationScheduler: NotificationScheduler
 
     @Inject
-    lateinit var vocabDatabase: VocabDatabase
+    lateinit var curriculumDao: CurriculumDao
+
+    @Inject
+    lateinit var userDataDao: UserDataDao
 
     @Inject
     lateinit var vocabularyRepository: VocabularyRepository
@@ -68,7 +72,8 @@ class MainActivity : ComponentActivity() {
                 settingsViewModel = settingsViewModel,
                 cdnAudioPlayer = cdnAudioPlayer,
                 notificationScheduler = notificationScheduler,
-                vocabDatabase = vocabDatabase,
+                curriculumDao = curriculumDao,
+                userDataDao = userDataDao,
                 vocabularyRepository = vocabularyRepository,
                 reviewRepository = reviewRepository,
                 settingsRepository = settingsRepository,

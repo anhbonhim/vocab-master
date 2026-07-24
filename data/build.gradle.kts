@@ -13,7 +13,6 @@ android {
     defaultConfig {
         minSdk = 24
         consumerProguardFiles("consumer-rules.pro")
-        buildConfigField("String", "API_BASE_URL", "\"http://127.0.0.1:8000/\"")
     }
 
     buildTypes {
@@ -54,23 +53,6 @@ dependencies {
 
     // DataStore Preferences
     implementation(libs.androidx.datastore.preferences)
-}
-
-dependencies {
-    // Networking
-    api(libs.retrofit)
-    api(libs.retrofit.kotlinx.serialization)
-    implementation(libs.okhttp)
-    implementation(libs.okhttp.logging)
-}
-
-dependencies {
-    // Firebase Auth & Credential Manager
-    implementation(platform(libs.firebase.bom))
-    implementation(libs.firebase.auth)
-    implementation(libs.androidx.credentials)
-    implementation(libs.androidx.credentials.play.services.auth)
-    implementation(libs.googleid)
 }
 
 dependencies {

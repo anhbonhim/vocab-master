@@ -141,24 +141,96 @@ class LoadQuizSessionUseCase @Inject constructor(
         }
     }
 
-    private fun loadJumpTest(request: QuizSessionRequest.JumpTest): Result<QuizSessionData> {
-        return Result.success(
-            QuizSessionData(
-                questions = emptyList(),
-                isJumpTest = true,
-                unitIdForJumpTest = request.unitId
+    private suspend fun loadJumpTest(request: QuizSessionRequest.JumpTest): Result<QuizSessionData> {
+        val nodes = kotlin.runCatching {
+            vocabularyRepository.getNodesByUnit(request.unitId).first()
+        }.getOrElse { return Result.failure(it) }
+
+        val quizNodeTypes = setOf(NodeType.LESSON, NodeType.REVIEW)
+        val quizNodes = nodes.filter { it.type in quizNodeTypes }
+
+        val questionsList = mutableListOf<QuizQuestion>()
+        for (node in quizNodes) {
+            val sessions = vocabularyRepository.getSessionsByNode(node.id).getOrElse { error ->
+                return Result.failure(error)
+            }
+            for (session in sessions) {
+                val rawQuestions = vocabularyRepository.getQuestionsBySession(session.id).getOrElse { error ->
+                    return Result.failure(error)
+                }
+                for (q in rawQuestions) {
+                    val itemWithCard = vocabularyRepository.getCardByQuestionId(q.id)?.let { QuestionWithCard(q, it) }
+                    questionsList.add(mapToQuizQuestion(q, itemWithCard))
+                }
+            }
+        }
+
+        val capped = questionsList.shuffled().take(20)
+        return if (capped.isEmpty()) {
+            Result.success(
+                QuizSessionData(
+                    questions = emptyList(),
+                    isJumpTest = true,
+                    unitIdForJumpTest = request.unitId
+                )
             )
-        )
+        } else {
+            Result.success(
+                QuizSessionData(
+                    questions = capped,
+                    isJumpTest = true,
+                    unitIdForJumpTest = request.unitId
+                )
+            )
+        }
     }
 
-    private fun loadSectionCheckpoint(request: QuizSessionRequest.SectionCheckpoint): Result<QuizSessionData> {
-        return Result.success(
-            QuizSessionData(
-                questions = emptyList(),
-                isSectionCheckpoint = true,
-                nextSectionCefr = request.nextSectionCefr
+    private suspend fun loadSectionCheckpoint(request: QuizSessionRequest.SectionCheckpoint): Result<QuizSessionData> {
+        val units = kotlin.runCatching {
+            vocabularyRepository.getUnitsBySection(request.sectionId).first()
+        }.getOrElse { return Result.failure(it) }
+
+        val quizNodeTypes = setOf(NodeType.LESSON, NodeType.REVIEW)
+        val questionsList = mutableListOf<QuizQuestion>()
+        for (unit in units) {
+            val nodes = kotlin.runCatching {
+                vocabularyRepository.getNodesByUnit(unit.id).first()
+            }.getOrElse { return Result.failure(it) }
+            val quizNodes = nodes.filter { it.type in quizNodeTypes }
+            for (node in quizNodes) {
+                val sessions = vocabularyRepository.getSessionsByNode(node.id).getOrElse { error ->
+                    return Result.failure(error)
+                }
+                for (session in sessions) {
+                    val rawQuestions = vocabularyRepository.getQuestionsBySession(session.id).getOrElse { error ->
+                        return Result.failure(error)
+                    }
+                    for (q in rawQuestions) {
+                        val itemWithCard = vocabularyRepository.getCardByQuestionId(q.id)?.let { QuestionWithCard(q, it) }
+                        questionsList.add(mapToQuizQuestion(q, itemWithCard))
+                    }
+                }
+            }
+        }
+
+        val capped = questionsList.shuffled().take(20)
+        return if (capped.isEmpty()) {
+            Result.success(
+                QuizSessionData(
+                    questions = emptyList(),
+                    isSectionCheckpoint = true,
+                    nextSectionCefr = request.nextSectionCefr
+                )
             )
-        )
+        } else {
+            Result.success(
+                QuizSessionData(
+                    questions = capped,
+                    isSectionCheckpoint = true,
+                    nextSectionCefr = request.nextSectionCefr
+                )
+            )
+        }
     }
 
     private suspend fun loadMistakeReview(request: QuizSessionRequest.MistakeReview): Result<QuizSessionData> {

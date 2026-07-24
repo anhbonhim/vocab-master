@@ -4,7 +4,6 @@ import android.content.Context
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.nhimz.vocabmaster.data.sync.SyncManager
 import com.nhimz.vocabmaster.domain.model.BackupRepository
 import com.nhimz.vocabmaster.domain.model.SettingsRepository
 import com.nhimz.vocabmaster.ui.components.SnackbarMessage
@@ -25,17 +24,12 @@ import java.io.InputStreamReader
 import java.io.OutputStreamWriter
 import javax.inject.Inject
 
-data class SettingsUiState(
-    val isSyncing: Boolean = false,
-    val syncSuccess: Boolean? = null,
-    val syncError: String? = null
-)
+class SettingsUiState
 
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
     private val backupRepository: BackupRepository,
     private val settingsRepository: SettingsRepository,
-    private val syncManager: SyncManager,
     @param:ApplicationContext private val context: Context
 ) : ViewModel() {
 
@@ -62,7 +56,7 @@ class SettingsViewModel @Inject constructor(
         _snackbarMessages.emit(message)
     }
 
-    val dailyGoalXp: StateFlow<Int> = settingsRepository.dailyGoalXp
+    val dailyGoalMinutes: StateFlow<Int> = settingsRepository.dailyGoalMinutes
         .stateIn(viewModelScope, kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(5000), 100)
 
     val theme: StateFlow<String> = settingsRepository.theme
@@ -74,8 +68,8 @@ class SettingsViewModel @Inject constructor(
     val desiredRetention: StateFlow<Double> = settingsRepository.desiredRetention
         .stateIn(viewModelScope, kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(5000), 0.90)
 
-    fun setDailyGoal(xp: Int) {
-        viewModelScope.launch { settingsRepository.updateDailyGoal(xp) }
+    fun setDailyGoal(minutes: Int) {
+        viewModelScope.launch { settingsRepository.updateDailyGoal(minutes) }
     }
 
     fun setTheme(t: String) {
@@ -97,31 +91,6 @@ class SettingsViewModel @Inject constructor(
     fun setSelectedTopic(topic: String) {
         viewModelScope.launch {
             settingsRepository.setSelectedTopic(topic)
-        }
-    }
-
-    fun triggerSync() {
-        if (_uiState.value.isSyncing) return
-        viewModelScope.launch {
-            _uiState.update { it.copy(isSyncing = true, syncSuccess = null, syncError = null) }
-            val success = syncManager.sync()
-            if (success) {
-                _uiState.update { it.copy(isSyncing = false, syncSuccess = true) }
-                emitSnackbar(SnackbarMessage(text = "Đồng bộ hóa thành công!"))
-            } else {
-                val msg = "Đồng bộ hóa thất bại. Vui lòng kiểm tra kết nối mạng."
-                _uiState.update { it.copy(isSyncing = false, syncSuccess = false, syncError = msg) }
-                // Per D-01/D-05/D-07: surface a Snackbar with an inline Retry
-                // action so the user can re-trigger the sync without leaving
-                // the current screen.
-                emitSnackbar(
-                    SnackbarMessage(
-                        text = msg,
-                        actionLabel = "Thử lại",
-                        isError = true,
-                    ).apply { action = { triggerSync() } }
-                )
-            }
         }
     }
 
@@ -181,6 +150,20 @@ class SettingsViewModel @Inject constructor(
                 val msg = e.localizedMessage ?: "Lỗi không xác định khi khôi phục."
                 onError(msg)
                 emitSnackbar(SnackbarMessage(text = "Khôi phục thất bại: $msg", isError = true))
+            }
+        }
+    }
+
+    fun resetAllProgress(onComplete: () -> Unit) {
+        viewModelScope.launch {
+            try {
+                settingsRepository.resetAllProgress()
+                onComplete()
+                emitSnackbar(SnackbarMessage(text = "Đã đặt lại toàn bộ tiến trình học tập."))
+            } catch (e: Exception) {
+                LocalLogger.e("SettingsViewModel", "Failed to reset progress", e)
+                val msg = e.localizedMessage ?: "Lỗi không xác định."
+                emitSnackbar(SnackbarMessage(text = "Đặt lại thất bại: $msg", isError = true))
             }
         }
     }

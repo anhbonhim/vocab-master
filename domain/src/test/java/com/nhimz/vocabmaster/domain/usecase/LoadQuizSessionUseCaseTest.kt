@@ -8,6 +8,7 @@ import com.nhimz.vocabmaster.domain.model.Question
 import com.nhimz.vocabmaster.domain.model.QuestionType
 import com.nhimz.vocabmaster.domain.model.QuestionWithCard
 import com.nhimz.vocabmaster.domain.model.Session
+import com.nhimz.vocabmaster.domain.model.Unit
 import com.nhimz.vocabmaster.domain.model.quiz.QuestionDirection
 import com.nhimz.vocabmaster.domain.model.quiz.QuizType
 import com.nhimz.vocabmaster.domain.usecase.QuizSessionRequest
@@ -226,16 +227,208 @@ class LoadQuizSessionUseCaseTest {
     }
 
     @Test
-    fun `jump test returns success with empty questions`() = runTest {
-        val result = useCase(QuizSessionRequest.JumpTest("unit-1"))
+    fun `jump test aggregates LESSON and REVIEW nodes excluding checkpoints`() = runTest {
+        val lessonQuestions = List(5) { i -> question("jq-lesson-$i", QuestionType.TYPING, correctSentence = "lesson-$i") }
+        val reviewQuestions = List(5) { i -> question("jq-review-$i", QuestionType.TYPING, correctSentence = "review-$i") }
+        val checkpointQuestions = List(5) { i -> question("jq-check-$i", QuestionType.TYPING, correctSentence = "check-$i") }
+        val nodes = listOf(
+            Node(id = "node-lesson", unitId = "unit-1", index = 0, type = NodeType.LESSON, title = "L", scenarioContext = "", icon = ""),
+            Node(id = "node-review", unitId = "unit-1", index = 1, type = NodeType.REVIEW, title = "R", scenarioContext = "", icon = ""),
+            Node(id = "node-check", unitId = "unit-1", index = 2, type = NodeType.UNIT_CHECKPOINT, title = "C", scenarioContext = "", icon = "")
+        )
+        val questionsBySession = mapOf(
+            "session-node-lesson" to lessonQuestions,
+            "session-node-review" to reviewQuestions,
+            "session-node-check" to checkpointQuestions
+        )
+        val customFake = object : FakeVocabularyRepository() {
+            override fun getNodesByUnit(unitId: String) = flowOf(nodes)
+            override suspend fun getSessionsByNode(nodeId: String): Result<List<Session>> = Result.success(
+                listOf(Session(id = "session-$nodeId", nodeId = nodeId, index = 0, title = "S", durationMinutes = 5, questionIds = emptyList()))
+            )
+            override suspend fun getQuestionsBySession(sessionId: String): Result<List<Question>> = Result.success(
+                questionsBySession[sessionId] ?: emptyList()
+            )
+            override suspend fun getCardByQuestionId(questionId: String): Card? = card(questionId)
+        }
+        val useCaseWithCustomFake = LoadQuizSessionUseCase(customFake)
+
+        val result = useCaseWithCustomFake(QuizSessionRequest.JumpTest("unit-1"))
+
+        assertTrue(result.isSuccess)
+        val data = result.getOrThrow()
+        // 5 lesson + 5 review (checkpoint excluded), no 20-cap truncation
+        assertEquals(10, data.questions.size)
+        assertTrue(data.isJumpTest)
+        assertEquals("unit-1", data.unitIdForJumpTest)
+    }
+
+    @Test
+    fun `jump test caps at 20 questions`() = runTest {
+        val lessonQuestions = List(20) { i -> question("jq-cap-lesson-$i", QuestionType.TYPING, correctSentence = "l$i") }
+        val reviewQuestions = List(20) { i -> question("jq-cap-review-$i", QuestionType.TYPING, correctSentence = "r$i") }
+        val nodes = listOf(
+            Node(id = "node-lesson", unitId = "unit-1", index = 0, type = NodeType.LESSON, title = "L", scenarioContext = "", icon = ""),
+            Node(id = "node-review", unitId = "unit-1", index = 1, type = NodeType.REVIEW, title = "R", scenarioContext = "", icon = "")
+        )
+        val questionsBySession = mapOf(
+            "session-node-lesson" to lessonQuestions,
+            "session-node-review" to reviewQuestions
+        )
+        val customFake = object : FakeVocabularyRepository() {
+            override fun getNodesByUnit(unitId: String) = flowOf(nodes)
+            override suspend fun getSessionsByNode(nodeId: String): Result<List<Session>> = Result.success(
+                listOf(Session(id = "session-$nodeId", nodeId = nodeId, index = 0, title = "S", durationMinutes = 5, questionIds = emptyList()))
+            )
+            override suspend fun getQuestionsBySession(sessionId: String): Result<List<Question>> = Result.success(
+                questionsBySession[sessionId] ?: emptyList()
+            )
+            override suspend fun getCardByQuestionId(questionId: String): Card? = card(questionId)
+        }
+        val useCaseWithCustomFake = LoadQuizSessionUseCase(customFake)
+
+        val result = useCaseWithCustomFake(QuizSessionRequest.JumpTest("unit-1"))
+
+        assertTrue(result.isSuccess)
+        assertEquals(20, result.getOrThrow().questions.size)
+    }
+
+    @Test
+    fun `jump test empty scope returns success with empty questions`() = runTest {
+        // Only a unit checkpoint node exists; no LESSON/REVIEW -> nothing gathered.
+        val nodes = listOf(
+            Node(id = "node-check", unitId = "unit-1", index = 0, type = NodeType.UNIT_CHECKPOINT, title = "C", scenarioContext = "", icon = "")
+        )
+        val customFake = object : FakeVocabularyRepository() {
+            override fun getNodesByUnit(unitId: String) = flowOf(nodes)
+            override suspend fun getSessionsByNode(nodeId: String): Result<List<Session>> = Result.success(
+                listOf(Session(id = "session-$nodeId", nodeId = nodeId, index = 0, title = "S", durationMinutes = 5, questionIds = emptyList()))
+            )
+            override suspend fun getQuestionsBySession(sessionId: String): Result<List<Question>> = Result.success(emptyList())
+            override suspend fun getCardByQuestionId(questionId: String): Card? = null
+        }
+        val useCaseWithCustomFake = LoadQuizSessionUseCase(customFake)
+
+        val result = useCaseWithCustomFake(QuizSessionRequest.JumpTest("unit-1"))
+
         assertTrue(result.isSuccess)
         assertEquals(0, result.getOrThrow().questions.size)
         assertTrue(result.getOrThrow().isJumpTest)
     }
 
     @Test
-    fun `section checkpoint returns success with empty questions`() = runTest {
+    fun `section checkpoint aggregates LESSON and REVIEW nodes across units excluding checkpoints`() = runTest {
+        val unit1Lesson = listOf(question("sq1", QuestionType.TYPING, correctSentence = "a"), question("sq2", QuestionType.TYPING, correctSentence = "b"))
+        val unit1Review = listOf(question("sq3", QuestionType.TYPING, correctSentence = "c"), question("sq4", QuestionType.TYPING, correctSentence = "d"))
+        val unit2Lesson = listOf(question("sq5", QuestionType.TYPING, correctSentence = "e"), question("sq6", QuestionType.TYPING, correctSentence = "f"))
+        val unit2Review = listOf(question("sq7", QuestionType.TYPING, correctSentence = "g"), question("sq8", QuestionType.TYPING, correctSentence = "h"))
+        val units = listOf(
+            Unit(id = "unit-1", sectionId = "section-1", index = 0, topic = "T1", title = "U1", storySummary = "", icon = "", guidebookId = ""),
+            Unit(id = "unit-2", sectionId = "section-1", index = 1, topic = "T2", title = "U2", storySummary = "", icon = "", guidebookId = "")
+        )
+        val nodesByUnit = mapOf(
+            "unit-1" to listOf(
+                Node(id = "u1-lesson", unitId = "unit-1", index = 0, type = NodeType.LESSON, title = "L", scenarioContext = "", icon = ""),
+                Node(id = "u1-review", unitId = "unit-1", index = 1, type = NodeType.REVIEW, title = "R", scenarioContext = "", icon = ""),
+                Node(id = "u1-check", unitId = "unit-1", index = 2, type = NodeType.UNIT_CHECKPOINT, title = "C", scenarioContext = "", icon = "")
+            ),
+            "unit-2" to listOf(
+                Node(id = "u2-lesson", unitId = "unit-2", index = 0, type = NodeType.LESSON, title = "L", scenarioContext = "", icon = ""),
+                Node(id = "u2-review", unitId = "unit-2", index = 1, type = NodeType.REVIEW, title = "R", scenarioContext = "", icon = ""),
+                Node(id = "u2-check", unitId = "unit-2", index = 2, type = NodeType.UNIT_CHECKPOINT, title = "C", scenarioContext = "", icon = "")
+            )
+        )
+        val questionsBySession = mapOf(
+            "session-u1-lesson" to unit1Lesson,
+            "session-u1-review" to unit1Review,
+            "session-u2-lesson" to unit2Lesson,
+            "session-u2-review" to unit2Review
+        )
+        val customFake = object : FakeVocabularyRepository() {
+            override fun getUnitsBySection(sectionId: String) = flowOf(units)
+            override fun getNodesByUnit(unitId: String) = flowOf(nodesByUnit[unitId] ?: emptyList())
+            override suspend fun getSessionsByNode(nodeId: String): Result<List<Session>> = Result.success(
+                listOf(Session(id = "session-$nodeId", nodeId = nodeId, index = 0, title = "S", durationMinutes = 5, questionIds = emptyList()))
+            )
+            override suspend fun getQuestionsBySession(sessionId: String): Result<List<Question>> = Result.success(
+                questionsBySession[sessionId] ?: emptyList()
+            )
+            override suspend fun getCardByQuestionId(questionId: String): Card? = card(questionId)
+        }
+        val useCaseWithCustomFake = LoadQuizSessionUseCase(customFake)
+
+        val result = useCaseWithCustomFake(QuizSessionRequest.SectionCheckpoint("section-1", "B1"))
+
+        assertTrue(result.isSuccess)
+        val data = result.getOrThrow()
+        // 2 lessons + 2 reviews per unit across 2 units (checkpoints excluded), no cap
+        assertEquals(8, data.questions.size)
+        assertTrue(data.isSectionCheckpoint)
+        assertEquals("B1", data.nextSectionCefr)
+    }
+
+    @Test
+    fun `section checkpoint caps at 20 questions`() = runTest {
+        val unit1Lesson = List(20) { i -> question("sc-cap-1l-$i", QuestionType.TYPING, correctSentence = "a$i") }
+        val unit1Review = List(20) { i -> question("sc-cap-1r-$i", QuestionType.TYPING, correctSentence = "b$i") }
+        val unit2Lesson = List(20) { i -> question("sc-cap-2l-$i", QuestionType.TYPING, correctSentence = "c$i") }
+        val unit2Review = List(20) { i -> question("sc-cap-2r-$i", QuestionType.TYPING, correctSentence = "d$i") }
+        val units = listOf(
+            Unit(id = "unit-1", sectionId = "section-1", index = 0, topic = "T1", title = "U1", storySummary = "", icon = "", guidebookId = ""),
+            Unit(id = "unit-2", sectionId = "section-1", index = 1, topic = "T2", title = "U2", storySummary = "", icon = "", guidebookId = "")
+        )
+        val nodesByUnit = mapOf(
+            "unit-1" to listOf(
+                Node(id = "u1-lesson", unitId = "unit-1", index = 0, type = NodeType.LESSON, title = "L", scenarioContext = "", icon = ""),
+                Node(id = "u1-review", unitId = "unit-1", index = 1, type = NodeType.REVIEW, title = "R", scenarioContext = "", icon = "")
+            ),
+            "unit-2" to listOf(
+                Node(id = "u2-lesson", unitId = "unit-2", index = 0, type = NodeType.LESSON, title = "L", scenarioContext = "", icon = ""),
+                Node(id = "u2-review", unitId = "unit-2", index = 1, type = NodeType.REVIEW, title = "R", scenarioContext = "", icon = "")
+            )
+        )
+        val questionsBySession = mapOf(
+            "session-u1-lesson" to unit1Lesson,
+            "session-u1-review" to unit1Review,
+            "session-u2-lesson" to unit2Lesson,
+            "session-u2-review" to unit2Review
+        )
+        val customFake = object : FakeVocabularyRepository() {
+            override fun getUnitsBySection(sectionId: String) = flowOf(units)
+            override fun getNodesByUnit(unitId: String) = flowOf(nodesByUnit[unitId] ?: emptyList())
+            override suspend fun getSessionsByNode(nodeId: String): Result<List<Session>> = Result.success(
+                listOf(Session(id = "session-$nodeId", nodeId = nodeId, index = 0, title = "S", durationMinutes = 5, questionIds = emptyList()))
+            )
+            override suspend fun getQuestionsBySession(sessionId: String): Result<List<Question>> = Result.success(
+                questionsBySession[sessionId] ?: emptyList()
+            )
+            override suspend fun getCardByQuestionId(questionId: String): Card? = card(questionId)
+        }
+        val useCaseWithCustomFake = LoadQuizSessionUseCase(customFake)
+
+        val result = useCaseWithCustomFake(QuizSessionRequest.SectionCheckpoint("section-1", "B1"))
+
+        assertTrue(result.isSuccess)
+        assertEquals(20, result.getOrThrow().questions.size)
+    }
+
+    @Test
+    fun `section checkpoint repository failure propagates same cause`() = runTest {
+        val cause = IllegalStateException("units error")
+        vocabularyRepository.getUnitsBySectionFailure = cause
+
         val result = useCase(QuizSessionRequest.SectionCheckpoint("section-1", "B1"))
+
+        assertTrue(result.isFailure)
+        assertSame(cause, result.exceptionOrNull())
+    }
+
+    @Test
+    fun `section checkpoint empty section returns success with empty questions`() = runTest {
+        vocabularyRepository.getUnitsBySectionResult = flowOf(emptyList())
+
+        val result = useCase(QuizSessionRequest.SectionCheckpoint("section-1", "B1"))
+
         assertTrue(result.isSuccess)
         assertEquals(0, result.getOrThrow().questions.size)
         assertTrue(result.getOrThrow().isSectionCheckpoint)

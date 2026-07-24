@@ -22,6 +22,8 @@ open class FakeVocabularyRepository : VocabularyRepository {
     var getMistakesResult: List<QuestionWithCard> = emptyList()
     var getNodesByUnitResult: Flow<List<Node>> = flowOf(emptyList())
     var getNodesByUnitFailure: Throwable? = null
+    var getUnitsBySectionResult: Flow<List<Unit>> = flowOf(emptyList())
+    var getUnitsBySectionFailure: Throwable? = null
     var failure: Throwable? = null
 
     var markNodeCompletedCalls: Int = 0
@@ -80,7 +82,8 @@ open class FakeVocabularyRepository : VocabularyRepository {
         TODO("not needed for these tests")
     override suspend fun checkAndPrepopulateCurriculum() = TODO("not needed for these tests")
     override fun getSections(): Flow<List<Section>> = TODO("not needed for these tests")
-    override fun getUnitsBySection(sectionId: String): Flow<List<Unit>> = TODO("not needed for these tests")
+    override fun getUnitsBySection(sectionId: String): Flow<List<Unit>> =
+        getUnitsBySectionFailure?.let { throw it } ?: getUnitsBySectionResult
     override suspend fun getGuidebook(unitId: String): Result<UnitGuidebook?> = TODO("not needed for these tests")
     override suspend fun getNodeProgress(nodeId: String): Boolean = TODO("not needed for these tests")
     override suspend fun getCompletedNodesByUnit(unitId: String): List<String> = TODO("not needed for these tests")

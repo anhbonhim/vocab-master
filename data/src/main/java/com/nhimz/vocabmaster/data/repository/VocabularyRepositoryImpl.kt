@@ -2,7 +2,8 @@ package com.nhimz.vocabmaster.data.repository
 
 import android.content.Context
 import android.util.Log
-import com.nhimz.vocabmaster.data.database.VocabDao
+import com.nhimz.vocabmaster.data.database.CurriculumDao
+import com.nhimz.vocabmaster.data.database.UserDataDao
 import com.nhimz.vocabmaster.data.database.entity.FsrsCardEntity
 import com.nhimz.vocabmaster.data.database.entity.NodeEntity
 import com.nhimz.vocabmaster.data.database.entity.NodeProgressEntity
@@ -150,7 +151,8 @@ private data class LessonsV2Asset(
     "SwallowedException"
 )
 class VocabularyRepositoryImpl @Inject constructor(
-    private val vocabDao: VocabDao,
+    private val curriculumDao: CurriculumDao,
+    private val userDataDao: UserDataDao,
     @param:ApplicationContext private val context: Context
 ) : VocabularyRepository {
 
@@ -174,9 +176,15 @@ class VocabularyRepositoryImpl @Inject constructor(
         private const val FAILED_TO_READ_ASSET = "Failed to read curriculum asset lessons_v3.json"
     }
 
-    private suspend fun ensureCurriculumAndFsrsSeeded() = withContext(Dispatchers.IO) {
+    /**
+     * Seeds the static curriculum tables (sections, units, guidebooks, nodes, sessions, questions)
+     * into [CurriculumDao] from the bundled `lessons_v3.json` asset. Split out of the old
+     * `ensureCurriculumAndFsrsSeeded()` during the split-database refactor (T06) so curriculum
+     * content lives only in [CurriculumDao].
+     */
+    private suspend fun ensureCurriculumSeeded() = withContext(Dispatchers.IO) {
         prepopulateCurriculumMutex.withLock {
-            val count = vocabDao.getQuestionCount()
+            val count = curriculumDao.getQuestionCount()
             if (count == 0) {
                 try {
                     context.assets.open("lessons_v3.json").use { inputStream ->
@@ -189,7 +197,6 @@ class VocabularyRepositoryImpl @Inject constructor(
                             val nodeEntities = mutableListOf<NodeEntity>()
                             val sessionEntities = mutableListOf<SessionEntity>()
                             val questionEntities = mutableListOf<QuestionEntity>()
-                            val fsrsCardEntities = mutableListOf<FsrsCardEntity>()
 
                             for (sec in assetV2.sections) {
                                 sectionEntities.add(SectionEntity(
@@ -267,35 +274,18 @@ class VocabularyRepositoryImpl @Inject constructor(
                                                         matchingPairs = q.matchingPairs?.let { json.encodeToString(it) },
                                                         imagePath = q.imagePath
                                                     ))
-
-                                                    if (qType != QuestionType.INTRODUCTION) {
-                                                        fsrsCardEntities.add(
-                                                            FsrsCardEntity(
-                                                                questionId = q.id,
-                                                                due = System.currentTimeMillis(),
-                                                                stability = null,
-                                                                difficulty = null,
-                                                                step = 0,
-                                                                state = State.New.value,
-                                                                lastReview = null,
-                                                                reps = 0,
-                                                                lapses = 0
-                                                            )
-                                                        )
-                                                    }
                                                 }
                                             }
                                         }
                                     }
                                 }
                             }
-                            vocabDao.insertAllSections(sectionEntities)
-                            vocabDao.insertAllUnits(unitEntities)
-                            vocabDao.insertAllGuidebooks(guidebookEntities)
-                            vocabDao.insertAllNodes(nodeEntities)
-                            vocabDao.insertAllSessions(sessionEntities)
-                            vocabDao.insertAllQuestions(questionEntities)
-                            vocabDao.insertAllFsrsCards(fsrsCardEntities)
+                            curriculumDao.insertAllSections(sectionEntities)
+                            curriculumDao.insertAllUnits(unitEntities)
+                            curriculumDao.insertAllGuidebooks(guidebookEntities)
+                            curriculumDao.insertAllNodes(nodeEntities)
+                            curriculumDao.insertAllSessions(sessionEntities)
+                            curriculumDao.insertAllQuestions(questionEntities)
                         }
                     }
                 } catch (e: SerializationException) {
@@ -305,6 +295,41 @@ class VocabularyRepositoryImpl @Inject constructor(
                     Log.e(TAG, FAILED_TO_READ_ASSET, e)
                     throw VocabDataException(FAILED_TO_READ_ASSET, e)
                 }
+            }
+        }
+    }
+
+    /**
+     * Seeds one FSRS card per non-INTRODUCTION question into [UserDataDao]. Split out of the old
+     * `ensureCurriculumAndFsrsSeeded()` during the split-database refactor (T06) so user progress
+     * lives only in [UserDataDao]. Must run after [ensureCurriculumSeeded] (it reads the question
+     * list from [CurriculumDao]).
+     */
+    private suspend fun ensureCardsSeeded() = withContext(Dispatchers.IO) {
+        prepopulateCurriculumMutex.withLock {
+            val count = userDataDao.getCardCount()
+            if (count == 0) {
+                val questions = curriculumDao.getAllQuestions()
+                val now = System.currentTimeMillis()
+                val fsrsCardEntities = questions.mapNotNull { q ->
+                    val qType = QuestionType.entries.getOrNull(q.type) ?: QuestionType.FILL_IN_BLANK
+                    if (qType == QuestionType.INTRODUCTION) {
+                        null
+                    } else {
+                        FsrsCardEntity(
+                            questionId = q.id,
+                            due = now,
+                            stability = null,
+                            difficulty = null,
+                            step = 0,
+                            state = State.New.value,
+                            lastReview = null,
+                            reps = 0,
+                            lapses = 0
+                        )
+                    }
+                }
+                userDataDao.insertAllFsrsCards(fsrsCardEntities)
             }
         }
     }
@@ -341,14 +366,32 @@ class VocabularyRepositoryImpl @Inject constructor(
         return QuestionWithCard(this.question.toDomainModel(), card)
     }
 
+    /**
+     * In-memory cross-DB assembly: given the per-user FSRS cards from [UserDataDao], fetch the
+     * matching curriculum questions from [CurriculumDao] (by ID) and pair them into
+     * [QuestionWithCard]. Replaces the old `questions INNER JOIN fsrs_cards` Room query that spanned
+     * both tables.
+     */
+    private suspend fun assembleQuestionAndCards(cards: List<FsrsCardEntity>): List<QuestionWithCard> {
+        if (cards.isEmpty()) return emptyList()
+        val questionIds = cards.map { it.questionId }
+        val questionsById = curriculumDao.getQuestionsByIds(questionIds).associateBy { it.id }
+        return cards.mapNotNull { cardEntity ->
+            val questionEntity = questionsById[cardEntity.questionId] ?: return@mapNotNull null
+            QuestionAndFsrsCard(questionEntity, cardEntity).toDomainModel()
+        }
+    }
+
     @OptIn(ExperimentalCoroutinesApi::class)
     override fun getDueCards(currentTimestamp: Long, limit: Int): Flow<List<QuestionWithCard>> {
         return flow {
-            ensureCurriculumAndFsrsSeeded()
+            ensureCurriculumSeeded()
+            ensureCardsSeeded()
             emit(kotlin.Unit)
         }.flatMapLatest {
-            vocabDao.getDueAndNewCards(State.New.value, currentTimestamp, limit).map { entities ->
-                entities.map { it.toDomainModel() }
+            flow {
+                val cards = userDataDao.getDueAndNewCardEntities(State.New.value, currentTimestamp, limit)
+                emit(assembleQuestionAndCards(cards))
             }
         }.flowOn(Dispatchers.IO)
     }
@@ -357,11 +400,15 @@ class VocabularyRepositoryImpl @Inject constructor(
     override fun getDueCardsByTopic(topic: String, currentTimestamp: Long, limit: Int): Flow<List<QuestionWithCard>> {
         // Fallback since topic is not directly accessible without multiple joins
         return flow {
-            ensureCurriculumAndFsrsSeeded()
+            ensureCurriculumSeeded()
+            ensureCardsSeeded()
             emit(kotlin.Unit)
         }.flatMapLatest {
-            vocabDao.getDueAndNewCardsByTopicFallback(limit).map { entities ->
-                entities.map { it.toDomainModel() }
+            flow {
+                // Long.MAX_VALUE makes the `due <= :now` predicate always true, so this returns
+                // every FSRS card (the old "topic fallback" returned all cards regardless of topic).
+                val cards = userDataDao.getDueAndNewCardEntities(State.New.value, Long.MAX_VALUE, limit)
+                emit(assembleQuestionAndCards(cards))
             }
         }.flowOn(Dispatchers.IO)
     }
@@ -369,11 +416,13 @@ class VocabularyRepositoryImpl @Inject constructor(
     @OptIn(ExperimentalCoroutinesApi::class)
     override fun getCardsByLevel(level: DifficultyLevel): Flow<List<QuestionWithCard>> {
         return flow {
-            ensureCurriculumAndFsrsSeeded()
+            ensureCurriculumSeeded()
+            ensureCardsSeeded()
             emit(kotlin.Unit)
         }.flatMapLatest {
-            vocabDao.getDueAndNewCardsByTopicFallback(DEFAULT_TOPIC_FALLBACK_LIMIT).map { entities ->
-                entities.map { it.toDomainModel() }
+            flow {
+                val cards = userDataDao.getDueAndNewCardEntities(State.New.value, Long.MAX_VALUE, DEFAULT_TOPIC_FALLBACK_LIMIT)
+                emit(assembleQuestionAndCards(cards))
             }
         }.flowOn(Dispatchers.IO)
     }
@@ -381,24 +430,27 @@ class VocabularyRepositoryImpl @Inject constructor(
     @OptIn(ExperimentalCoroutinesApi::class)
     override fun getCardsByTopic(topic: String): Flow<List<QuestionWithCard>> {
         return flow {
-            ensureCurriculumAndFsrsSeeded()
+            ensureCurriculumSeeded()
+            ensureCardsSeeded()
             emit(kotlin.Unit)
         }.flatMapLatest {
-            vocabDao.getDueAndNewCardsByTopicFallback(DEFAULT_TOPIC_FALLBACK_LIMIT).map { entities ->
-                entities.map { it.toDomainModel() }
+            flow {
+                val cards = userDataDao.getDueAndNewCardEntities(State.New.value, Long.MAX_VALUE, DEFAULT_TOPIC_FALLBACK_LIMIT)
+                emit(assembleQuestionAndCards(cards))
             }
         }.flowOn(Dispatchers.IO)
     }
 
     override suspend fun getCardById(id: String): QuestionWithCard? = withContext(Dispatchers.IO) {
-        ensureCurriculumAndFsrsSeeded()
-        val questionEntity = vocabDao.getQuestionById(id) ?: return@withContext null
-        val fsrsCardEntity = vocabDao.getCardByQuestionId(id)
+        ensureCurriculumSeeded()
+        ensureCardsSeeded()
+        val questionEntity = curriculumDao.getQuestionById(id) ?: return@withContext null
+        val fsrsCardEntity = userDataDao.getCardByQuestionId(id)
         QuestionAndFsrsCard(questionEntity, fsrsCardEntity).toDomainModel()
     }
 
     override suspend fun updateCard(card: Card) = withContext(Dispatchers.IO) {
-        val existing = vocabDao.getCardByQuestionId(card.cardId) ?: return@withContext
+        val existing = userDataDao.getCardByQuestionId(card.cardId) ?: return@withContext
         val updated = existing.copy(
             due = card.due,
             stability = card.stability,
@@ -409,27 +461,30 @@ class VocabularyRepositoryImpl @Inject constructor(
             state = card.state.value,
             lastReview = card.lastReview
         )
-        vocabDao.updateFsrsCard(updated)
+        userDataDao.updateFsrsCard(updated)
     }
 
     override suspend fun insertAll(items: List<QuestionWithCard>) = withContext(Dispatchers.IO) {
         val entities = items.map { FsrsCardEntity.fromDomain(it.card) }
-        vocabDao.insertAllFsrsCards(entities)
+        userDataDao.insertAllFsrsCards(entities)
     }
 
     override suspend fun getCount(): Int = withContext(Dispatchers.IO) {
-        ensureCurriculumAndFsrsSeeded()
-        vocabDao.getCardCount()
+        ensureCurriculumSeeded()
+        ensureCardsSeeded()
+        userDataDao.getCardCount()
     }
 
     @OptIn(ExperimentalCoroutinesApi::class)
     override fun getNewCardsByTopicAndLevels(topic: String, levels: List<String>): Flow<List<QuestionWithCard>> {
         return flow {
-            ensureCurriculumAndFsrsSeeded()
+            ensureCurriculumSeeded()
+            ensureCardsSeeded()
             emit(kotlin.Unit)
         }.flatMapLatest {
-            vocabDao.getDueAndNewCardsByTopicFallback(NEW_CARD_TOPIC_FALLBACK_LIMIT).map { entities ->
-                entities.map { it.toDomainModel() }
+            flow {
+                val cards = userDataDao.getDueAndNewCardEntities(State.New.value, Long.MAX_VALUE, NEW_CARD_TOPIC_FALLBACK_LIMIT)
+                emit(assembleQuestionAndCards(cards))
             }
         }.flowOn(Dispatchers.IO)
     }
@@ -437,32 +492,39 @@ class VocabularyRepositoryImpl @Inject constructor(
     @OptIn(ExperimentalCoroutinesApi::class)
     override fun getNewCardsByLevels(levels: List<String>): Flow<List<QuestionWithCard>> {
         return flow {
-            ensureCurriculumAndFsrsSeeded()
+            ensureCurriculumSeeded()
+            ensureCardsSeeded()
             emit(kotlin.Unit)
         }.flatMapLatest {
-            vocabDao.getDueAndNewCardsByTopicFallback(NEW_CARD_TOPIC_FALLBACK_LIMIT).map { entities ->
-                entities.map { it.toDomainModel() }
+            flow {
+                val cards = userDataDao.getDueAndNewCardEntities(State.New.value, Long.MAX_VALUE, NEW_CARD_TOPIC_FALLBACK_LIMIT)
+                emit(assembleQuestionAndCards(cards))
             }
         }.flowOn(Dispatchers.IO)
     }
 
     override suspend fun getDueCount(now: Long): Int = withContext(Dispatchers.IO) {
-        ensureCurriculumAndFsrsSeeded()
-        vocabDao.getDueCount(now)
+        ensureCurriculumSeeded()
+        ensureCardsSeeded()
+        userDataDao.getDueCount(now)
     }
 
     override suspend fun getMistakeCount(): Int = withContext(Dispatchers.IO) {
-        ensureCurriculumAndFsrsSeeded()
-        vocabDao.getMistakeCount()
+        ensureCurriculumSeeded()
+        ensureCardsSeeded()
+        userDataDao.getMistakeCount()
     }
 
     override suspend fun getMistakes(limit: Int): List<QuestionWithCard> = withContext(Dispatchers.IO) {
-        ensureCurriculumAndFsrsSeeded()
-        vocabDao.getMistakes(limit).map { it.toDomainModel() }
+        ensureCurriculumSeeded()
+        ensureCardsSeeded()
+        val cards = userDataDao.getMistakeCards(limit)
+        assembleQuestionAndCards(cards)
     }
 
     override suspend fun getLearnedCountByTopic(topic: String): Int = withContext(Dispatchers.IO) {
-        ensureCurriculumAndFsrsSeeded()
+        ensureCurriculumSeeded()
+        ensureCardsSeeded()
         0 // Fallback
     }
 
@@ -471,30 +533,32 @@ class VocabularyRepositoryImpl @Inject constructor(
     }
 
     override suspend fun checkAndPrepopulateCurriculum() = withContext(Dispatchers.IO) {
-        ensureCurriculumAndFsrsSeeded()
+        ensureCurriculumSeeded()
+        ensureCardsSeeded()
     }
 
     @OptIn(ExperimentalCoroutinesApi::class)
     override fun getSections(): Flow<List<Section>> {
         return flow {
-            ensureCurriculumAndFsrsSeeded()
+            ensureCurriculumSeeded()
+            ensureCardsSeeded()
             emit(kotlin.Unit)
         }.flatMapLatest {
-            vocabDao.getAllSections().map { entities ->
+            curriculumDao.getAllSections().map { entities ->
                 entities.map { Section(it.id, it.index, it.name, it.cefrSublevel, it.icon, it.description) }
             }
         }.flowOn(Dispatchers.IO)
     }
 
     override fun getUnitsBySection(sectionId: String): Flow<List<DomainUnit>> {
-        return vocabDao.getUnitsBySection(sectionId).map { entities ->
+        return curriculumDao.getUnitsBySection(sectionId).map { entities ->
             entities.map { DomainUnit(it.id, it.sectionId, it.index, it.topic, it.title, it.storySummary, it.icon, it.guidebookId) }
         }.flowOn(Dispatchers.IO)
     }
 
     override suspend fun getGuidebook(unitId: String): Result<UnitGuidebook?> = withContext(Dispatchers.IO) {
         runCatching {
-            val entity = vocabDao.getGuidebook(unitId)
+            val entity = curriculumDao.getGuidebook(unitId)
             if (entity == null) {
                 return@runCatching null
             }
@@ -520,7 +584,7 @@ class VocabularyRepositoryImpl @Inject constructor(
     }
 
     override fun getNodesByUnit(unitId: String): Flow<List<Node>> {
-        return vocabDao.getNodesByUnit(unitId).map { entities ->
+        return curriculumDao.getNodesByUnit(unitId).map { entities ->
             entities.map { 
                 val type = NodeType.entries.getOrNull(it.type) ?: NodeType.LESSON
                 Node(it.id, it.unitId, it.index, type, it.title, it.scenarioContext, it.icon) 
@@ -530,7 +594,7 @@ class VocabularyRepositoryImpl @Inject constructor(
 
     override suspend fun getSessionsByNode(nodeId: String): Result<List<Session>> = withContext(Dispatchers.IO) {
         runCatching {
-            vocabDao.getSessionsByNode(nodeId).map {
+            curriculumDao.getSessionsByNode(nodeId).map {
                 val qIds = try {
                     json.decodeFromString<List<String>>(it.questionIds)
                 } catch (e: SerializationException) {
@@ -546,26 +610,28 @@ class VocabularyRepositoryImpl @Inject constructor(
 
     override suspend fun getQuestionsBySession(sessionId: String): Result<List<Question>> = withContext(Dispatchers.IO) {
         runCatching {
-            vocabDao.getQuestionsBySession(sessionId).map {
+            curriculumDao.getQuestionsBySession(sessionId).map {
                 it.toDomainModel()
             }
         }
     }
 
     override suspend fun getNodeProgress(nodeId: String): Boolean = withContext(Dispatchers.IO) {
-        vocabDao.getNodeProgress(nodeId)?.isCompleted ?: false
+        userDataDao.getNodeProgress(nodeId)?.isCompleted ?: false
     }
 
     override suspend fun getCompletedNodesByUnit(unitId: String): List<String> = withContext(Dispatchers.IO) {
-        vocabDao.getCompletedNodesByUnit(unitId)
+        val nodeIds = curriculumDao.getNodeIdsByUnit(unitId)
+        userDataDao.getCompletedNodeProgressByNodeIds(nodeIds).map { it.nodeId }
     }
 
     override suspend fun getCompletedNodesBySection(sectionId: String): List<String> = withContext(Dispatchers.IO) {
-        vocabDao.getCompletedNodesBySection(sectionId)
+        val nodeIds = curriculumDao.getNodeIdsBySection(sectionId)
+        userDataDao.getCompletedNodeProgressByNodeIds(nodeIds).map { it.nodeId }
     }
 
     override suspend fun markNodeCompleted(nodeId: String, accuracy: Float, bestScore: Int) = withContext(Dispatchers.IO) {
-        val existing = vocabDao.getNodeProgress(nodeId)
+        val existing = userDataDao.getNodeProgress(nodeId)
         val progress = existing?.copy(
             isCompleted = true,
             completedAt = System.currentTimeMillis(),
@@ -578,7 +644,7 @@ class VocabularyRepositoryImpl @Inject constructor(
             accuracy = accuracy,
             bestScore = bestScore
         )
-        vocabDao.insertNodeProgress(progress)
+        userDataDao.insertNodeProgress(progress)
     }
 
     override fun getCompletedLessons(stage: String, unitTopic: String): Flow<List<Int>> = flow { emit(emptyList()) }
@@ -588,8 +654,9 @@ class VocabularyRepositoryImpl @Inject constructor(
     }
 
     override suspend fun getCardByQuestionId(questionId: String): Card? = withContext(Dispatchers.IO) {
-        ensureCurriculumAndFsrsSeeded()
-        vocabDao.getCardByQuestionId(questionId)?.toDomain()
+        ensureCurriculumSeeded()
+        ensureCardsSeeded()
+        userDataDao.getCardByQuestionId(questionId)?.toDomain()
     }
 
     override suspend fun getQuestionWithCard(questionId: String): QuestionWithCard? = withContext(Dispatchers.IO) {
@@ -603,40 +670,45 @@ class VocabularyRepositoryImpl @Inject constructor(
         currentTimestamp: Long,
         limit: Int
     ): List<QuestionWithCard> = withContext(Dispatchers.IO) {
-        ensureCurriculumAndFsrsSeeded()
+        ensureCurriculumSeeded()
+        ensureCardsSeeded()
         // 3-tier fallback: unit -> section -> global, so the user always gets a full
         // review session when any due/new cards exist anywhere.
-        val unitScoped = vocabDao.getDueAndNewCardsByUnit(
-            unitId = unitId,
+        val unitQuestionIds = curriculumDao.getQuestionIdsByUnit(unitId)
+        val unitScoped = userDataDao.getDueAndNewCardsByQuestionIds(
+            questionIds = unitQuestionIds,
             state = State.New.value,
             now = currentTimestamp,
             limit = limit
-        ).first().map { it.toDomainModel() }
+        ).let { assembleQuestionAndCards(it) }
 
         if (unitScoped.size >= MIN_SESSION_CARDS) return@withContext unitScoped
 
-        val sectionScoped = vocabDao.getDueAndNewCardsBySection(
-            sectionId = sectionId,
+        val sectionQuestionIds = curriculumDao.getQuestionIdsBySection(sectionId)
+        val sectionScoped = userDataDao.getDueAndNewCardsByQuestionIds(
+            questionIds = sectionQuestionIds,
             state = State.New.value,
             now = currentTimestamp,
             limit = limit
-        ).first().map { it.toDomainModel() }
+        ).let { assembleQuestionAndCards(it) }
 
         if (sectionScoped.size >= MIN_SESSION_CARDS) return@withContext sectionScoped
 
-        val globalFallback = vocabDao.getDueAndNewCards(
+        val globalFallback = userDataDao.getDueAndNewCardEntities(
             state = State.New.value,
             now = currentTimestamp,
             limit = limit
-        ).first().map { it.toDomainModel() }
+        ).let { assembleQuestionAndCards(it) }
 
         globalFallback
     }
 
     override suspend fun getDueCardCountByUnit(unitId: String, currentTimestamp: Long): Int = withContext(Dispatchers.IO) {
-        ensureCurriculumAndFsrsSeeded()
-        vocabDao.getDueCardCountByUnit(
-            unitId = unitId,
+        ensureCurriculumSeeded()
+        ensureCardsSeeded()
+        val questionIds = curriculumDao.getQuestionIdsByUnit(unitId)
+        userDataDao.countDueCardsByQuestionIds(
+            questionIds = questionIds,
             newState = State.New.value,
             now = currentTimestamp
         )

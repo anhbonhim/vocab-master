@@ -44,12 +44,9 @@ import com.nhimz.vocabmaster.ui.theme.GradientStart
  * (`SettingsScreen`) builds this from the ViewModels and forwards it.
  */
 data class SettingsUiModel(
-    val dailyGoalXp: Int = 10,
+    val dailyGoalMinutes: Int = 10,
     val theme: String = "SYSTEM",
     val desiredRetention: Double = 0.90,
-    val isSyncing: Boolean = false,
-    val syncSuccess: Boolean? = null,
-    val syncError: String? = null,
     val reminderHour: Int = 9,
     val reminderMinute: Int = 0,
     val reminderEnabled: Boolean = true,
@@ -64,7 +61,6 @@ data class SettingsActions(
     val onDailyGoalChange: (Int) -> Unit = {},
     val onRetentionChange: (Double) -> Unit = {},
     val onThemeChange: (String) -> Unit = {},
-    val onSync: () -> Unit = {},
     val onBackup: () -> Unit = {},
     val onRestore: () -> Unit = {},
     val onReminderTimeChange: (hour: Int, minute: Int, enabled: Boolean) -> Unit = { _, _, _ -> },
@@ -128,39 +124,14 @@ fun SettingsScreenContent(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Cloud Sync section
-        SettingsCard(title = "Đồng bộ hóa đám mây") {
-            Column {
-                Text(
-                    text = "Sao lưu và tải tiến độ học tập của bạn lên server đám mây cá nhân tự động để đồng bộ đa thiết bị.",
-                    fontSize = 12.sp,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                    lineHeight = 16.sp
-                )
-                Spacer(modifier = Modifier.height(12.dp))
-
-                if (state.isSyncing) {
-                    Text("Đang đồng bộ hóa...", fontWeight = FontWeight.Bold, color = GradientStart)
-                } else {
-                    Button(
-                        onClick = actions.onSync,
-                        modifier = Modifier.fillMaxWidth().height(48.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = GradientStart),
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Text("Đồng bộ ngay bây giờ", color = Color.White, fontWeight = FontWeight.Bold)
-                    }
-                }
-
-                state.syncError?.let {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(it, color = MaterialTheme.colorScheme.error, fontSize = 12.sp)
-                }
-                if (state.syncSuccess == true) {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text("Đồng bộ hóa thành công!", color = Color.Green, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                }
-            }
+        // Offline-first notice
+        SettingsCard(title = "Chế độ ngoại tuyến") {
+            Text(
+                text = "Vocab Master hoạt động hoàn toàn ngoại tuyến. Tiến độ của bạn được lưu trữ cục bộ trên thiết bị và không gửi lên bất kỳ server nào.",
+                fontSize = 12.sp,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                lineHeight = 16.sp
+            )
         }
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -174,14 +145,14 @@ fun SettingsScreenContent(
                 ) {
                     Text(text = "Thời gian học mong muốn", fontSize = 14.sp)
                     Text(
-                        text = "${state.dailyGoalXp} Phút",
+                        text = "${state.dailyGoalMinutes} Phút",
                         fontWeight = FontWeight.Bold,
                         color = GradientStart
                     )
                 }
                 Spacer(modifier = Modifier.height(8.dp))
                 Slider(
-                    value = state.dailyGoalXp.toFloat(),
+                    value = state.dailyGoalMinutes.toFloat(),
                     onValueChange = { actions.onDailyGoalChange(it.toInt()) },
                     valueRange = 5f..60f,
                     steps = 11,

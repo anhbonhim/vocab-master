@@ -16,7 +16,7 @@ suspend fun testGamificationState(
         val longestStreak = settingsRepository.longestStreak.first()
         val freezes = settingsRepository.availableFreezes.first()
         val badges = settingsRepository.badgeStatus.first()
-        val goal = settingsRepository.dailyGoalXp.first()
+        val goal = settingsRepository.dailyGoalMinutes.first()
         val retention = settingsRepository.desiredRetention.first()
         val topic = settingsRepository.selectedTopic.first()
         val theme = settingsRepository.theme.first()
@@ -58,7 +58,7 @@ suspend fun testSettingsPersistenceRoundtrip(
         val originalLanguage = settingsRepository.language.first()
         val originalTopic = settingsRepository.selectedTopic.first()
         val originalRetention = settingsRepository.desiredRetention.first()
-        val originalGoal = settingsRepository.dailyGoalXp.first()
+        val originalGoal = settingsRepository.dailyGoalMinutes.first()
         val originalBadges = settingsRepository.badgeStatus.first()
 
         log.appendLine("Backed up current settings.")
@@ -79,7 +79,7 @@ suspend fun testSettingsPersistenceRoundtrip(
             // 3. Test Daily Goal minutes
             log.appendLine("3. Testing Daily Goal persistence...")
             settingsRepository.updateDailyGoal(25)
-            val goalRead = settingsRepository.dailyGoalXp.first()
+            val goalRead = settingsRepository.dailyGoalMinutes.first()
             assertions.add(AssertionResult("Daily goal successfully updated to 25", goalRead == 25, "Got: $goalRead"))
 
             // 4. Test Desired Retention

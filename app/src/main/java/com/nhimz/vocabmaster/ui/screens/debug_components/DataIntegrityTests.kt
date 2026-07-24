@@ -1,6 +1,6 @@
 package com.nhimz.vocabmaster.ui.screens.debug_components
 
-import com.nhimz.vocabmaster.data.database.VocabDao
+import com.nhimz.vocabmaster.data.database.UserDataDao
 import com.nhimz.vocabmaster.domain.fsrs.v6.Scheduler
 import com.nhimz.vocabmaster.domain.fsrs.v6.State
 import com.nhimz.vocabmaster.domain.model.BackupRepository
@@ -11,13 +11,13 @@ private const val DIFFICULTY_MIN = 1.0
 private const val DIFFICULTY_MAX = 10.0
 
 @Suppress("LongMethod", "CyclomaticComplexMethod")
-suspend fun testDatabaseIntegrityCheck(vocabDao: VocabDao): TestResult {
+suspend fun testDatabaseIntegrityCheck(userDataDao: UserDataDao): TestResult {
     return runTest(
         name = "Database Integrity Check",
         description = "Scans all FSRS cards and review logs for stability, due-ordering, and logic anomalies."
     ) { log, assertions ->
         log.appendLine("Fetching all FSRS cards from database...")
-        val cards = vocabDao.getAllCards()
+        val cards = userDataDao.getAllCards()
         val totalCards = cards.size
         log.appendLine("Total FSRS cards: $totalCards")
 
@@ -86,7 +86,7 @@ suspend fun testDatabaseIntegrityCheck(vocabDao: VocabDao): TestResult {
 
         // Check for orphan review logs
         log.appendLine("Fetching all review logs from database...")
-        val reviewLogs = vocabDao.getAllReviewLogsList()
+        val reviewLogs = userDataDao.getAllReviewLogsList()
         val cardIds = cards.map { it.questionId }.toSet()
         var orphanLogs = 0
         reviewLogs.forEach { logItem ->
@@ -114,7 +114,7 @@ suspend fun testDatabaseIntegrityCheck(vocabDao: VocabDao): TestResult {
 @Suppress("LongMethod")
 suspend fun testBackupRestoreRoundtrip(
     backupRepository: BackupRepository,
-    vocabDao: VocabDao,
+    userDataDao: UserDataDao,
     settingsRepository: SettingsRepository
 ): TestResult {
     return runTest(
@@ -123,8 +123,8 @@ suspend fun testBackupRestoreRoundtrip(
     ) { log, assertions ->
         // 1. Snapshot current state
         log.appendLine("1. Recording pre-backup snapshot...")
-        val preCardsCount = vocabDao.getCardCount()
-        val preLogsCount = vocabDao.getAllReviewLogsList().size
+        val preCardsCount = userDataDao.getCardCount()
+        val preLogsCount = userDataDao.getAllReviewLogsList().size
         val preXp = settingsRepository.xpTotal.first()
         val preStreak = settingsRepository.currentStreak.first()
         log.appendLine(
@@ -148,8 +148,8 @@ suspend fun testBackupRestoreRoundtrip(
 
         // 4. Verify post-backup state
         log.appendLine("4. Recording post-restore snapshot...")
-        val postCardsCount = vocabDao.getCardCount()
-        val postLogsCount = vocabDao.getAllReviewLogsList().size
+        val postCardsCount = userDataDao.getCardCount()
+        val postLogsCount = userDataDao.getAllReviewLogsList().size
         val postXp = settingsRepository.xpTotal.first()
         val postStreak = settingsRepository.currentStreak.first()
         log.appendLine(

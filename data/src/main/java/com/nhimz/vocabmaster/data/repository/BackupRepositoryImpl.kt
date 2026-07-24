@@ -2,8 +2,8 @@ package com.nhimz.vocabmaster.data.repository
 
 import android.util.Log
 import androidx.room.withTransaction
-import com.nhimz.vocabmaster.data.database.VocabDao
-import com.nhimz.vocabmaster.data.database.VocabDatabase
+import com.nhimz.vocabmaster.data.database.UserDataDao
+import com.nhimz.vocabmaster.data.database.UserDataDatabase
 import com.nhimz.vocabmaster.data.database.entity.ReviewLogEntity
 import com.nhimz.vocabmaster.data.database.entity.FsrsCardEntity
 import com.nhimz.vocabmaster.data.model.AppBackup
@@ -33,8 +33,8 @@ import java.time.format.DateTimeParseException
 @Singleton
 @Suppress("LongMethod", "LabeledExpression", "TooGenericExceptionCaught")
 class BackupRepositoryImpl @Inject constructor(
-    private val database: VocabDatabase,
-    private val vocabDao: VocabDao,
+    private val userDataDatabase: UserDataDatabase,
+    private val userDataDao: UserDataDao,
     private val settingsRepository: SettingsRepository
 ) : BackupRepository {
 
@@ -62,13 +62,13 @@ class BackupRepositoryImpl @Inject constructor(
             lastStudyDate = settingsRepository.lastStudyDate.first(),
             xpTotal = settingsRepository.xpTotal.first(),
             badgeStatus = settingsRepository.badgeStatus.first(),
-            dailyGoalXp = settingsRepository.dailyGoalXp.first(),
+            dailyGoalMinutes = settingsRepository.dailyGoalMinutes.first(),
             desiredRetention = settingsRepository.desiredRetention.first(),
             theme = settingsRepository.theme.first(),
             language = settingsRepository.language.first()
         )
 
-        val cards = vocabDao.getAllCards().map { card ->
+        val cards = userDataDao.getAllCards().map { card ->
             FsrsCardBackup(
                 questionId = card.questionId,
                 state = card.state,
@@ -82,7 +82,7 @@ class BackupRepositoryImpl @Inject constructor(
             )
         }
 
-        val logs = vocabDao.getAllReviewLogsList().map { log ->
+        val logs = userDataDao.getAllReviewLogsList().map { log ->
             ReviewLogBackup(
                 cardId = log.cardId,
                 rating = Rating.entries.firstOrNull { it.value == log.rating }?.name ?: Rating.Good.name,
@@ -91,7 +91,7 @@ class BackupRepositoryImpl @Inject constructor(
             )
         }
 
-        val flagged = vocabDao.getAllFlaggedItems().map { flag ->
+        val flagged = userDataDao.getAllFlaggedItems().map { flag ->
             FlaggedItemBackup(
                 questionId = flag.questionId,
                 issueType = flag.issueType,
@@ -122,11 +122,11 @@ class BackupRepositoryImpl @Inject constructor(
                 return@withContext Result.success(false)
             }
 
-            database.withTransaction {
+            userDataDatabase.withTransaction {
                 // 1. Clear existing user data (Keep curriculum data!)
-                vocabDao.deleteAllCards()
-                vocabDao.deleteAllReviewLogs()
-                vocabDao.deleteAllFlaggedItems()
+                userDataDao.deleteAllCards()
+                userDataDao.deleteAllReviewLogs()
+                userDataDao.deleteAllFlaggedItems()
 
                 // 2. Restore settings
                 settingsRepository.setCurrentStreak(backup.settings.currentStreak)
@@ -135,7 +135,7 @@ class BackupRepositoryImpl @Inject constructor(
                 settingsRepository.setLastStudyDate(backup.settings.lastStudyDate)
                 settingsRepository.setXpTotal(backup.settings.xpTotal)
                 settingsRepository.setBadgeStatus(backup.settings.badgeStatus)
-                settingsRepository.updateDailyGoal(backup.settings.dailyGoalXp)
+                settingsRepository.updateDailyGoal(backup.settings.dailyGoalMinutes)
                 settingsRepository.setDesiredRetention(backup.settings.desiredRetention)
                 settingsRepository.setTheme(backup.settings.theme)
                 settingsRepository.setLanguage(backup.settings.language)
@@ -154,7 +154,7 @@ class BackupRepositoryImpl @Inject constructor(
                         lapses = card.lapses
                     )
                 }
-                vocabDao.insertAllFsrsCards(cardEntities)
+                userDataDao.insertAllFsrsCards(cardEntities)
 
                 // 4. Restore logs
                 val logEntities = backup.reviewLogs.map { log ->
@@ -167,7 +167,7 @@ class BackupRepositoryImpl @Inject constructor(
                         reviewDuration = log.reviewDuration
                     )
                 }
-                vocabDao.insertAllReviewLogs(logEntities)
+                userDataDao.insertAllReviewLogs(logEntities)
 
                 // 5. Restore flagged items
                 val flaggedEntities = backup.flaggedItems.map { flag ->
@@ -179,7 +179,7 @@ class BackupRepositoryImpl @Inject constructor(
                         timestamp = flag.timestamp
                     )
                 }
-                vocabDao.insertAllFlaggedItems(flaggedEntities)
+                userDataDao.insertAllFlaggedItems(flaggedEntities)
             }
             Result.success(true)
         } catch (e: SerializationException) {

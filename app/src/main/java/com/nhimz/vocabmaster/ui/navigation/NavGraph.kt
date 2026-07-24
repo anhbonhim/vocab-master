@@ -11,7 +11,8 @@ import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
 import com.nhimz.vocabmaster.audio.CDNAudioPlayer
-import com.nhimz.vocabmaster.data.database.VocabDatabase
+import com.nhimz.vocabmaster.data.database.CurriculumDao
+import com.nhimz.vocabmaster.data.database.UserDataDao
 import com.nhimz.vocabmaster.domain.model.BackupRepository
 import com.nhimz.vocabmaster.domain.model.ReviewRepository
 import com.nhimz.vocabmaster.domain.model.SettingsRepository
@@ -23,7 +24,6 @@ import com.nhimz.vocabmaster.ui.screens.FirstWinScreen
 import com.nhimz.vocabmaster.ui.screens.GoalPickerScreen
 import com.nhimz.vocabmaster.ui.screens.HomeScreen
 import com.nhimz.vocabmaster.ui.screens.JumpTestScreen
-import com.nhimz.vocabmaster.ui.screens.LoginScreen
 import com.nhimz.vocabmaster.ui.screens.PlacementTestScreen
 import com.nhimz.vocabmaster.ui.screens.QuizScreen
 import com.nhimz.vocabmaster.ui.screens.ResultScreen
@@ -72,24 +72,19 @@ fun vocabMasterEntryProvider(
     settingsViewModel: SettingsViewModel,
     cdnAudioPlayer: CDNAudioPlayer,
     notificationScheduler: NotificationScheduler,
-    vocabDatabase: VocabDatabase,
+    curriculumDao: CurriculumDao,
+    userDataDao: UserDataDao,
     vocabularyRepository: VocabularyRepository,
     reviewRepository: ReviewRepository,
     settingsRepository: SettingsRepository,
     backupRepository: BackupRepository,
     snackbarHostState: SnackbarHostState
 ): (NavKey) -> NavEntry<NavKey> = entryProvider {
-    // ===== Onboarding flow (Welcome -> Login -> GoalPicker -> PlacementTest -> FirstWin) =====
+    // ===== Onboarding flow (Welcome -> GoalPicker -> PlacementTest -> FirstWin) =====
 
     entry<Screen.Welcome> {
         WelcomeScreen(
-            onStartClick = { mainViewModel.navigateTo(Screen.Login) }
-        )
-    }
-
-    entry<Screen.Login> {
-        LoginScreen(
-            onLoginSuccess = { mainViewModel.navigateTo(Screen.GoalPicker) }
+            onStartClick = { mainViewModel.navigateTo(Screen.GoalPicker) }
         )
     }
 
@@ -168,6 +163,14 @@ fun vocabMasterEntryProvider(
             onReviewMistakes = { ids ->
                 quizViewModel.startMistakeReview(ids)
                 mainViewModel.navigateTo(Screen.Quiz(ids))
+            },
+            onStartReviewGym = {
+                quizViewModel.startMistakeReview(null)
+                mainViewModel.navigateTo(Screen.Quiz())
+            },
+            onStartFlashcard = {
+                quizViewModel.startMistakeReview(null)
+                mainViewModel.navigateTo(Screen.Quiz())
             }
         )
     }
@@ -186,7 +189,8 @@ fun vocabMasterEntryProvider(
         DebugPanelScreen(
             onBack = { mainViewModel.goBack() },
             cdnAudioPlayer = cdnAudioPlayer,
-            vocabDatabase = vocabDatabase,
+            curriculumDao = curriculumDao,
+            userDataDao = userDataDao,
             vocabularyRepository = vocabularyRepository,
             reviewRepository = reviewRepository,
             settingsRepository = settingsRepository,

@@ -1,8 +1,8 @@
 package com.nhimz.vocabmaster.data.repository
 
 import androidx.room.withTransaction
-import com.nhimz.vocabmaster.data.database.VocabDao
-import com.nhimz.vocabmaster.data.database.VocabDatabase
+import com.nhimz.vocabmaster.data.database.UserDataDao
+import com.nhimz.vocabmaster.data.database.UserDataDatabase
 import com.nhimz.vocabmaster.data.database.entity.FsrsCardEntity
 import com.nhimz.vocabmaster.data.database.entity.ReviewLogEntity
 import com.nhimz.vocabmaster.domain.fsrs.v6.Card
@@ -22,14 +22,14 @@ import javax.inject.Singleton
 
 @Singleton
 class ReviewRepositoryImpl @Inject constructor(
-    private val database: VocabDatabase,
-    private val vocabDao: VocabDao
+    private val userDataDatabase: UserDataDatabase,
+    private val userDataDao: UserDataDao
 ) : ReviewRepository {
 
     override suspend fun recordReview(card: Card, log: ReviewLog) = withContext(Dispatchers.IO) {
-        database.withTransaction {
-            vocabDao.updateFsrsCard(FsrsCardEntity.fromDomain(card))
-            vocabDao.insertReviewLog(ReviewLogEntity.fromDomain(log))
+        userDataDatabase.withTransaction {
+            userDataDao.updateFsrsCard(FsrsCardEntity.fromDomain(card))
+            userDataDao.insertReviewLog(ReviewLogEntity.fromDomain(log))
         }
         Unit
     }
@@ -38,25 +38,25 @@ class ReviewRepositoryImpl @Inject constructor(
         val entity = ReviewLogEntity.fromDomain(
             log.copy(cardId = cardId)
         )
-        vocabDao.insertReviewLog(entity)
+        userDataDao.insertReviewLog(entity)
         Unit
     }
 
     override fun getReviewLogs(cardId: String): Flow<List<ReviewLog>> {
-        return vocabDao.getReviewLogsFlow(cardId)
+        return userDataDao.getReviewLogsFlow(cardId)
             .map { entities -> entities.map { it.toDomain() } }
             .flowOn(Dispatchers.IO)
     }
 
     override fun getAllReviewLogs(): Flow<List<ReviewLog>> {
-        return vocabDao.getAllReviewLogsFlow()
+        return userDataDao.getAllReviewLogsFlow()
             .map { entities -> entities.map { it.toDomain() } }
             .flowOn(Dispatchers.IO)
     }
 
     override fun getStats(): Flow<ReviewStats> {
-        val learnedCountFlow = vocabDao.getLearnedCount()
-        val stateCountsFlow = vocabDao.getStateCounts()
+        val learnedCountFlow = userDataDao.getLearnedCount()
+        val stateCountsFlow = userDataDao.getStateCounts()
 
         return combine(learnedCountFlow, stateCountsFlow) { learnedCount, stateCounts ->
             val stateMap = stateCounts.associate { it.state to it.count }

@@ -31,7 +31,7 @@ class Plan0301ContainerContentTest {
         val state = HomeScreenUiState()
         assertEquals(0, state.xpTotal)
         assertEquals(0, state.todayStudySeconds)
-        assertEquals(10, state.dailyGoalXp)
+        assertEquals(10, state.dailyGoalMinutes)
         assertEquals(0, state.currentStreak)
         assertEquals(0, state.availableFreezes)
         assertEquals(0, state.dueCount)
@@ -71,7 +71,7 @@ class Plan0301ContainerContentTest {
     @Test
     fun settingsUiModel_defaults_areSensible() {
         val state = SettingsUiModel()
-        assertEquals(10, state.dailyGoalXp)
+        assertEquals(10, state.dailyGoalMinutes)
         assertEquals("SYSTEM", state.theme)
         assertEquals(0.90, state.desiredRetention, 0.0001)
         assertEquals(false, state.isSyncing)
