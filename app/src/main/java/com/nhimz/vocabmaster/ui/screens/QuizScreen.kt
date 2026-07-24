@@ -1,377 +1,218 @@
 package com.nhimz.vocabmaster.ui.screens
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.tween
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.IntOffset
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import com.nhimz.vocabmaster.tts.TTSManager
-import com.nhimz.vocabmaster.ui.components.quiz.DuolingoOptionCard
-import com.nhimz.vocabmaster.ui.components.quiz.DuolingoProgressBar
-import com.nhimz.vocabmaster.ui.components.quiz.FeedbackBanner
-import com.nhimz.vocabmaster.ui.theme.GradientEnd
-import com.nhimz.vocabmaster.ui.theme.GradientStart
-import com.nhimz.vocabmaster.ui.viewmodel.QuizSessionState
+import com.nhimz.vocabmaster.domain.model.quiz.QuizType
+import com.nhimz.vocabmaster.ui.components.SnackbarMessage
+import com.nhimz.vocabmaster.ui.components.showSnackbar
+import com.nhimz.vocabmaster.ui.viewmodel.QuizUiState
 import com.nhimz.vocabmaster.ui.viewmodel.QuizViewModel
-import com.nhimz.vocabmaster.ui.viewmodel.QuestionDirection
-import kotlinx.coroutines.launch
-import kotlin.math.roundToInt
+import com.nhimz.vocabmaster.util.LocalLogger
 
+/**
+ * Quiz screen Container (Plan 03-02, Task 1 — and Plan 03-04 snackbar wiring).
+ *
+ * Responsibilities (mirrors HomeScreen Container from Plan 03-01):
+ *  - Collect UI state from [QuizViewModel]'s StateFlow
+ *  - Hold transient local UI state (per-question input scratchpad: typed
+ *    text, selected option index, scrambled word list, FSRS flip state)
+ *  - Drive side effects: navigate to ResultScreen on Completed
+ *  - Render the leaf states (Loading / Error / Empty) directly when the
+ *    state machine reaches them
+ *  - Wire [viewModel.snackbarMessages] to the global [snackbarHostState]
+ *    (Plan 03-04 — D-04 / D-05)
+ *
+ * Pure UI rendering is delegated to [QuizScreenContent]. Public signature
+ * is preserved (with one optional [snackbarHostState] parameter) so existing
+ * call sites in [com.nhimz.vocabmaster.ui.VocabMasterApp] need no change.
+ */
 @Composable
 fun QuizScreen(
-    onSessionCompleted: (xpGained: Int, durationSeconds: Int, correctCount: Int, totalCount: Int) -> Unit,
+    onSessionCompleted: (xpGained: Int, durationSeconds: Int, correctCount: Int, totalCount: Int, averageStability: Double, incorrectCardIds: List<String>, isLevelTest: Boolean, isPassedLevelTest: Boolean) -> Unit,
     onBackToHome: () -> Unit,
-    ttsManager: TTSManager,
-    viewModel: QuizViewModel
+    viewModel: QuizViewModel,
+    snackbarHostState: SnackbarHostState? = null
 ) {
-    val context = LocalContext.current
-    val scope = rememberCoroutineScope()
-    val sessionState by viewModel.sessionState.collectAsState()
+    val uiState by viewModel.uiState.collectAsState()
 
-    // Shake offset for incorrect answers
-    val shakeOffset = remember { Animatable(0f) }
-
-    // Local selection tracking
-    var selectedOptionIndex by remember { mutableStateOf<Int?>(null) }
-
-    LaunchedEffect(sessionState) {
-        if (sessionState is QuizSessionState.Completed) {
-            val completed = sessionState as QuizSessionState.Completed
-            onSessionCompleted(
-                completed.xpGained,
-                completed.durationSeconds,
-                completed.correctCount,
-                completed.totalCount
-            )
-        } else if (sessionState is QuizSessionState.Active) {
-            val active = sessionState as QuizSessionState.Active
-            val question = active.questions[active.currentIndex]
-            // Auto play TTS for the English word
-            ttsManager.speak(question.itemWithCard.vocabulary.word)
+    // Plan 03-04: wire QuizViewModel.snackbarMessages to the global
+    // SnackbarHostState. `rememberUpdatedState` ensures we always invoke the
+    // latest flow / host even if the parent re-emits (D-04 / D-05).
+    val currentSnackbarHostState by rememberUpdatedState(snackbarHostState)
+    val currentSnackbarMessages = viewModel.snackbarMessages
+    LaunchedEffect(currentSnackbarHostState) {
+        currentSnackbarHostState?.let { host ->
+            currentSnackbarMessages.collect { message: SnackbarMessage ->
+                if (message.isError) {
+                    LocalLogger.e(
+                        tag = "QuizScreen",
+                        message = "Snackbar error surfaced: ${message.text}"
+                    )
+                }
+                host.showSnackbar(message)
+            }
         }
     }
 
-    when (val state = sessionState) {
-        is QuizSessionState.Loading -> {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(MaterialTheme.colorScheme.background),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "Đang tải bài học...",
-                    fontSize = 18.sp,
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+    // Pass data out to navigate to ResultScreen when Completed
+    LaunchedEffect(uiState) {
+        if (uiState is QuizUiState.Completed) {
+            val completedState = uiState as QuizUiState.Completed
+            if (completedState.totalCount > 0) {
+                onSessionCompleted(
+                    completedState.xpGained,
+                    completedState.durationSeconds,
+                    completedState.correctCount,
+                    completedState.totalCount,
+                    completedState.averageStability,
+                    completedState.incorrectCardIds,
+                    completedState.isCheckpointOrJumpTest,
+                    completedState.isPassed
                 )
             }
         }
-        is QuizSessionState.Active -> {
-            val question = state.questions[state.currentIndex]
-            val hasAnswered = state.isAnswerRevealed
+    }
 
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(MaterialTheme.colorScheme.background)
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(24.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.SpaceBetween
-                ) {
-                    // Top Header Row
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 16.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "Trắc nghiệm từ vựng",
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onBackground
-                        )
-                        Text(
-                            text = "Thoát",
-                            fontSize = 14.sp,
-                            color = MaterialTheme.colorScheme.error,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.clickable { onBackToHome() }
-                        )
-                    }
+    when (val state = uiState) {
+        is QuizUiState.Loading -> {
+            QuizLoadingSkeleton()
+        }
+        is QuizUiState.Active -> {
+            // The question list and current index are part of the Active state.
+            // Per-question input scratchpad lives here in the Container so the
+            // Content stays purely a renderer. The keys are bound to the
+            // current question index so advancing to the next question wipes
+            // the scratchpad cleanly.
+            val question = state.questions.getOrNull(state.currentIndex)
+            if (question == null) {
+                // Defensive: should not happen if the state machine is well-formed
+                QuizErrorState(message = "Không tìm thấy câu hỏi hiện tại", onRetry = onBackToHome)
+                return
+            }
 
-                    // Duolingo Progress Bar
-                    Column(modifier = Modifier.fillMaxWidth()) {
-                        val progress = (state.currentIndex.toFloat() / state.questions.size.toFloat())
-                        DuolingoProgressBar(progress = progress)
-                        
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Text(
-                                text = "Câu ${state.currentIndex + 1}/${state.questions.size}",
-                                fontSize = 12.sp,
-                                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
-                            )
-                            Text(
-                                text = "+${state.xpGained} XP",
-                                fontSize = 12.sp,
-                                color = Color(0xFFF59E0B),
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                    }
+            // Local form state. These are deliberately not part of QuizUiState
+            // because they are scratch UI values that have no meaning in the
+            // ViewModel until the user submits.
+            var typedText by remember(state.currentIndex) { mutableStateOf("") }
+            var selectedScrambledWords by remember(state.currentIndex) { mutableStateOf<List<String>>(emptyList()) }
+            var isFlipped by remember(state.currentIndex) { mutableStateOf(false) }
+            // The selected option index is hoisted to the Container (not the
+            // Content) because the ViewModel needs it on submit. The Content
+            // only renders the value; tapping an option calls into the
+            // [QuizScreenActions.onOptionSelected] callback which writes here.
+            var selectedOptionIndex by remember(state.currentIndex) { mutableStateOf<Int?>(null) }
 
-                    // Question Box (Shakeable & Flat elevation)
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .offset { IntOffset(shakeOffset.value.roundToInt(), 0) }
-                    ) {
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(24.dp),
-                            colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.surface
-                            ),
-                            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-                            border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
-                        ) {
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(24.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally
-                            ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.Center
-                                ) {
-                                    Text(
-                                        text = "Dịch nghĩa của từ này",
-                                        fontSize = 13.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = GradientStart.copy(alpha = 0.8f)
-                                    )
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    // TTS Audio play button
-                                    Box(
-                                        modifier = Modifier
-                                            .background(
-                                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                                                shape = RoundedCornerShape(8.dp)
-                                            )
-                                            .clickable { ttsManager.speak(question.itemWithCard.vocabulary.word) }
-                                            .padding(6.dp)
-                                    ) {
-                                        Text("🔊", fontSize = 14.sp)
-                                    }
-                                }
-
-                                Spacer(modifier = Modifier.height(16.dp))
-
-                                Text(
-                                    text = question.prompt,
-                                    fontSize = 34.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                    textAlign = TextAlign.Center
-                                )
-
-                                if (hasAnswered && !question.itemWithCard.vocabulary.ipa.isNullOrEmpty()) {
-                                    Spacer(modifier = Modifier.height(4.dp))
-                                    Text(
-                                        text = question.itemWithCard.vocabulary.ipa!!,
-                                        fontSize = 16.sp,
-                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
-                                    )
-                                }
-                            }
-                        }
-                    }
-
-                    // Options list & Reveal details
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .verticalScroll(rememberScrollState())
-                            .weight(1f, fill = false)
-                    ) {
-                        if (hasAnswered) {
-                            // Reveal details card (Flat elevation)
-                            Card(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(bottom = 16.dp),
-                                shape = RoundedCornerShape(16.dp),
-                                colors = CardDefaults.cardColors(
-                                    containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
-                                ),
-                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)),
-                                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-                            ) {
-                                Column(modifier = Modifier.padding(16.dp)) {
-                                    Text(
-                                        text = "${question.itemWithCard.vocabulary.word} (${question.itemWithCard.vocabulary.partOfSpeech})",
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 16.sp,
-                                        color = MaterialTheme.colorScheme.primary
-                                    )
-                                    Text(
-                                        text = question.itemWithCard.vocabulary.definition,
-                                        fontSize = 14.sp,
-                                        color = MaterialTheme.colorScheme.onSurface,
-                                        modifier = Modifier.padding(vertical = 4.dp)
-                                    )
-                                    if (!question.itemWithCard.vocabulary.example.isNullOrEmpty()) {
-                                        Spacer(modifier = Modifier.height(4.dp))
-                                        Text(
-                                            text = "Ví dụ: ${question.itemWithCard.vocabulary.example}",
-                                            fontSize = 13.sp,
-                                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                                        )
-                                    }
-                                }
-                            }
-                        }
-
-                        // Rendering options using DuolingoOptionCard
-                        question.options.forEachIndexed { index, option ->
-                            val isSelected = selectedOptionIndex == index
-                            val isCorrectState = if (hasAnswered) {
-                                index == question.correctIndex
-                            } else null
-
-                            val isWrongState = if (hasAnswered && isSelected && !isCorrectState!!) {
-                                false
-                            } else null
-
-                            val finalCorrectState = isCorrectState ?: isWrongState
-
-                            DuolingoOptionCard(
-                                optionText = option,
-                                isSelected = isSelected,
-                                isCorrect = finalCorrectState,
-                                onClick = {
-                                    if (!hasAnswered) {
-                                        selectedOptionIndex = index
-                                    }
-                                },
-                                enabled = !hasAnswered,
-                                modifier = Modifier.padding(vertical = 6.dp)
-                            )
-                        }
-                    }
-
-                    // Bottom UI Check Button or spacer
-                    if (!hasAnswered) {
-                        Button(
-                            onClick = {
-                                if (selectedOptionIndex != null) {
-                                    val isCorrect = selectedOptionIndex == question.correctIndex
-                                    if (!isCorrect) {
-                                        scope.launch {
-                                            repeat(3) {
-                                                shakeOffset.animateTo(15f, tween(40))
-                                                shakeOffset.animateTo(-15f, tween(40))
-                                            }
-                                            shakeOffset.animateTo(0f, tween(40))
-                                        }
-                                    }
-                                    viewModel.submitAnswer(selectedOptionIndex!!)
-                                }
-                            },
-                            enabled = selectedOptionIndex != null,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(54.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.primary,
-                                disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant
-                            ),
-                            shape = RoundedCornerShape(27.dp)
-                        ) {
-                            Text(
-                                text = "KIỂM TRA",
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = if (selectedOptionIndex != null) Color.White else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
-                            )
-                        }
-                    } else {
-                        // Spacer to make room for FeedbackBanner overlay
-                        Spacer(modifier = Modifier.height(110.dp))
-                    }
-                }
-
-                // Feedback Banner overlays at the bottom
-                if (hasAnswered) {
-                    val isCorrectAnswer = state.selectedOption == question.correctIndex
-                    FeedbackBanner(
-                        isCorrect = isCorrectAnswer,
-                        correctAnswerText = if (question.direction == QuestionDirection.EN_TO_VI) {
-                            question.itemWithCard.vocabulary.definition
-                        } else {
-                            question.itemWithCard.vocabulary.word
-                        },
-                        onContinueClick = {
-                            viewModel.nextQuestion()
-                            selectedOptionIndex = null
-                        },
-                        modifier = Modifier.align(Alignment.BottomCenter)
+            // Build the value-object state for the Content. This is the only
+            // thing the Content sees — it never references the ViewModel.
+            val progress = if (state.questions.isNotEmpty()) {
+                state.currentIndex.toFloat() / state.questions.size
+            } else 0f
+            val isFsrs = question.type is QuizType.FSRSTailFlashcard
+            val contentState = QuizScreenUiState(
+                currentQuestion = question,
+                currentIndex = state.currentIndex,
+                totalQuestions = state.questions.size,
+                hasAnswered = state.isAnswerRevealed,
+                selectedOptionIndex = selectedOptionIndex ?: state.selectedOption,
+                progress = progress,
+                isFsrsFlashcard = isFsrs,
+                isFlipped = isFlipped,
+                isFsrsRatingSelected = state.isFSRSRatingSelected,
+                feedbackBannerCorrect = if (state.isAnswerRevealed) {
+                    computeAnswerCorrectness(
+                        question = question,
+                        selectedOptionIndex = state.selectedOption,
+                        typedText = typedText,
+                        selectedScrambledWords = selectedScrambledWords
                     )
+                } else null,
+                correctAnswerText = correctAnswerTextFor(question),
+                typedText = typedText,
+                selectedScrambledWords = selectedScrambledWords
+            )
+
+            val actions = QuizScreenActions(
+                onBack = onBackToHome,
+                onOptionSelected = { index ->
+                    if (!state.isAnswerRevealed) selectedOptionIndex = index
+                },
+                onScrambledWordSelected = { word, _ ->
+                    if (!state.isAnswerRevealed) {
+                        selectedScrambledWords = selectedScrambledWords + word
+                    }
+                },
+                onScrambledWordUnselected = { _, index ->
+                    if (!state.isAnswerRevealed) {
+                        val newList = selectedScrambledWords.toMutableList()
+                        if (index in newList.indices) newList.removeAt(index)
+                        selectedScrambledWords = newList
+                    }
+                },
+                onScrambledWordReordered = { fromIndex, toIndex ->
+                    if (!state.isAnswerRevealed) {
+                        val newList = selectedScrambledWords.toMutableList()
+                        if (fromIndex in newList.indices) {
+                            val item = newList.removeAt(fromIndex)
+                            val insertIndex = toIndex.coerceIn(0, newList.size)
+                            newList.add(insertIndex, item)
+                        }
+                        selectedScrambledWords = newList
+                    }
+                },
+                onTypedTextChanged = { newText ->
+                    if (!state.isAnswerRevealed) typedText = newText
+                },
+                onFlipFlashcard = { isFlipped = true },
+                onSubmit = {
+                    viewModel.submitAnswer(
+                        optionIndex = selectedOptionIndex,
+                        textAnswer = typedText.takeIf { it.isNotBlank() },
+                        selectedWordsForScrambled = selectedScrambledWords
+                            .takeIf { it.isNotEmpty() }
+                    )
+                },
+                onContinue = {
+                    viewModel.nextQuestion()
+                    // Reset the scratchpad for the next question. Using key
+                    // (state.currentIndex) above already re-creates the
+                    // remember state, but explicit reset is defensive.
+                    typedText = ""
+                    selectedScrambledWords = emptyList()
+                    isFlipped = false
+                    selectedOptionIndex = null
+                },
+                onFsrsRating = { r ->
+                    viewModel.submitAnswer(fsrsRating = r)
+                },
+                onPlayAudio = { url ->
+                    viewModel.playAudio(url)
                 }
+            )
+
+            key(state.currentIndex) {
+                QuizScreenContent(
+                    state = contentState,
+                    actions = actions
+                )
             }
         }
-        is QuizSessionState.Completed -> {
-            // Handled via LaunchedEffect
+        is QuizUiState.Completed -> {
+            if (state.totalCount == 0) {
+                QuizEmptyState(onBack = onBackToHome)
+            }
+            // Non-zero Completed states are handled by the LaunchedEffect above
+            // which navigates to ResultScreen.
+        }
+        is QuizUiState.Error -> {
+            QuizErrorState(message = state.message, onRetry = onBackToHome)
         }
     }
 }

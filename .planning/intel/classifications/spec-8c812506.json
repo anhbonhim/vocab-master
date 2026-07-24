@@ -1,0 +1,13 @@
+{
+  "source_path": "/data/data/com.termux/files/home/vocab-master/specs/changes/alpha-debug-panel/spec.md",
+  "type": "SPEC",
+  "confidence": "high",
+  "manifest_override": true,
+  "title": "Delta Spec: alpha-debug-panel",
+  "summary": "Delta spec for alpha debug panel: debug build accessibility, tabbed UI, audio CDN inspection, FSRS/DB queries, and log export.",
+  "scope": ["debug panel", "audio CDN", "FSRS", "database inspection", "logging", "quiz stats", "tabbed navigation"],
+  "cross_refs": [],
+  "locked": false,
+  "precedence": null,
+  "notes": ""
+}

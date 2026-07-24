@@ -1,0 +1,37 @@
+docs:
+  - path: specs/ux-core/spec.md
+    type: SPEC
+  - path: specs/changes/feature-parity-overhaul/proposal.md
+    type: SPEC
+  - path: specs/changes/feature-parity-overhaul/spec.md
+    type: SPEC
+  - path: specs/changes/feature-parity-overhaul/design.md
+    type: SPEC
+  - path: specs/changes/feature-parity-overhaul/tasks.md
+    type: SPEC
+  - path: specs/changes/archive/20260711-duolingo-overhaul/proposal.md
+    type: SPEC
+  - path: specs/changes/archive/20260711-duolingo-overhaul/spec.md
+    type: SPEC
+  - path: specs/changes/archive/20260711-duolingo-overhaul/tasks.md
+    type: SPEC
+  - path: specs/changes/alpha-debug-panel/proposal.md
+    type: SPEC
+  - path: specs/changes/alpha-debug-panel/spec.md
+    type: SPEC
+  - path: specs/changes/alpha-debug-panel/tasks.md
+    type: SPEC
+  - path: specs/changes/content-pipeline-v3/proposal.md
+    type: SPEC
+  - path: specs/changes/content-pipeline-v3/spec.md
+    type: SPEC
+  - path: specs/changes/content-pipeline-v3/design.md
+    type: SPEC
+  - path: docs/WIKI.md
+    type: DOC
+  - path: docs/audit/spaghetti-report.md
+    type: DOC
+  - path: PROJECT_CONTEXT.md
+    type: DOC
+  - path: implementation_plan.md
+    type: SPEC

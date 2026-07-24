@@ -42,7 +42,7 @@ The core business logic revolves around the **Free Spaced Repetition Scheduler (
 *   **Data Updates:** The updated `Card` is saved back to the Room database via `VocabularyRepository`, and the review action is logged via `ReviewRepository`.
 
 ### Initial Data Seeding
-There is no active remote server connection. On the very first launch, if the local Room database is empty, the `VocabularyRepositoryImpl` parses a static `assets/vocabulary.json` file. It maps these raw items into `VocabularyCardEntity` records, initializing their learning states as `State.New` before performing a batch insertion into Room.
+There is no active remote server connection. On the very first launch, if the local Room database is empty, the `VocabularyRepositoryImpl` parses a static `assets/lessons_v3.json` file. It maps these raw items into `VocabularyCardEntity` records, initializing their learning states as `State.New` before performing a batch insertion into Room.
 
 ### Reactive State Flow
 Data structures are exposed as Kotlin `Flow`s from the Data layer up to the UI. For instance, `SettingsRepositoryImpl` exposes a stream of DataStore preferences. ViewModels consume these flows, transform them into `StateFlow`s, which Jetpack Compose screens observe (`collectAsState()`). This ensures UI updates are synchronized automatically when the underlying database or preferences change.

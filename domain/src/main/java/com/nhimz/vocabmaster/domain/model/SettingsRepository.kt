@@ -4,7 +4,7 @@ import kotlinx.coroutines.flow.Flow
 
 interface SettingsRepository {
     val dailyGoalMinutes: Flow<Int>
-    suspend fun setDailyGoalMinutes(minutes: Int)
+    suspend fun updateDailyGoal(minutes: Int)
 
     val currentStreak: Flow<Int>
     suspend fun setCurrentStreak(streak: Int)
@@ -40,4 +40,12 @@ interface SettingsRepository {
 
     val placementLevel: Flow<String?>
     suspend fun setPlacementLevel(level: String)
+
+    val selectedTopic: Flow<String>
+    suspend fun setSelectedTopic(topic: String)
+
+    val useLocalDevServer: Flow<Boolean>
+    suspend fun setUseLocalDevServer(enabled: Boolean)
+
+    suspend fun resetAllProgress()
 }

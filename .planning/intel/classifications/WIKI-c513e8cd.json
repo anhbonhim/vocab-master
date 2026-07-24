@@ -1,0 +1,13 @@
+{
+  "source_path": "/data/data/com.termux/files/home/vocab-master/docs/WIKI.md",
+  "type": "DOC",
+  "confidence": "high",
+  "manifest_override": true,
+  "title": "Vocab Master Technical Wiki",
+  "summary": "Technical wiki documenting Vocab Master Android app architecture, tech stack, data flow, and conventions.",
+  "scope": ["Vocab Master", "Android", "architecture", "spaced repetition", "FSRS"],
+  "cross_refs": [],
+  "locked": false,
+  "precedence": null,
+  "notes": ""
+}

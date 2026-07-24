@@ -4,17 +4,15 @@ import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
-import com.nhimz.vocabmaster.domain.fsrs.Rating
-import com.nhimz.vocabmaster.domain.fsrs.ReviewLog
-import com.nhimz.vocabmaster.domain.fsrs.State
-import java.time.LocalDateTime
+import com.nhimz.vocabmaster.domain.fsrs.v6.Rating
+import com.nhimz.vocabmaster.domain.fsrs.v6.ReviewLog
 
 @Entity(
     tableName = "review_logs",
     foreignKeys = [
         ForeignKey(
-            entity = VocabularyCardEntity::class,
-            parentColumns = ["id"],
+            entity = FsrsCardEntity::class,
+            parentColumns = ["questionId"],
             childColumns = ["cardId"],
             onDelete = ForeignKey.CASCADE
         )
@@ -23,40 +21,29 @@ import java.time.LocalDateTime
 )
 data class ReviewLogEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
-    val cardId: Long,
-    
-    // FSRS ReviewLog properties
-    val rating: Rating,
-    val elapsed_days: Int,
-    val scheduled_days: Int,
-    val stability: Double,
-    val difficulty: Double,
-    val state: State,
-    val timestamp: LocalDateTime
+    val cardId: String,
+
+    // FSRS-6 ReviewLog properties
+    val rating: Int,
+    val reviewDatetime: Long,
+    val reviewDuration: Long?
 ) {
     fun toDomain(): ReviewLog {
         return ReviewLog(
-            rating = rating,
-            elapsed_days = elapsed_days,
-            scheduled_days = scheduled_days,
-            stability = stability,
-            difficulty = difficulty,
-            state = state,
-            timestamp = timestamp
+            cardId = cardId,
+            rating = Rating.entries.firstOrNull { it.value == rating } ?: Rating.Good,
+            reviewDatetime = reviewDatetime,
+            reviewDuration = reviewDuration
         )
     }
 
     companion object {
-        fun fromDomain(cardId: Long, log: ReviewLog): ReviewLogEntity {
+        fun fromDomain(log: ReviewLog): ReviewLogEntity {
             return ReviewLogEntity(
-                cardId = cardId,
-                rating = log.rating,
-                elapsed_days = log.elapsed_days,
-                scheduled_days = log.scheduled_days,
-                stability = log.stability,
-                difficulty = log.difficulty,
-                state = log.state,
-                timestamp = log.timestamp
+                cardId = log.cardId,
+                rating = log.rating.value,
+                reviewDatetime = log.reviewDatetime,
+                reviewDuration = log.reviewDuration
             )
         }
     }

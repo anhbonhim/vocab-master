@@ -1,28 +1,6 @@
 package com.nhimz.vocabmaster.data.model
 
-import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.descriptors.PrimitiveKind
-import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
-import kotlinx.serialization.descriptors.SerialDescriptor
-import kotlinx.serialization.encoding.Decoder
-import kotlinx.serialization.encoding.Encoder
-import java.time.LocalDateTime
-import java.time.format.DateTimeFormatter
-
-object LocalDateTimeSerializer : KSerializer<LocalDateTime> {
-    private val formatter = DateTimeFormatter.ISO_LOCAL_DATE_TIME
-
-    override val descriptor: SerialDescriptor = PrimitiveSerialDescriptor("LocalDateTime", PrimitiveKind.STRING)
-
-    override fun serialize(encoder: Encoder, value: LocalDateTime) {
-        encoder.encodeString(value.format(formatter))
-    }
-
-    override fun deserialize(decoder: Decoder): LocalDateTime {
-        return LocalDateTime.parse(decoder.decodeString(), formatter)
-    }
-}
 
 @Serializable
 data class UserSettingsBackup(
@@ -39,40 +17,40 @@ data class UserSettingsBackup(
 )
 
 @Serializable
-data class VocabularyCardBackup(
-    val id: Long,
-    val word: String,
-    val definition: String,
-    val partOfSpeech: String,
-    val difficultyLevel: String,
-    val example: String?,
-    val ipa: String?,
-    @Serializable(with = LocalDateTimeSerializer::class) val due: LocalDateTime,
-    val stability: Double,
-    val difficulty: Double,
-    val interval: Int,
+data class FsrsCardBackup(
+    val questionId: String,
+    val state: Int,
+    val step: Int?,
+    val stability: Double?,
+    val difficulty: Double?,
+    val due: Long,
+    val lastReview: Long?,
     val reps: Int,
-    val lapses: Int,
-    val state: String,
-    @Serializable(with = LocalDateTimeSerializer::class) val lastReview: LocalDateTime?
+    val lapses: Int
 )
 
 @Serializable
 data class ReviewLogBackup(
-    val id: Long,
-    val cardId: Long,
+    val cardId: String,
     val rating: String,
-    val elapsed_days: Int,
-    val scheduled_days: Int,
-    val stability: Double,
-    val difficulty: Double,
-    val state: String,
-    @Serializable(with = LocalDateTimeSerializer::class) val timestamp: LocalDateTime
+    val reviewDatetime: String,
+    val reviewDuration: Long?
 )
 
 @Serializable
-data class BackupPayload(
-    val userSettings: UserSettingsBackup,
-    val vocabularyCards: List<VocabularyCardBackup>,
-    val reviewLogs: List<ReviewLogBackup>
+data class FlaggedItemBackup(
+    val questionId: String,
+    val issueType: String,
+    val details: String,
+    val timestamp: Long
+)
+
+@Serializable
+data class AppBackup(
+    val version: Int = 3,
+    val timestamp: Long,
+    val settings: UserSettingsBackup,
+    val cards: List<FsrsCardBackup>,
+    val reviewLogs: List<ReviewLogBackup>,
+    val flaggedItems: List<FlaggedItemBackup>
 )

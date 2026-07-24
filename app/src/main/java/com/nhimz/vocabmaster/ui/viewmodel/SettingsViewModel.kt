@@ -5,19 +5,95 @@ import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.nhimz.vocabmaster.domain.model.BackupRepository
+import com.nhimz.vocabmaster.domain.model.SettingsRepository
+import com.nhimz.vocabmaster.ui.components.SnackbarMessage
+import com.nhimz.vocabmaster.util.LocalLogger
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.stateIn
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.CancellationException
 import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.io.OutputStreamWriter
 import javax.inject.Inject
 
+class SettingsUiState
+
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
     private val backupRepository: BackupRepository,
+    private val settingsRepository: SettingsRepository,
     @param:ApplicationContext private val context: Context
 ) : ViewModel() {
+
+    private val _selectedTopic = MutableStateFlow("general")
+    val selectedTopic: StateFlow<String> = _selectedTopic.asStateFlow()
+
+    private val _uiState = MutableStateFlow(SettingsUiState())
+    val uiState: StateFlow<SettingsUiState> = _uiState.asStateFlow()
+
+    /**
+     * One-shot snackbar messages surfaced from settings operations (sync
+     * failures, backup/restore errors). Container ([SettingsScreen]) reads
+     * this flow and forwards each emission to the global
+     * [androidx.compose.material3.SnackbarHostState] hosted in
+     * [com.nhimz.vocabmaster.ui.VocabMasterApp].
+     */
+    private val _snackbarMessages = MutableSharedFlow<SnackbarMessage>(
+        replay = 0,
+        extraBufferCapacity = 8
+    )
+    val snackbarMessages: SharedFlow<SnackbarMessage> = _snackbarMessages.asSharedFlow()
+
+    private suspend fun emitSnackbar(message: SnackbarMessage) {
+        _snackbarMessages.emit(message)
+    }
+
+    val dailyGoalMinutes: StateFlow<Int> = settingsRepository.dailyGoalMinutes
+        .stateIn(viewModelScope, kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(5000), 100)
+
+    val theme: StateFlow<String> = settingsRepository.theme
+        .stateIn(viewModelScope, kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(5000), "SYSTEM")
+
+    val language: StateFlow<String> = settingsRepository.language
+        .stateIn(viewModelScope, kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(5000), "EN")
+
+    val desiredRetention: StateFlow<Double> = settingsRepository.desiredRetention
+        .stateIn(viewModelScope, kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(5000), 0.90)
+
+    fun setDailyGoal(minutes: Int) {
+        viewModelScope.launch { settingsRepository.updateDailyGoal(minutes) }
+    }
+
+    fun setTheme(t: String) {
+        viewModelScope.launch { settingsRepository.setTheme(t) }
+    }
+
+    fun setDesiredRetention(r: Double) {
+        viewModelScope.launch { settingsRepository.setDesiredRetention(r) }
+    }
+
+    init {
+        viewModelScope.launch {
+            settingsRepository.selectedTopic.collect { topic ->
+                _selectedTopic.value = topic
+            }
+        }
+    }
+
+    fun setSelectedTopic(topic: String) {
+        viewModelScope.launch {
+            settingsRepository.setSelectedTopic(topic)
+        }
+    }
 
     fun backupData(uri: Uri, onSuccess: () -> Unit, onError: (String) -> Unit) {
         viewModelScope.launch {
@@ -29,9 +105,12 @@ class SettingsViewModel @Inject constructor(
                     }
                 }
                 onSuccess()
+                emitSnackbar(SnackbarMessage(text = "Sao lưu dữ liệu thành công!"))
             } catch (e: Exception) {
-                e.printStackTrace()
-                onError(e.localizedMessage ?: "Lỗi không xác định khi sao lưu.")
+                e.printStackTrace();
+                val msg = e.localizedMessage ?: "Lỗi không xác định khi sao lưu."
+                onError(msg)
+                emitSnackbar(SnackbarMessage(text = "Sao lưu thất bại: $msg", isError = true))
             }
         }
     }
@@ -50,15 +129,44 @@ class SettingsViewModel @Inject constructor(
                     }
                 }
                 val jsonString = jsonStringBuilder.toString()
-                val success = backupRepository.importBackup(jsonString)
-                if (success) {
-                    onSuccess()
-                } else {
-                    onError("Dữ liệu sao lưu không hợp lệ hoặc bị lỗi.")
-                }
+                backupRepository.importBackup(jsonString)
+                    .onSuccess { success ->
+                        if (success) {
+                            onSuccess()
+                            emitSnackbar(SnackbarMessage(text = "Khôi phục dữ liệu thành công!"))
+                        } else {
+                            val msg = "Dữ liệu sao lưu không hợp lệ hoặc bị lỗi."
+                            onError(msg)
+                            emitSnackbar(SnackbarMessage(text = msg, isError = true))
+                        }
+                    }
+                    .onFailure { error ->
+                        LocalLogger.e("SettingsViewModel", "Backup restore failed", error)
+                        val msg = error.localizedMessage ?: "Lỗi không xác định khi khôi phục."
+                        onError(msg)
+                        emitSnackbar(SnackbarMessage(text = "Khôi phục thất bại: $msg", isError = true))
+                    }
+            } catch (e: java.io.IOException) {
+                LocalLogger.e("SettingsViewModel", "Failed to read backup file", e)
+                val msg = e.localizedMessage ?: "Lỗi không xác định khi khôi phục."
+                onError(msg)
+                emitSnackbar(SnackbarMessage(text = "Khôi phục thất bại: $msg", isError = true))
+            }
+        }
+    }
+
+    fun resetAllProgress(onComplete: () -> Unit) {
+        viewModelScope.launch {
+            try {
+                settingsRepository.resetAllProgress()
+                onComplete()
+                emitSnackbar(SnackbarMessage(text = "Đã đặt lại toàn bộ tiến trình học tập."))
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
-                e.printStackTrace()
-                onError(e.localizedMessage ?: "Lỗi không xác định khi khôi phục.")
+                LocalLogger.e("SettingsViewModel", "Failed to reset progress", e)
+                val msg = e.localizedMessage ?: "Lỗi không xác định."
+                emitSnackbar(SnackbarMessage(text = "Đặt lại thất bại: $msg", isError = true))
             }
         }
     }

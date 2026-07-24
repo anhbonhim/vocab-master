@@ -1,5 +1,5 @@
 #!/bin/bash
-export JAVA_HOME=/data/data/com.termux/files/usr/lib/jvm/java-17-openjdk
+export JAVA_HOME=/data/data/com.termux/files/usr/lib/jvm/java-21-openjdk
 PACKAGE="com.nhimz.vocabmaster"
 ACTIVITY=".MainActivity"
 APK="app/build/outputs/apk/debug/app-debug.apk"
@@ -8,7 +8,7 @@ LOG_FILE="debug_log.txt"
 echo "==================================="
 echo "[0/4] Đang build APK mới..."
 echo "==================================="
-gradle assembleDebug -Dorg.gradle.jvmargs="-Xmx1536m" || { echo "Lỗi khi build APK! Vui lòng kiểm tra code."; exit 1; }
+./gradlew assembleDebug || { echo "Lỗi khi build APK! Vui lòng kiểm tra code."; exit 1; }
 
 echo "==================================="
 echo "[1/4] Đang cài đặt APK..."

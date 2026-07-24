@@ -1,0 +1,13 @@
+{
+  "source_path": "/data/data/com.termux/files/home/vocab-master/specs/ux-core/spec.md",
+  "type": "SPEC",
+  "confidence": "high",
+  "manifest_override": true,
+  "title": "UX Core Specification",
+  "summary": "Specifies core UI/UX interaction requirements for Vocab Master quiz system.",
+  "scope": ["UI", "UX", "Quiz", "Placement Test", "FirstWinScreen", "FeedbackBanner", "DuolingoOptionCard"],
+  "cross_refs": [],
+  "locked": false,
+  "precedence": null,
+  "notes": ""
+}

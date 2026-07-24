@@ -1,0 +1,30 @@
+{
+  "source_path": "/data/data/com.termux/files/home/vocab-master/specs/changes/feature-parity-overhaul/tasks.md",
+  "type": "SPEC",
+  "confidence": "high",
+  "manifest_override": true,
+  "title": "Tasks: feature-parity-overhaul",
+  "summary": "Task list for feature-parity overhaul covering data generation, Android data model, audio CDN, gamification UI, and verification.",
+  "scope": [
+    "feature-parity-overhaul",
+    "data generation pipeline",
+    "Android data model",
+    "audio CDN",
+    "gamification UI",
+    "FSRS"
+  ],
+  "cross_refs": [
+    "app/src/main/assets/",
+    "domain/.../Models.kt",
+    "VocabularyRepositoryImpl.kt",
+    "data/model/VocabularyAssetItem.kt",
+    "DataModule.kt",
+    "VocabDatabase.kt",
+    "assets/vocabulary.json",
+    "libs.versions.toml",
+    "app/build.gradle.kts"
+  ],
+  "locked": false,
+  "precedence": null,
+  "notes": ""
+}

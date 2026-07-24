@@ -6,7 +6,7 @@ import com.nhimz.vocabmaster.domain.model.DifficultyLevel
 import com.nhimz.vocabmaster.domain.model.ReviewRepository
 import com.nhimz.vocabmaster.domain.model.ReviewStats
 import com.nhimz.vocabmaster.domain.model.SettingsRepository
-import com.nhimz.vocabmaster.domain.model.VocabularyItemWithCard
+import com.nhimz.vocabmaster.domain.model.QuestionWithCard
 import com.nhimz.vocabmaster.domain.model.VocabularyRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -17,7 +17,9 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.time.Instant
 import java.time.LocalDateTime
+import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import javax.inject.Inject
 
@@ -46,8 +48,8 @@ class StatisticsViewModel @Inject constructor(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     // Mistake bank cards (>50% error rate)
-    private val _mistakeCards = MutableStateFlow<List<VocabularyItemWithCard>>(emptyList())
-    val mistakeCards: StateFlow<List<VocabularyItemWithCard>> = _mistakeCards.asStateFlow()
+    private val _mistakeCards = MutableStateFlow<List<com.nhimz.vocabmaster.domain.model.QuestionWithCard>>(emptyList())
+    val mistakeCards: StateFlow<List<com.nhimz.vocabmaster.domain.model.QuestionWithCard>> = _mistakeCards.asStateFlow()
 
     // 7-day XP history
     private val _xpHistory = MutableStateFlow<List<DailyXp>>(emptyList())
@@ -64,7 +66,7 @@ class StatisticsViewModel @Inject constructor(
     fun loadStatisticsData() {
         viewModelScope.launch {
             // Load mistake bank
-            val allCardsList = mutableListOf<VocabularyItemWithCard>()
+            val allCardsList = mutableListOf<com.nhimz.vocabmaster.domain.model.QuestionWithCard>()
             for (level in DifficultyLevel.values()) {
                 allCardsList.addAll(vocabularyRepository.getCardsByLevel(level).first())
             }
@@ -87,7 +89,11 @@ class StatisticsViewModel @Inject constructor(
 
                 // Fill with actual data (estimated XP: 10 XP for Good/Easy, 2 XP for Again/Hard)
                 logs.forEach { log ->
-                    val logDay = log.timestamp.format(formatter)
+                    val logDateTime = LocalDateTime.ofInstant(
+                        Instant.ofEpochMilli(log.reviewDatetime),
+                        ZoneId.systemDefault()
+                    )
+                    val logDay = logDateTime.format(formatter)
                     if (last7DaysMap.containsKey(logDay)) {
                         val xpGained = if (log.rating.value >= 3) 10 else 2
                         last7DaysMap[logDay] = last7DaysMap.getOrDefault(logDay, 0) + xpGained
@@ -104,27 +110,8 @@ class StatisticsViewModel @Inject constructor(
                 settingsRepository.badgeStatus,
                 settingsRepository.xpTotal,
                 settingsRepository.currentStreak
-            ) { unlockedList, xpTotal, currentStreak ->
+            ) { unlockedList, _, _ ->
                 val list = mutableListOf<BadgeItem>()
-
-                // Check for dynamic badges and add them automatically
-                val updatedUnlocked = unlockedList.toMutableList()
-                if (currentStreak >= 3 && !updatedUnlocked.contains("streak_3")) {
-                    settingsRepository.addBadge("streak_3")
-                    updatedUnlocked.add("streak_3")
-                }
-                if (currentStreak >= 7 && !updatedUnlocked.contains("streak_7")) {
-                    settingsRepository.addBadge("streak_7")
-                    updatedUnlocked.add("streak_7")
-                }
-                if (xpTotal >= 500 && !updatedUnlocked.contains("xp_500")) {
-                    settingsRepository.addBadge("xp_500")
-                    updatedUnlocked.add("xp_500")
-                }
-                if (xpTotal >= 1000 && !updatedUnlocked.contains("xp_1000")) {
-                    settingsRepository.addBadge("xp_1000")
-                    updatedUnlocked.add("xp_1000")
-                }
 
                 // 1. Onboarding Completed
                 list.add(
@@ -133,7 +120,7 @@ class StatisticsViewModel @Inject constructor(
                         title = "Khởi đầu mới",
                         description = "Hoàn thành bài kiểm tra đầu vào và thiết lập mục tiêu.",
                         icon = "🚀",
-                        isUnlocked = updatedUnlocked.contains("onboarding_completed")
+                        isUnlocked = unlockedList.contains("onboarding_completed")
                     )
                 )
                 // 2. Streak 3 days
@@ -143,7 +130,7 @@ class StatisticsViewModel @Inject constructor(
                         title = "Kiên trì",
                         description = "Đạt chuỗi học tập liên tiếp 3 ngày.",
                         icon = "🔥",
-                        isUnlocked = updatedUnlocked.contains("streak_3")
+                        isUnlocked = unlockedList.contains("streak_3")
                     )
                 )
                 // 3. Streak 7 days
@@ -153,7 +140,7 @@ class StatisticsViewModel @Inject constructor(
                         title = "Chiến binh học tập",
                         description = "Đạt chuỗi học tập liên tiếp 7 ngày.",
                         icon = "👑",
-                        isUnlocked = updatedUnlocked.contains("streak_7")
+                        isUnlocked = unlockedList.contains("streak_7")
                     )
                 )
                 // 4. XP 500
@@ -163,7 +150,7 @@ class StatisticsViewModel @Inject constructor(
                         title = "Tích lũy",
                         description = "Đạt tổng số 500 XP kinh nghiệm.",
                         icon = "💎",
-                        isUnlocked = updatedUnlocked.contains("xp_500")
+                        isUnlocked = unlockedList.contains("xp_500")
                     )
                 )
                 // 5. XP 1000
@@ -173,7 +160,7 @@ class StatisticsViewModel @Inject constructor(
                         title = "Học giả",
                         description = "Đạt tổng số 1000 XP kinh nghiệm.",
                         icon = "🧙",
-                        isUnlocked = updatedUnlocked.contains("xp_1000")
+                        isUnlocked = unlockedList.contains("xp_1000")
                     )
                 )
 

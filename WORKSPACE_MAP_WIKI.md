@@ -61,7 +61,7 @@ Các file cấu hình dự án ở thư mục gốc:
     *   [VocabDao.kt](file:///c:/Users/nhimz/Documents/vocab-master/data/src/main/java/com/nhimz/vocabmaster/data/database/VocabDao.kt) — Cung cấp các SQL queries lấy card do/due, đếm stats học tập.
     *   [VocabDatabase.kt](file:///c:/Users/nhimz/Documents/vocab-master/data/src/main/java/com/nhimz/vocabmaster/data/database/VocabDatabase.kt) — Khai báo cấu hình Room Database.
 *   **Dữ liệu từ vựng mẫu (Assets):**
-    *   [vocabulary.json](file:///c:/Users/nhimz/Documents/vocab-master/data/src/main/assets/vocabulary.json) — File chứa toàn bộ kho dữ liệu từ vựng gốc `core_words.json` của user.
+    *   [lessons_v3.json](file:///c:/Users/nhimz/Documents/vocab-master/data/src/main/assets/lessons_v3.json) — File chứa toàn bộ kho dữ liệu bài tập và từ vựng gốc v3 của ứng dụng.
 *   **Triển khai Repositories (Implementations):**
     *   [VocabularyRepositoryImpl.kt](file:///c:/Users/nhimz/Documents/vocab-master/data/src/main/java/com/nhimz/vocabmaster/data/repository/VocabularyRepositoryImpl.kt) — Chứa logic `checkAndPrepopulate()` bóc tách file JSON assets và khởi tạo database.
     *   [ReviewRepositoryImpl.kt](file:///c:/Users/nhimz/Documents/vocab-master/data/src/main/java/com/nhimz/vocabmaster/data/repository/ReviewRepositoryImpl.kt) — Thống kê XP và số liệu học tập.

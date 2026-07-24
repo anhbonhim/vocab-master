@@ -1,40 +1,27 @@
 package com.nhimz.vocabmaster.data.database
 
 import androidx.room.TypeConverter
-import com.nhimz.vocabmaster.domain.fsrs.Rating
-import com.nhimz.vocabmaster.domain.fsrs.State
-import java.time.Instant
-import java.time.LocalDateTime
-import java.time.ZoneId
+import com.nhimz.vocabmaster.domain.model.NodeType
+import com.nhimz.vocabmaster.domain.model.QuestionType
 
 class Converters {
     @TypeConverter
-    fun fromTimestamp(value: Long?): LocalDateTime? {
-        return value?.let { LocalDateTime.ofInstant(Instant.ofEpochSecond(it), ZoneId.systemDefault()) }
+    fun toNodeType(value: Int): NodeType {
+        return NodeType.entries.getOrNull(value) ?: NodeType.LESSON
     }
 
     @TypeConverter
-    fun dateToTimestamp(date: LocalDateTime?): Long? {
-        return date?.atZone(ZoneId.systemDefault())?.toEpochSecond()
+    fun fromNodeType(nodeType: NodeType): Int {
+        return nodeType.ordinal
     }
 
     @TypeConverter
-    fun toState(value: Int): State {
-        return State.entries.firstOrNull { it.value == value } ?: State.New
+    fun toQuestionType(value: Int): QuestionType {
+        return QuestionType.entries.getOrNull(value) ?: QuestionType.FILL_IN_BLANK
     }
 
     @TypeConverter
-    fun fromState(state: State): Int {
-        return state.value
-    }
-
-    @TypeConverter
-    fun toRating(value: Int): Rating {
-        return Rating.entries.firstOrNull { it.value == value } ?: Rating.Good
-    }
-
-    @TypeConverter
-    fun fromRating(rating: Rating): Int {
-        return rating.value
+    fun fromQuestionType(questionType: QuestionType): Int {
+        return questionType.ordinal
     }
 }

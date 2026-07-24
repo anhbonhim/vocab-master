@@ -24,7 +24,7 @@ Tài liệu này mô tả kiến trúc, luồng dữ liệu (Data Flow) và các
 - **Domain Mapping**: Maps to/from the domain `ReviewLog` object.
 
 ### 3. Pre-populated Data Model (`VocabularyAssetItem`)
-- Là một DTO nội bộ được dùng trong repository để parse dữ liệu file `vocabulary.json` từ thư mục assets.
+- Là một DTO nội bộ được dùng trong repository để parse dữ liệu file `lessons_v3.json` từ thư mục assets.
 - Chứa các field như `word`, `level`, `type`, `translation`, và danh sách các ví dụ (Beginner, Intermediate, Advanced).
 
 ## Database Schema (Room DAOs)
@@ -51,7 +51,7 @@ Data Access Object chính cung cấp các operation cho Room:
 ## Data Sources
 
 1. **Local Database (Room)**: Nguồn dữ liệu (source of truth) chính cho tiến độ học từ vựng và trạng thái FSRS.
-2. **Local Assets (`vocabulary.json`)**: Dữ liệu hạt giống (seed data) ban đầu. Chứa một mảng các từ vựng với nghĩa, phiên âm, và câu ví dụ.
+2. **Local Assets (`lessons_v3.json`)**: Dữ liệu hạt giống (seed data) ban đầu. Chứa một mảng các từ vựng với nghĩa, phiên âm, và câu ví dụ.
 3. **DataStore (Preferences)**: Dùng để lưu trữ dạng key-value cho cài đặt người dùng (Settings) và các chỉ số gamification (XP, Streak,...).
 
 *Lưu ý: Không có remote data sources hay API calls nào được gọi trong module này. Mọi thứ hoạt động Offline-first.*
@@ -61,7 +61,7 @@ Data Access Object chính cung cấp các operation cho Room:
 Các Repository này triển khai các interface được định nghĩa ở tầng Domain và làm cầu nối giữa Room/DataStore và Domain layer.
 
 ### 1. `VocabularyRepositoryImpl`
-- **Initialization/Pre-population**: Cung cấp hàm `checkAndPrepopulate()`. Nếu DB trống (`getCardCount() == 0`), nó sẽ đọc `vocabulary.json` từ Android assets, parse thông qua `kotlinx.serialization`, format các ví dụ và thêm vào batch `VocabularyCardEntity` ban đầu với FSRS state được set là `New`.
+- **Initialization/Pre-population**: Cung cấp hàm `checkAndPrepopulate()`. Nếu DB trống (`getCardCount() == 0`), nó sẽ đọc `lessons_v3.json` từ Android assets, parse thông qua `kotlinx.serialization`, format các ví dụ và thêm vào batch `VocabularyCardEntity` ban đầu với FSRS state được set là `New`.
 - **Core Operations**:
   - `getDueCards`: Kiểm tra dữ liệu khởi tạo, trả về Flow chứa các card tới hạn/mới từ `VocabDao` và map sang Domain models.
   - `getCardsByLevel`, `updateCard`, `insertCard`, `insertAll`: Các thao tác CRUD tiêu chuẩn.

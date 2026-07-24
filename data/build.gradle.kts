@@ -6,6 +6,7 @@ plugins {
 }
 
 android {
+    testOptions { unitTests.isIncludeAndroidResources = true }
     namespace = "com.nhimz.vocabmaster.data"
     compileSdk = 36
 
@@ -20,6 +21,9 @@ android {
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }
+    buildFeatures {
+        buildConfig = true
+    }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
@@ -27,7 +31,7 @@ android {
 }
 
 kotlin {
-    jvmToolchain(17)
+    // jvmToolchain(17)
 }
 
 dependencies {
@@ -49,4 +53,12 @@ dependencies {
 
     // DataStore Preferences
     implementation(libs.androidx.datastore.preferences)
+}
+
+dependencies {
+    testImplementation(libs.junit)
+    testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.androidx.test.core)
+    testImplementation(libs.androidx.test.ext.junit)
+    testImplementation("org.robolectric:robolectric:4.15.1")
 }

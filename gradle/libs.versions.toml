@@ -1,4 +1,5 @@
 [versions]
+detekt = "1.23.6"
 androidGradlePlugin = "9.0.1"
 androidxCore = "1.18.0"
 androidxLifecycle = "2.10.0"
@@ -13,6 +14,7 @@ junit = "4.13.2"
 kotlin = "2.3.20"
 ksp = "2.3.2"
 hilt = "2.60.1"
+hiltNavigationCompose = "1.2.0"
 room = "2.7.1"
 kotlinxSerialization = "1.7.3"
 nav3Core = "1.0.1"
@@ -51,6 +53,7 @@ kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serializa
 # Hilt
 hilt-android = { module = "com.google.dagger:hilt-android", version.ref = "hilt" }
 hilt-compiler = { module = "com.google.dagger:hilt-compiler", version.ref = "hilt" }
+androidx-hilt-navigation-compose = { module = "androidx.hilt:hilt-navigation-compose", version.ref = "hiltNavigationCompose" }
 
 # Room
 room-runtime = { module = "androidx.room:room-runtime", version.ref = "room" }
@@ -64,7 +67,16 @@ androidx-lifecycle-viewmodel-navigation3 = { module = "androidx.lifecycle:lifecy
 androidx-datastore-preferences = { module = "androidx.datastore:datastore-preferences", version.ref = "datastore" }
 lottie-compose = { module = "com.airbnb.android:lottie-compose", version.ref = "lottie" }
 
+# Media3 / ExoPlayer for CDN Audio
+androidx-media3-exoplayer = { group = "androidx.media3", name = "media3-exoplayer", version = "1.5.1" }
+androidx-media3-ui = { group = "androidx.media3", name = "media3-ui", version = "1.5.1" }
+
+# Coil for SVG rendering
+coil-compose = { group = "io.coil-kt", name = "coil-compose", version = "2.6.0" }
+coil-svg = { group = "io.coil-kt", name = "coil-svg", version = "2.6.0" }
+
 [plugins]
+detekt = { id = "io.gitlab.arturbosch.detekt", version.ref = "detekt" }
 android-application = { id = "com.android.application", version.ref = "androidGradlePlugin" }
 android-library = { id = "com.android.library", version.ref = "androidGradlePlugin" }
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
@@ -72,3 +84,4 @@ compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
+kotlin-kapt = { id = "org.jetbrains.kotlin.kapt", version.ref = "kotlin" }

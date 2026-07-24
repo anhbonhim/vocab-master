@@ -2,11 +2,15 @@ package com.nhimz.vocabmaster.data.di
 
 import android.content.Context
 import androidx.room.Room
-import com.nhimz.vocabmaster.data.database.VocabDao
-import com.nhimz.vocabmaster.data.database.VocabDatabase
+import com.nhimz.vocabmaster.data.database.CurriculumDatabase
+import com.nhimz.vocabmaster.data.database.CurriculumDao
+import com.nhimz.vocabmaster.data.database.UserDataDatabase
+import com.nhimz.vocabmaster.data.database.UserDataDao
+import com.nhimz.vocabmaster.data.repository.BackupRepositoryImpl
 import com.nhimz.vocabmaster.data.repository.ReviewRepositoryImpl
 import com.nhimz.vocabmaster.data.repository.SettingsRepositoryImpl
 import com.nhimz.vocabmaster.data.repository.VocabularyRepositoryImpl
+import com.nhimz.vocabmaster.domain.model.BackupRepository
 import com.nhimz.vocabmaster.domain.model.ReviewRepository
 import com.nhimz.vocabmaster.domain.model.SettingsRepository
 import com.nhimz.vocabmaster.domain.model.VocabularyRepository
@@ -17,9 +21,6 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
-
-import com.nhimz.vocabmaster.data.repository.BackupRepositoryImpl
-import com.nhimz.vocabmaster.domain.model.BackupRepository
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -50,23 +51,35 @@ abstract class DataModule {
     ): SettingsRepository
 
     companion object {
-        @Provides
-        @Singleton
-        fun provideVocabDatabase(
-            @ApplicationContext context: Context
-        ): VocabDatabase {
-            return Room.databaseBuilder(
-                context,
-                VocabDatabase::class.java,
-                "vocab_database"
-            ).fallbackToDestructiveMigration(dropAllTables = true)
-             .build()
-        }
+        // ---- Split databases (T03, finalized in T06): CurriculumDb + UserDataDb ----
+        // The legacy VocabDatabase/VocabDao were deleted in T06 once every consumer
+        // (VocabularyRepositoryImpl, ReviewRepositoryImpl, BackupRepositoryImpl, the UI, and
+        // the data-layer tests) had migrated to the two split DAOs.
 
         @Provides
         @Singleton
-        fun provideVocabDao(database: VocabDatabase): VocabDao {
-            return database.vocabDao()
+        fun provideCurriculumDatabase(@ApplicationContext context: Context): CurriculumDatabase {
+            return Room.databaseBuilder(
+                context,
+                CurriculumDatabase::class.java,
+                CurriculumDatabase.DATABASE_NAME
+            ).fallbackToDestructiveMigration(dropAllTables = true).build()
         }
+
+        @Provides
+        fun provideCurriculumDao(database: CurriculumDatabase): CurriculumDao = database.curriculumDao()
+
+        @Provides
+        @Singleton
+        fun provideUserDataDatabase(@ApplicationContext context: Context): UserDataDatabase {
+            return Room.databaseBuilder(
+                context,
+                UserDataDatabase::class.java,
+                UserDataDatabase.DATABASE_NAME
+            ).fallbackToDestructiveMigration(dropAllTables = true).build()
+        }
+
+        @Provides
+        fun provideUserDataDao(database: UserDataDatabase): UserDataDao = database.userDataDao()
     }
 }
