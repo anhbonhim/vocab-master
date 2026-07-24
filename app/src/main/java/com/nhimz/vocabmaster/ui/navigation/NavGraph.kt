@@ -163,6 +163,14 @@ fun vocabMasterEntryProvider(
             onReviewMistakes = { ids ->
                 quizViewModel.startMistakeReview(ids)
                 mainViewModel.navigateTo(Screen.Quiz(ids))
+            },
+            onStartReviewGym = {
+                quizViewModel.startMistakeReview(null)
+                mainViewModel.navigateTo(Screen.Quiz())
+            },
+            onStartFlashcard = {
+                quizViewModel.startMistakeReview(null)
+                mainViewModel.navigateTo(Screen.Quiz())
             }
         )
     }

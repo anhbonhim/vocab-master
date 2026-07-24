@@ -29,16 +29,19 @@ import androidx.compose.ui.unit.sp
 import com.nhimz.vocabmaster.ui.screens.statistics_components.BadgesTab
 import com.nhimz.vocabmaster.ui.screens.statistics_components.MistakeBankTab
 import com.nhimz.vocabmaster.ui.screens.statistics_components.OverviewTab
+import com.nhimz.vocabmaster.ui.screens.statistics_components.PracticeHubTab
 import com.nhimz.vocabmaster.ui.theme.GradientStart
 import com.nhimz.vocabmaster.ui.viewmodel.StatisticsViewModel
 
 @Composable
 fun StatisticsScreen(
     viewModel: StatisticsViewModel,
-    onReviewMistakes: (List<String>) -> Unit
+    onReviewMistakes: (List<String>) -> Unit,
+    onStartReviewGym: () -> Unit = {},
+    onStartFlashcard: () -> Unit = {}
 ) {
     var selectedTab by remember { mutableIntStateOf(0) }
-    val tabs = listOf("Tổng quan", "Huy hiệu", "Sổ sai lầm")
+    val tabs = listOf("Tổng quan", "Huy hiệu", "Sổ sai lầm", "Luyện tập")
 
     val stats by viewModel.reviewStats.collectAsState()
     val mistakeCards by viewModel.mistakeCards.collectAsState()
@@ -79,6 +82,11 @@ fun StatisticsScreen(
                 0 -> OverviewTab(xpHistory, stats)
                 1 -> BadgesTab(badges)
                 2 -> MistakeBankTab(mistakeCards, onReviewMistakes)
+                3 -> PracticeHubTab(
+                    onStartReviewGym = onStartReviewGym,
+                    onNavigateToMistakes = { selectedTab = 2 },
+                    onStartFlashcard = onStartFlashcard
+                )
             }
         }
     }
