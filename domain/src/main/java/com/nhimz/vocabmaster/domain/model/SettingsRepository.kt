@@ -3,8 +3,8 @@ package com.nhimz.vocabmaster.domain.model
 import kotlinx.coroutines.flow.Flow
 
 interface SettingsRepository {
-    val dailyGoalXp: Flow<Int>
-    suspend fun updateDailyGoal(xp: Int)
+    val dailyGoalMinutes: Flow<Int>
+    suspend fun updateDailyGoal(minutes: Int)
 
     val currentStreak: Flow<Int>
     suspend fun setCurrentStreak(streak: Int)

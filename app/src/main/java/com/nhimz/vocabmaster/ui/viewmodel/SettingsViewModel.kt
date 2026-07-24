@@ -56,7 +56,7 @@ class SettingsViewModel @Inject constructor(
         _snackbarMessages.emit(message)
     }
 
-    val dailyGoalXp: StateFlow<Int> = settingsRepository.dailyGoalXp
+    val dailyGoalMinutes: StateFlow<Int> = settingsRepository.dailyGoalMinutes
         .stateIn(viewModelScope, kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(5000), 100)
 
     val theme: StateFlow<String> = settingsRepository.theme
@@ -68,8 +68,8 @@ class SettingsViewModel @Inject constructor(
     val desiredRetention: StateFlow<Double> = settingsRepository.desiredRetention
         .stateIn(viewModelScope, kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(5000), 0.90)
 
-    fun setDailyGoal(xp: Int) {
-        viewModelScope.launch { settingsRepository.updateDailyGoal(xp) }
+    fun setDailyGoal(minutes: Int) {
+        viewModelScope.launch { settingsRepository.updateDailyGoal(minutes) }
     }
 
     fun setTheme(t: String) {

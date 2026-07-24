@@ -146,7 +146,7 @@ sealed class PathItem {
 data class HomeScreenUiState(
     val xpTotal: Int = 0,
     val todayStudySeconds: Int = 0,
-    val dailyGoalXp: Int = 10,
+    val dailyGoalMinutes: Int = 10,
     val currentStreak: Int = 0,
     val availableFreezes: Int = 0,
     val dueCount: Int = 0,
@@ -322,7 +322,7 @@ private fun HomeHeader(
         Spacer(modifier = Modifier.height(16.dp))
 
         Text(
-            text = "Mục tiêu ngày: ${state.minutesStudiedToday} / ${state.dailyGoalXp} Phút",
+            text = "Mục tiêu ngày: ${state.minutesStudiedToday} / ${state.dailyGoalMinutes} Phút",
             fontWeight = FontWeight.Bold,
             fontSize = 14.sp,
             color = MaterialTheme.colorScheme.onBackground

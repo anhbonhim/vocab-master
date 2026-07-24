@@ -156,7 +156,7 @@ class MainViewModel @Inject constructor(
 
     private val _badgeUnlockedEvent = MutableStateFlow<String?>(null)
     val badgeUnlockedEvent: StateFlow<String?> = _badgeUnlockedEvent.asStateFlow()
-    val dailyGoalXp: StateFlow<Int> = settingsRepository.dailyGoalXp
+    val dailyGoalMinutes: StateFlow<Int> = settingsRepository.dailyGoalMinutes
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 10)
 
     fun clearBadgeUnlockedEvent() {

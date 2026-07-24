@@ -10,7 +10,7 @@ data class UserSettingsBackup(
     val lastStudyDate: Long,
     val xpTotal: Int,
     val badgeStatus: List<String>,
-    val dailyGoalXp: Int,
+    val dailyGoalMinutes: Int,
     val desiredRetention: Double,
     val theme: String,
     val language: String

@@ -44,7 +44,7 @@ import com.nhimz.vocabmaster.ui.theme.GradientStart
  * (`SettingsScreen`) builds this from the ViewModels and forwards it.
  */
 data class SettingsUiModel(
-    val dailyGoalXp: Int = 10,
+    val dailyGoalMinutes: Int = 10,
     val theme: String = "SYSTEM",
     val desiredRetention: Double = 0.90,
     val reminderHour: Int = 9,
@@ -145,14 +145,14 @@ fun SettingsScreenContent(
                 ) {
                     Text(text = "Thời gian học mong muốn", fontSize = 14.sp)
                     Text(
-                        text = "${state.dailyGoalXp} Phút",
+                        text = "${state.dailyGoalMinutes} Phút",
                         fontWeight = FontWeight.Bold,
                         color = GradientStart
                     )
                 }
                 Spacer(modifier = Modifier.height(8.dp))
                 Slider(
-                    value = state.dailyGoalXp.toFloat(),
+                    value = state.dailyGoalMinutes.toFloat(),
                     onValueChange = { actions.onDailyGoalChange(it.toInt()) },
                     valueRange = 5f..60f,
                     steps = 11,

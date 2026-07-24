@@ -104,7 +104,7 @@ fun SettingsScreen(
         }
     }
 
-    val dailyGoal by settingsViewModel.dailyGoalXp.collectAsState()
+    val dailyGoal by settingsViewModel.dailyGoalMinutes.collectAsState()
     val theme by settingsViewModel.theme.collectAsState()
     val language by settingsViewModel.language.collectAsState()
     val desiredRetention by settingsViewModel.desiredRetention.collectAsState()
@@ -134,7 +134,7 @@ fun SettingsScreen(
     }
 
     val state = SettingsUiModel(
-        dailyGoalXp = dailyGoal,
+        dailyGoalMinutes = dailyGoal,
         theme = theme,
         desiredRetention = desiredRetention,
         reminderHour = hour,

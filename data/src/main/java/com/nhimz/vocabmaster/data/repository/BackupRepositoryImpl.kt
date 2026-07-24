@@ -62,7 +62,7 @@ class BackupRepositoryImpl @Inject constructor(
             lastStudyDate = settingsRepository.lastStudyDate.first(),
             xpTotal = settingsRepository.xpTotal.first(),
             badgeStatus = settingsRepository.badgeStatus.first(),
-            dailyGoalXp = settingsRepository.dailyGoalXp.first(),
+            dailyGoalMinutes = settingsRepository.dailyGoalMinutes.first(),
             desiredRetention = settingsRepository.desiredRetention.first(),
             theme = settingsRepository.theme.first(),
             language = settingsRepository.language.first()
@@ -135,7 +135,7 @@ class BackupRepositoryImpl @Inject constructor(
                 settingsRepository.setLastStudyDate(backup.settings.lastStudyDate)
                 settingsRepository.setXpTotal(backup.settings.xpTotal)
                 settingsRepository.setBadgeStatus(backup.settings.badgeStatus)
-                settingsRepository.updateDailyGoal(backup.settings.dailyGoalXp)
+                settingsRepository.updateDailyGoal(backup.settings.dailyGoalMinutes)
                 settingsRepository.setDesiredRetention(backup.settings.desiredRetention)
                 settingsRepository.setTheme(backup.settings.theme)
                 settingsRepository.setLanguage(backup.settings.language)
