@@ -179,6 +179,35 @@ class EvaluateAnswerUseCaseTest {
     }
 
     @Test
+    fun `FillInBlank correct index returns 10 XP`() {
+        val result = useCase(
+            QuizType.FillInBlank(null, "prompt", listOf("I", "You", "We"), 0),
+            optionIndex = 0
+        )
+        assertTrue(result.isSuccess)
+        assertEquals(AnswerResult(isCorrect = true, xpEarned = 10, rating = null), result.getOrThrow())
+    }
+
+    @Test
+    fun `FillInBlank wrong index returns 2 XP`() {
+        val result = useCase(
+            QuizType.FillInBlank(null, "prompt", listOf("I", "You", "We"), 0),
+            optionIndex = 1
+        )
+        assertTrue(result.isSuccess)
+        assertEquals(AnswerResult(isCorrect = false, xpEarned = 2, rating = null), result.getOrThrow())
+    }
+
+    @Test
+    fun `FillInBlank missing optionIndex returns failure`() {
+        val result = useCase(
+            QuizType.FillInBlank(null, "prompt", listOf("I", "You"), 0)
+        )
+        assertTrue(result.isFailure)
+        assertTrue(result.exceptionOrNull() is IllegalArgumentException)
+    }
+
+    @Test
     fun `Typing missing textAnswer returns failure`() {
         val result = useCase(QuizType.Typing(null, "prompt", "hello", null, null))
         assertTrue(result.isFailure)

@@ -60,6 +60,14 @@ class EvaluateAnswerUseCase @Inject constructor() {
             is QuizType.Matching -> {
                 Result.success(AnswerResult(isCorrect = true, xpEarned = 15, rating = null))
             }
+            is QuizType.FillInBlank -> {
+                if (optionIndex == null) {
+                    Result.failure(IllegalArgumentException("optionIndex must be provided for FillInBlank"))
+                } else {
+                    val isCorrect = (optionIndex == type.correctIndex)
+                    Result.success(AnswerResult(isCorrect = isCorrect, xpEarned = if (isCorrect) 10 else 2, rating = null))
+                }
+            }
             is QuizType.FSRSTailFlashcard -> {
                 val rating = fsrsRating ?: Rating.Good
                 val xpEarned = when (rating) {

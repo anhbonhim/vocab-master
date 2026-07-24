@@ -52,6 +52,14 @@ sealed class QuizType {
         val audioUrlSlow: String?
     ) : QuizType()
 
+    data class FillInBlank(
+        val itemWithCard: QuestionWithCard?,
+        val prompt: String,
+        val options: List<String>,
+        val correctIndex: Int,
+        val word: String? = null
+    ) : QuizType()
+
     data class FSRSTailFlashcard(
         val itemWithCard: QuestionWithCard
     ) : QuizType()
@@ -68,6 +76,7 @@ data class QuizQuestion(
             is QuizType.Listening -> type.itemWithCard
             is QuizType.Matching -> type.itemWithCard
             is QuizType.Typing -> type.itemWithCard
+            is QuizType.FillInBlank -> type.itemWithCard
             is QuizType.FSRSTailFlashcard -> type.itemWithCard
         }
 }

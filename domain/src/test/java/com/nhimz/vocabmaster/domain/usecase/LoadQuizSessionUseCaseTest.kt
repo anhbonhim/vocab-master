@@ -78,15 +78,20 @@ class LoadQuizSessionUseCaseTest {
         val data = result.getOrThrow()
         assertEquals(7, data.questions.size)
         assertTrue(data.questions[0].type is QuizType.Introduction)
-        assertTrue(data.questions[1].type is QuizType.MultipleChoice)
+        assertTrue(data.questions[1].type is QuizType.FillInBlank)
+        val fill = data.questions[1].type as QuizType.FillInBlank
+        assertEquals(0, fill.correctIndex)
+        assertEquals("a", fill.options[0])
+        assertEquals("b", fill.options[1])
+        assertEquals("word-q-fill", fill.word)
         assertTrue(data.questions[2].type is QuizType.MultipleChoice)
         assertTrue(data.questions[3].type is QuizType.ScrambledSentence)
         assertTrue(data.questions[4].type is QuizType.Listening)
         assertTrue(data.questions[5].type is QuizType.Matching)
         assertTrue(data.questions[6].type is QuizType.Typing)
-        val mc = data.questions[1].type as QuizType.MultipleChoice
+        val mc = data.questions[2].type as QuizType.MultipleChoice
         assertEquals(QuestionDirection.EN_TO_VI, mc.direction)
-        assertEquals(0, mc.correctIndex)
+        assertEquals(1, mc.correctIndex)
     }
 
     @Test

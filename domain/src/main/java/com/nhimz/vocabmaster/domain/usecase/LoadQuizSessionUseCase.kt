@@ -206,7 +206,15 @@ class LoadQuizSessionUseCase @Inject constructor(
             QuestionType.INTRODUCTION -> {
                 QuizType.Introduction(itemWithCard, q.prompt, q.audioUrl)
             }
-            QuestionType.FILL_IN_BLANK,
+            QuestionType.FILL_IN_BLANK -> {
+                QuizType.FillInBlank(
+                    itemWithCard = itemWithCard,
+                    prompt = q.prompt,
+                    options = q.options ?: emptyList(),
+                    correctIndex = q.correctIndex ?: 0,
+                    word = q.word
+                )
+            }
             QuestionType.MULTIPLE_CHOICE -> {
                 QuizType.MultipleChoice(
                     itemWithCard = itemWithCard,

@@ -54,6 +54,7 @@ import com.nhimz.vocabmaster.domain.model.quiz.QuizType
 import com.nhimz.vocabmaster.ui.components.quiz.DuolingoOptionCard
 import com.nhimz.vocabmaster.ui.components.quiz.DuolingoProgressBar
 import com.nhimz.vocabmaster.ui.components.quiz.FeedbackBanner
+import com.nhimz.vocabmaster.ui.components.quiz.FillInBlankCard
 import com.nhimz.vocabmaster.ui.components.quiz.IntroductionCard
 import com.nhimz.vocabmaster.ui.components.quiz.ListeningQuestionCard
 import com.nhimz.vocabmaster.ui.components.quiz.MatchingQuestionCard
@@ -426,6 +427,7 @@ private fun correctAnswerMatchesInput(
         val cleanedCorrect = type.correctSentence.replace(Regex("[^A-Za-z0-9 ]"), "").lowercase()
         cleanedUser == cleanedCorrect
     }
+    is QuizType.FillInBlank -> selectedOptionIndex == type.correctIndex
     is QuizType.ScrambledSentence -> selectedScrambledWords.joinToString(" ") == type.correctSentence
     else -> false
 }
@@ -510,6 +512,14 @@ private fun QuestionFrontFace(
                 onWordUnselected = onScrambledWordUnselected
             )
         }
+        is QuizType.FillInBlank -> {
+            FillInBlankCard(
+                type = type,
+                hasAnswered = hasAnswered,
+                selectedOptionIndex = selectedOptionIndex,
+                onOptionSelected = onOptionSelected
+            )
+        }
         is QuizType.FSRSTailFlashcard -> {
             FSRSFlashcardCard(
                 type = type,
@@ -539,6 +549,7 @@ private fun AnswerBackFace(
         is QuizType.MultipleChoice -> type.options.getOrNull(type.correctIndex) ?: ""
         is QuizType.Listening -> type.options?.getOrNull(type.correctIndex ?: 0) ?: ""
         is QuizType.Typing -> type.correctSentence
+        is QuizType.FillInBlank -> type.options.getOrNull(type.correctIndex) ?: ""
         is QuizType.ScrambledSentence -> type.correctSentence
         else -> ""
     }
@@ -870,8 +881,8 @@ internal fun promptLabelFor(type: QuizType): String = when (type) {
     is QuizType.ScrambledSentence -> "Sắp xếp lại câu"
     is QuizType.Listening -> "Nghe và chọn"
     is QuizType.Matching -> "Ghép đôi"
+    is QuizType.FillInBlank -> "Điền từ vào chỗ trống"
     is QuizType.Typing -> "Nhập câu trả lời"
-    else -> "Điền từ vào chỗ trống"
 }
 
 /** Whether the submit button should be enabled for the given input state. */
@@ -885,6 +896,7 @@ internal fun isSubmitEnabledFor(
     is QuizType.Listening -> selectedOptionIndex != null
     is QuizType.Typing -> typedText.isNotBlank()
     is QuizType.ScrambledSentence -> selectedScrambledWords.isNotEmpty()
+    is QuizType.FillInBlank -> selectedOptionIndex != null
     is QuizType.Introduction -> true
     is QuizType.Matching -> false // Matching auto-submits when done
     is QuizType.FSRSTailFlashcard -> false
@@ -917,6 +929,7 @@ internal fun computeAnswerCorrectness(
         cleanedUser == cleanedCorrect
     }
     is QuizType.ScrambledSentence -> selectedScrambledWords.joinToString(" ") == type.correctSentence
+    is QuizType.FillInBlank -> selectedOptionIndex == type.correctIndex
     is QuizType.Introduction -> true
     is QuizType.Matching -> true
     is QuizType.FSRSTailFlashcard -> true
@@ -926,6 +939,7 @@ internal fun computeAnswerCorrectness(
 internal fun correctAnswerTextFor(question: QuizQuestion): String = when (val type = question.type) {
     is QuizType.MultipleChoice -> type.options.getOrNull(type.correctIndex) ?: ""
     is QuizType.Listening -> type.options?.getOrNull(type.correctIndex ?: 0) ?: ""
+    is QuizType.FillInBlank -> type.options.getOrNull(type.correctIndex) ?: ""
     is QuizType.Typing -> type.correctSentence
     is QuizType.ScrambledSentence -> type.correctSentence
     else -> ""
