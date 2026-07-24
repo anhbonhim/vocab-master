@@ -187,7 +187,7 @@ class VocabularyRepositoryImplTest {
                     "lastStudyDate": 0,
                     "xpTotal": 0,
                     "badgeStatus": [],
-                    "dailyGoalXp": 50,
+                    "dailyGoalMinutes": 50,
                     "desiredRetention": 0.9,
                     "theme": "SYSTEM",
                     "language": "VI"
@@ -286,7 +286,7 @@ class VocabularyRepositoryImplTest {
     }
 
     private class FakeSettingsRepository : SettingsRepository {
-        private val dailyGoalXpFlow = MutableStateFlow(50)
+        private val dailyGoalMinutesFlow = MutableStateFlow(50)
         private val currentStreakFlow = MutableStateFlow(0)
         private val longestStreakFlow = MutableStateFlow(0)
         private val availableFreezesFlow = MutableStateFlow(1)
@@ -301,8 +301,8 @@ class VocabularyRepositoryImplTest {
         private val selectedTopicFlow = MutableStateFlow("general")
         private val useLocalDevServerFlow = MutableStateFlow(false)
 
-        override val dailyGoalXp: Flow<Int> = dailyGoalXpFlow
-        override suspend fun updateDailyGoal(xp: Int) { dailyGoalXpFlow.value = xp }
+        override val dailyGoalMinutes: Flow<Int> = dailyGoalMinutesFlow
+        override suspend fun updateDailyGoal(minutes: Int) { dailyGoalMinutesFlow.value = minutes }
 
         override val currentStreak: Flow<Int> = currentStreakFlow
         override suspend fun setCurrentStreak(streak: Int) { currentStreakFlow.value = streak }
