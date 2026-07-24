@@ -9,7 +9,6 @@ import androidx.room.Update
 import com.nhimz.vocabmaster.data.database.entity.ReviewLogEntity
 import com.nhimz.vocabmaster.data.database.entity.FsrsCardEntity
 import com.nhimz.vocabmaster.data.database.entity.QuestionAndFsrsCard
-import com.nhimz.vocabmaster.data.remote.VocabularyCardDto
 import com.nhimz.vocabmaster.domain.fsrs.v6.State
 import kotlinx.coroutines.flow.Flow
 import java.time.LocalDateTime
@@ -269,67 +268,6 @@ interface VocabDao {
     """)
     suspend fun getDueCardCountByUnit(unitId: String, newState: Int, now: Long): Int
 
-    // --- Sync merge (D-03 / SYNC-02) -----------------------------------
-    //
-    // Server-wins with time-based merging. We only overwrite the local
-    // FSRS card when the pulled payload is strictly newer than what we
-    // have locally. This prevents an older server snapshot (e.g. a device
-    // that has been offline for a while) from downgrading the FSRS state
-    // the user accumulated on this device.
-    //
-    // Rule (D-03): if `existing.lastReview != null` and the pulled
-    // `lastModified < existing.lastReview`, the update is SKIPPED.
-    //
-    // @Transaction guarantees the whole merge runs atomically — either
-    // every card in the batch is updated/inserted, or nothing changes.
-
-    @Transaction
-    suspend fun mergePulledCards(
-        pulledCards: List<VocabularyCardDto>,
-        formatter: DateTimeFormatter
-    ) {
-        for (c in pulledCards) {
-            val existing = getCardByQuestionId(c.questionId)
-            val dueMillis = LocalDateTime.parse(c.due, formatter)
-                .toInstant(ZoneOffset.UTC).toEpochMilli()
-            val lastReviewMillis = c.lastReview?.let {
-                LocalDateTime.parse(it, formatter).toInstant(ZoneOffset.UTC).toEpochMilli()
-            }
-            val stateEnum = State.entries.firstOrNull { it.value == c.state } ?: State.New
-
-            if (existing != null) {
-                // Skip stale payload — the local FSRS state is newer than the
-                // server snapshot. This is the core D-03 invariant.
-                if (existing.lastReview != null && c.lastModified < existing.lastReview) {
-                    continue
-                }
-                val updated = existing.copy(
-                    due = dueMillis,
-                    stability = c.stability,
-                    difficulty = c.difficulty,
-                    step = existing.step,
-                    reps = c.reps,
-                    lapses = c.lapses,
-                    state = stateEnum.value,
-                    lastReview = lastReviewMillis
-                )
-                updateFsrsCard(updated)
-            } else {
-                val newCard = FsrsCardEntity(
-                    questionId = c.questionId,
-                    due = dueMillis,
-                    stability = c.stability,
-                    difficulty = c.difficulty,
-                    step = 0,
-                    reps = c.reps,
-                    lapses = c.lapses,
-                    state = stateEnum.value,
-                    lastReview = lastReviewMillis
-                )
-                insertCard(newCard)
-            }
-        }
-    }
 
 }
 

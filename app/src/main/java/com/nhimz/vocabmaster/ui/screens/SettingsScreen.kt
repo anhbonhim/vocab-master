@@ -137,9 +137,6 @@ fun SettingsScreen(
         dailyGoalXp = dailyGoal,
         theme = theme,
         desiredRetention = desiredRetention,
-        isSyncing = settingsState.isSyncing,
-        syncSuccess = settingsState.syncSuccess,
-        syncError = settingsState.syncError,
         reminderHour = hour,
         reminderMinute = minute,
         reminderEnabled = isReminderEnabled,
@@ -150,7 +147,6 @@ fun SettingsScreen(
         onDailyGoalChange = { settingsViewModel.setDailyGoal(it) },
         onRetentionChange = { settingsViewModel.setDesiredRetention(it) },
         onThemeChange = { settingsViewModel.setTheme(it) },
-        onSync = { settingsViewModel.triggerSync() },
         onBackup = {
             exportBackupLauncher.launch("vocab_master_backup.json")
         },

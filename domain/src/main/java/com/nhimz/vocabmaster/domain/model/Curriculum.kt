@@ -4,12 +4,32 @@ enum class DifficultyLevel {
     A1, A2, B1, B2, C1, C2
 }
 
+data class PlacementResponse(
+    val isCorrect: Boolean,
+    val a: Double,
+    val b: Double
+)
+
+data class LocalPlacementItem(
+    val questionId: String,
+    val prompt: String,
+    val options: List<String>,
+    val correctOptionId: Int,
+    val a: Double,
+    val b: Double
+)
+
 data class PlacementTestSession(
-    val currentLevel: DifficultyLevel = DifficultyLevel.A2,
-    val totalQuestionsAsked: Int = 0,
-    val consecutiveWrongAnswers: Int = 0,
     val isFinished: Boolean = false,
-    val resultLevel: DifficultyLevel? = null
+    val resultLevel: String? = null,
+    val theta: Double = 0.0,
+    val standardError: Double = 9.0,
+    val totalQuestionsAsked: Int = 0,
+    val estimatedLevel: String = "A2",
+    val responses: List<PlacementResponse> = emptyList(),
+    val askedIndices: List<Int> = emptyList(),
+    val questionBank: List<LocalPlacementItem> = emptyList(),
+    val currentQuestionIndex: Int = -1
 )
 
 data class ReviewStats(

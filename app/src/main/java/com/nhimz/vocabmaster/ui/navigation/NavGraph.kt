@@ -23,7 +23,6 @@ import com.nhimz.vocabmaster.ui.screens.FirstWinScreen
 import com.nhimz.vocabmaster.ui.screens.GoalPickerScreen
 import com.nhimz.vocabmaster.ui.screens.HomeScreen
 import com.nhimz.vocabmaster.ui.screens.JumpTestScreen
-import com.nhimz.vocabmaster.ui.screens.LoginScreen
 import com.nhimz.vocabmaster.ui.screens.PlacementTestScreen
 import com.nhimz.vocabmaster.ui.screens.QuizScreen
 import com.nhimz.vocabmaster.ui.screens.ResultScreen
@@ -79,17 +78,11 @@ fun vocabMasterEntryProvider(
     backupRepository: BackupRepository,
     snackbarHostState: SnackbarHostState
 ): (NavKey) -> NavEntry<NavKey> = entryProvider {
-    // ===== Onboarding flow (Welcome -> Login -> GoalPicker -> PlacementTest -> FirstWin) =====
+    // ===== Onboarding flow (Welcome -> GoalPicker -> PlacementTest -> FirstWin) =====
 
     entry<Screen.Welcome> {
         WelcomeScreen(
-            onStartClick = { mainViewModel.navigateTo(Screen.Login) }
-        )
-    }
-
-    entry<Screen.Login> {
-        LoginScreen(
-            onLoginSuccess = { mainViewModel.navigateTo(Screen.GoalPicker) }
+            onStartClick = { mainViewModel.navigateTo(Screen.GoalPicker) }
         )
     }
 

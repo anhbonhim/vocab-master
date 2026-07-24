@@ -54,9 +54,6 @@ sealed class Screen : NavKey {
     data object DebugPanel : Screen()
 
     @Serializable
-    data object Login : Screen()
-
-    @Serializable
     data class Quiz(val cardIds: List<String>? = null) : Screen()
 
     @Serializable
