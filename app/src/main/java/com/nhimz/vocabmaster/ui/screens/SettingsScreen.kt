@@ -157,16 +157,7 @@ fun SettingsScreen(
         onRequestResetProgress = { destructiveDialog = DestructiveDialog.ResetProgress },
         onRequestDeleteAccount = { destructiveDialog = DestructiveDialog.DeleteAccount },
         onResetProgress = {
-            // Plan 03-01 Task 3: destructive action requires a confirmation
-            // dialog (D-05). The actual data wipe is wired through a future
-            // use-case; for now we log via LocalLogger and surface a Toast so
-            // the user sees immediate feedback (and the dialog flow is proven).
-            LocalLogger.w("SettingsScreen", "Reset progress confirmed by user")
-            Toast.makeText(
-                context,
-                "Đã ghi nhận yêu cầu đặt lại tiến trình.",
-                Toast.LENGTH_SHORT
-            ).show()
+            settingsViewModel.resetAllProgress { /* dialog dismissed by Content; snackbar emitted by VM */ }
         },
         onDeleteAccount = {
             // Plan 03-01 Task 3: destructive action requires a confirmation

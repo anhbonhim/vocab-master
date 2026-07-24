@@ -153,4 +153,18 @@ class SettingsViewModel @Inject constructor(
             }
         }
     }
+
+    fun resetAllProgress(onComplete: () -> Unit) {
+        viewModelScope.launch {
+            try {
+                settingsRepository.resetAllProgress()
+                onComplete()
+                emitSnackbar(SnackbarMessage(text = "Đã đặt lại toàn bộ tiến trình học tập."))
+            } catch (e: Exception) {
+                LocalLogger.e("SettingsViewModel", "Failed to reset progress", e)
+                val msg = e.localizedMessage ?: "Lỗi không xác định."
+                emitSnackbar(SnackbarMessage(text = "Đặt lại thất bại: $msg", isError = true))
+            }
+        }
+    }
 }

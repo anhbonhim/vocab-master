@@ -4,7 +4,7 @@ import com.nhimz.vocabmaster.domain.model.SettingsRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 
 class FakeSettingsRepository : SettingsRepository {
-    override val dailyGoalXp: MutableStateFlow<Int> = MutableStateFlow(0)
+    override val dailyGoalMinutes: MutableStateFlow<Int> = MutableStateFlow(0)
     override val currentStreak: MutableStateFlow<Int> = MutableStateFlow(0)
     override val longestStreak: MutableStateFlow<Int> = MutableStateFlow(0)
     override val availableFreezes: MutableStateFlow<Int> = MutableStateFlow(0)
@@ -34,7 +34,7 @@ class FakeSettingsRepository : SettingsRepository {
         placementLevel.value = level
     }
 
-    override suspend fun updateDailyGoal(xp: Int) = TODO("not needed for these tests")
+    override suspend fun updateDailyGoal(minutes: Int) = TODO("not needed for these tests")
     override suspend fun setCurrentStreak(streak: Int) {
         currentStreak.value = streak
     }
@@ -62,4 +62,17 @@ class FakeSettingsRepository : SettingsRepository {
     override suspend fun setLanguage(language: String) = TODO("not needed for these tests")
     override suspend fun setSelectedTopic(topic: String) = TODO("not needed for these tests")
     override suspend fun setUseLocalDevServer(enabled: Boolean) = TODO("not needed for these tests")
+
+    var resetAllProgressCalls: Int = 0
+
+    override suspend fun resetAllProgress() {
+        resetAllProgressCalls++
+        currentStreak.value = 0
+        longestStreak.value = 0
+        availableFreezes.value = 1
+        lastStudyDate.value = 0L
+        todayStudySeconds.value = 0
+        xpTotal.value = 0
+        badgeStatus.value = emptyList()
+    }
 }

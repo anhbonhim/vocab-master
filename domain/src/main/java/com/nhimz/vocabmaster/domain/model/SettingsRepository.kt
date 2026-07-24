@@ -46,4 +46,6 @@ interface SettingsRepository {
 
     val useLocalDevServer: Flow<Boolean>
     suspend fun setUseLocalDevServer(enabled: Boolean)
+
+    suspend fun resetAllProgress()
 }

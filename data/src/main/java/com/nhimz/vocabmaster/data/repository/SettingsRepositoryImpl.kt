@@ -3,6 +3,7 @@ package com.nhimz.vocabmaster.data.repository
 import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.doublePreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
@@ -10,6 +11,7 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.nhimz.vocabmaster.data.database.UserDataDao
 import com.nhimz.vocabmaster.domain.model.SettingsRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
@@ -26,7 +28,8 @@ private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(na
 
 @Singleton
 class SettingsRepositoryImpl @Inject constructor(
-    @param:ApplicationContext private val context: Context
+    @param:ApplicationContext private val context: Context,
+    private val userDataDao: UserDataDao
 ) : SettingsRepository {
 
     private object PreferencesKeys {
@@ -44,7 +47,7 @@ class SettingsRepositoryImpl @Inject constructor(
         val LANGUAGE = stringPreferencesKey("language")
         val PLACEMENT_LEVEL = stringPreferencesKey("placement_level")
         val SELECTED_TOPIC = stringPreferencesKey("selected_topic")
-        val USE_LOCAL_DEV_SERVER = androidx.datastore.preferences.core.booleanPreferencesKey("use_local_dev_server")
+        val USE_LOCAL_DEV_SERVER = booleanPreferencesKey("use_local_dev_server")
     }
 
     private val dataStore = context.dataStore
@@ -320,6 +323,30 @@ class SettingsRepositoryImpl @Inject constructor(
         dataStore.edit { preferences ->
             preferences[PreferencesKeys.USE_LOCAL_DEV_SERVER] = enabled
         }
+    }
+
+    override suspend fun resetAllProgress() {
+        // Clear progress-related DataStore preferences back to defaults.
+        // Settings keys (dailyGoal, retention, theme, language, placement, topic,
+        // dev-server) are preserved — they are user configuration, not progress.
+        dataStore.edit { preferences ->
+            preferences.remove(PreferencesKeys.CURRENT_STREAK)
+            preferences.remove(PreferencesKeys.LONGEST_STREAK)
+            preferences.remove(PreferencesKeys.AVAILABLE_FREEZES)
+            preferences.remove(PreferencesKeys.LAST_STUDY_DATE)
+            preferences.remove(PreferencesKeys.TODAY_STUDY_SECONDS)
+            preferences.remove(PreferencesKeys.TODAY_STUDY_DATE)
+            preferences.remove(PreferencesKeys.XP_TOTAL)
+            preferences.remove(PreferencesKeys.BADGE_STATUS)
+        }
+
+        // Clear all Room user-data tables (FSRS cards, review logs, node/session
+        // progress, flagged items) via UserDataDao.
+        userDataDao.deleteAllCards()
+        userDataDao.deleteAllReviewLogs()
+        userDataDao.deleteAllNodeProgress()
+        userDataDao.deleteAllSessionProgress()
+        userDataDao.deleteAllFlaggedItems()
     }
 
     suspend fun resetForMigrationV6() {
