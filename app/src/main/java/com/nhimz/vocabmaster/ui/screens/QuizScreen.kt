@@ -156,6 +156,17 @@ fun QuizScreen(
                         selectedScrambledWords = newList
                     }
                 },
+                onScrambledWordReordered = { fromIndex, toIndex ->
+                    if (!state.isAnswerRevealed) {
+                        val newList = selectedScrambledWords.toMutableList()
+                        if (fromIndex in newList.indices) {
+                            val item = newList.removeAt(fromIndex)
+                            val insertIndex = toIndex.coerceIn(0, newList.size)
+                            newList.add(insertIndex, item)
+                        }
+                        selectedScrambledWords = newList
+                    }
+                },
                 onTypedTextChanged = { newText ->
                     if (!state.isAnswerRevealed) typedText = newText
                 },

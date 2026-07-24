@@ -106,6 +106,7 @@ data class QuizScreenActions(
     val onOptionSelected: (Int) -> Unit,
     val onScrambledWordSelected: (word: String, index: Int) -> Unit,
     val onScrambledWordUnselected: (word: String, index: Int) -> Unit,
+    val onScrambledWordReordered: (fromIndex: Int, toIndex: Int) -> Unit,
     val onTypedTextChanged: (String) -> Unit,
     val onFlipFlashcard: () -> Unit,
     val onSubmit: () -> Unit,
@@ -216,6 +217,7 @@ fun QuizScreenContent(
                 selectedScrambledWords = state.selectedScrambledWords,
                 onScrambledWordSelected = actions.onScrambledWordSelected,
                 onScrambledWordUnselected = actions.onScrambledWordUnselected,
+                onScrambledWordReordered = actions.onScrambledWordReordered,
                 onFlipFlashcard = actions.onFlipFlashcard,
                 onMatchingComplete = { if (!state.hasAnswered) actions.onSubmit() }
             )
@@ -325,6 +327,7 @@ private fun QuestionContentWithShake(
     selectedScrambledWords: List<String>,
     onScrambledWordSelected: (word: String, index: Int) -> Unit,
     onScrambledWordUnselected: (word: String, index: Int) -> Unit,
+    onScrambledWordReordered: (fromIndex: Int, toIndex: Int) -> Unit,
     onFlipFlashcard: () -> Unit,
     onMatchingComplete: () -> Unit
 ) {
@@ -390,6 +393,7 @@ private fun QuestionContentWithShake(
                 selectedScrambledWords = selectedScrambledWords,
                 onScrambledWordSelected = onScrambledWordSelected,
                 onScrambledWordUnselected = onScrambledWordUnselected,
+                onScrambledWordReordered = onScrambledWordReordered,
                 onFlipFlashcard = onFlipFlashcard,
                 onMatchingComplete = onMatchingComplete
             )
@@ -450,6 +454,7 @@ private fun QuestionFrontFace(
     selectedScrambledWords: List<String>,
     onScrambledWordSelected: (word: String, index: Int) -> Unit,
     onScrambledWordUnselected: (word: String, index: Int) -> Unit,
+    onScrambledWordReordered: (fromIndex: Int, toIndex: Int) -> Unit,
     onFlipFlashcard: () -> Unit,
     onMatchingComplete: () -> Unit
 ) {
@@ -509,7 +514,8 @@ private fun QuestionFrontFace(
                 isAnswerRevealed = hasAnswered,
                 isCorrect = isCorrectState,
                 onWordSelected = onScrambledWordSelected,
-                onWordUnselected = onScrambledWordUnselected
+                onWordUnselected = onScrambledWordUnselected,
+                onWordReordered = onScrambledWordReordered
             )
         }
         is QuizType.FillInBlank -> {
