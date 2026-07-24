@@ -120,7 +120,7 @@ internal object PathItemKind {
  * Discriminated-union item for the path. The Container produces a list of
  * these for the Content to render.
  */
-internal sealed class PathItem {
+sealed class PathItem {
     data class SectionHeader(val section: SectionStatus) : PathItem()
     data class UnitHeader(val unit: UnitStatus) : PathItem()
     data class SectionBoss(val section: SectionStatus) : PathItem()

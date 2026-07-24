@@ -512,7 +512,9 @@ class QuizViewModel @Inject constructor(
                 LocalLogger.e(TAG, "Failed to evaluate answer", error)
                 val msg = error.message ?: "Lỗi đánh giá câu trả lời"
                 _uiState.value = QuizUiState.Error(msg)
-                emitSnackbar(SnackbarMessage(text = msg, isError = true))
+                viewModelScope.launch {
+                    emitSnackbar(SnackbarMessage(text = msg, isError = true))
+                }
             }
         )
     }

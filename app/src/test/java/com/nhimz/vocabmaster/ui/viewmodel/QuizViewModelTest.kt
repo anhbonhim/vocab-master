@@ -305,8 +305,8 @@ class QuizViewModelTest {
     fun `nextQuestion preserves cumulative state but clears per-question answer state`() = runTest {
         val session = Session("s1", "node_1", 0, "Session 1")
         val questions = listOf(
-            Question("q1", QuestionType.MULTIPLE_CHOICE, "Prompt 1", listOf("O1", "O2"), 0),
-            Question("q2", QuestionType.MULTIPLE_CHOICE, "Prompt 2", listOf("O1", "O2"), 0)
+            Question(id = "q1", type = QuestionType.MULTIPLE_CHOICE, prompt = "Prompt 1", options = listOf("O1", "O2"), correctIndex = 0),
+            Question(id = "q2", type = QuestionType.MULTIPLE_CHOICE, prompt = "Prompt 2", options = listOf("O1", "O2"), correctIndex = 0)
         )
         vocabRepo.getSessionsByNodeResult = Result.success(listOf(session))
         vocabRepo.getQuestionsBySessionResult = Result.success(questions)
@@ -342,9 +342,9 @@ class QuizViewModelTest {
     fun `fresh ViewModel restores cumulative state from SavedStateHandle across process death`() = runTest {
         val session = Session("s1", "node_1", 0, "Session 1")
         val questions = listOf(
-            Question("q1", QuestionType.MULTIPLE_CHOICE, "Prompt 1", listOf("O1", "O2"), 0),
-            Question("q2", QuestionType.MULTIPLE_CHOICE, "Prompt 2", listOf("O1", "O2"), 0),
-            Question("q3", QuestionType.MULTIPLE_CHOICE, "Prompt 3", listOf("O1", "O2"), 0)
+            Question(id = "q1", type = QuestionType.MULTIPLE_CHOICE, prompt = "Prompt 1", options = listOf("O1", "O2"), correctIndex = 0),
+            Question(id = "q2", type = QuestionType.MULTIPLE_CHOICE, prompt = "Prompt 2", options = listOf("O1", "O2"), correctIndex = 0),
+            Question(id = "q3", type = QuestionType.MULTIPLE_CHOICE, prompt = "Prompt 3", options = listOf("O1", "O2"), correctIndex = 0)
         )
         vocabRepo.getSessionsByNodeResult = Result.success(listOf(session))
         vocabRepo.getQuestionsBySessionResult = Result.success(questions)

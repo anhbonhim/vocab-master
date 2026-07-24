@@ -77,25 +77,25 @@ data class Session(
     val nodeId: String,
     val index: Int,
     val title: String,
-    val durationMinutes: Int,
-    val questionIds: List<String>
+    val durationMinutes: Int = 0,
+    val questionIds: List<String> = emptyList()
 )
 
 data class Question(
     val id: String,
-    val sessionId: String,
-    val word: String?,
+    val sessionId: String = "",
+    val word: String? = null,
     val type: QuestionType,
     val prompt: String,
-    val options: List<String>?,
-    val correctIndex: Int?,
-    val correctSentence: String?,
-    val scrambledWords: List<String>?,
-    val translation: String?,
-    val audioUrl: String?,
-    val audioUrlSlow: String?,
-    val matchingPairs: List<MatchPair>?,
-    val imagePath: String?
+    val options: List<String>? = null,
+    val correctIndex: Int? = null,
+    val correctSentence: String? = null,
+    val scrambledWords: List<String>? = null,
+    val translation: String? = null,
+    val audioUrl: String? = null,
+    val audioUrlSlow: String? = null,
+    val matchingPairs: List<MatchPair>? = null,
+    val imagePath: String? = null
 )
 
 data class MatchPair(

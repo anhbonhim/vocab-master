@@ -376,7 +376,7 @@ private fun QuestionContentWithShake(
             .fillMaxWidth()
             .offset { IntOffset(shakeOffset.value.roundToInt(), 0) }
             .graphicsLayer {
-                rotationY = rotationY.value
+                this.rotationY = rotationY.value
                 cameraDistance = 12f * density
             }
     ) {
@@ -889,6 +889,7 @@ internal fun promptLabelFor(type: QuizType): String = when (type) {
     is QuizType.Matching -> "Ghép đôi"
     is QuizType.FillInBlank -> "Điền từ vào chỗ trống"
     is QuizType.Typing -> "Nhập câu trả lời"
+    is QuizType.MultipleChoice -> "Chọn đáp án đúng"
 }
 
 /** Whether the submit button should be enabled for the given input state. */

@@ -69,10 +69,10 @@ class QuizViewModelPersistenceTest {
     fun `restored ViewModel with handle containing NODE and saved index resumes at saved index`() = runTest {
         val session = Session("s1", "node_1", 0, "Session 1")
         val questions = listOf(
-            Question("q1", QuestionType.MULTIPLE_CHOICE, "Prompt 1", listOf("O1", "O2"), 0),
-            Question("q2", QuestionType.MULTIPLE_CHOICE, "Prompt 2", listOf("O1", "O2"), 0),
-            Question("q3", QuestionType.MULTIPLE_CHOICE, "Prompt 3", listOf("O1", "O2"), 0),
-            Question("q4", QuestionType.MULTIPLE_CHOICE, "Prompt 4", listOf("O1", "O2"), 0)
+            Question(id = "q1", type = QuestionType.MULTIPLE_CHOICE, prompt = "Prompt 1", options = listOf("O1", "O2"), correctIndex = 0),
+            Question(id = "q2", type = QuestionType.MULTIPLE_CHOICE, prompt = "Prompt 2", options = listOf("O1", "O2"), correctIndex = 0),
+            Question(id = "q3", type = QuestionType.MULTIPLE_CHOICE, prompt = "Prompt 3", options = listOf("O1", "O2"), correctIndex = 0),
+            Question(id = "q4", type = QuestionType.MULTIPLE_CHOICE, prompt = "Prompt 4", options = listOf("O1", "O2"), correctIndex = 0)
         )
         vocabRepo.getSessionsByNodeResult = Result.success(listOf(session))
         vocabRepo.getQuestionsBySessionResult = Result.success(questions)
@@ -97,7 +97,7 @@ class QuizViewModelPersistenceTest {
     @Test
     fun `assert SavedStateHandle only contains whitelisted String Int Boolean or ArrayList keys`() = runTest {
         val session = Session("s1", "node_1", 0, "Session 1")
-        val question = Question("q1", QuestionType.MULTIPLE_CHOICE, "Hello", listOf("Xin chào", "Tạm biệt"), 0)
+        val question = Question(id = "q1", type = QuestionType.MULTIPLE_CHOICE, prompt = "Hello", options = listOf("Xin chào", "Tạm biệt"), correctIndex = 0)
         vocabRepo.getSessionsByNodeResult = Result.success(listOf(session))
         vocabRepo.getQuestionsBySessionResult = Result.success(listOf(question))
 
@@ -130,7 +130,7 @@ class QuizViewModelPersistenceTest {
     @Test
     fun `completing the quiz clears all SavedStateHandle keys`() = runTest {
         val session = Session("s1", "node_1", 0, "Session 1")
-        val question = Question("q1", QuestionType.MULTIPLE_CHOICE, "Hello", listOf("Xin chào", "Tạm biệt"), 0)
+        val question = Question(id = "q1", type = QuestionType.MULTIPLE_CHOICE, prompt = "Hello", options = listOf("Xin chào", "Tạm biệt"), correctIndex = 0)
         vocabRepo.getSessionsByNodeResult = Result.success(listOf(session))
         vocabRepo.getQuestionsBySessionResult = Result.success(listOf(question))
 

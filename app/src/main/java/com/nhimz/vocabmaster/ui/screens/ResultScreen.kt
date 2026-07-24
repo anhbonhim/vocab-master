@@ -2,6 +2,7 @@ package com.nhimz.vocabmaster.ui.screens
 
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.rememberUpdatedState
 import com.nhimz.vocabmaster.ui.components.SnackbarMessage
