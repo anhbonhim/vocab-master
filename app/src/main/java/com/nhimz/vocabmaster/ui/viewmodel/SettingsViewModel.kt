@@ -19,6 +19,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.CancellationException
 import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.io.OutputStreamWriter
@@ -160,6 +161,8 @@ class SettingsViewModel @Inject constructor(
                 settingsRepository.resetAllProgress()
                 onComplete()
                 emitSnackbar(SnackbarMessage(text = "Đã đặt lại toàn bộ tiến trình học tập."))
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 LocalLogger.e("SettingsViewModel", "Failed to reset progress", e)
                 val msg = e.localizedMessage ?: "Lỗi không xác định."
