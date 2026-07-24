@@ -2,6 +2,10 @@ package com.nhimz.vocabmaster.data.di
 
 import android.content.Context
 import androidx.room.Room
+import com.nhimz.vocabmaster.data.database.CurriculumDatabase
+import com.nhimz.vocabmaster.data.database.CurriculumDao
+import com.nhimz.vocabmaster.data.database.UserDataDatabase
+import com.nhimz.vocabmaster.data.database.UserDataDao
 import com.nhimz.vocabmaster.data.database.VocabDao
 import com.nhimz.vocabmaster.data.database.VocabDatabase
 import com.nhimz.vocabmaster.data.repository.ReviewRepositoryImpl
@@ -50,6 +54,37 @@ abstract class DataModule {
     ): SettingsRepository
 
     companion object {
+        // ---- New split databases (T03): CurriculumDb + UserDataDb ----
+        // The legacy VocabDatabase/VocabDao providers below are kept temporarily until
+        // T04 (VocabularyRepositoryImpl) and T05 (ReviewRepositoryImpl, BackupRepositoryImpl)
+        // migrate off them. Remove VocabDatabase/VocabDao once those migrations land.
+
+        @Provides
+        @Singleton
+        fun provideCurriculumDatabase(@ApplicationContext context: Context): CurriculumDatabase {
+            return Room.databaseBuilder(
+                context,
+                CurriculumDatabase::class.java,
+                CurriculumDatabase.DATABASE_NAME
+            ).fallbackToDestructiveMigration(dropAllTables = true).build()
+        }
+
+        @Provides
+        fun provideCurriculumDao(database: CurriculumDatabase): CurriculumDao = database.curriculumDao()
+
+        @Provides
+        @Singleton
+        fun provideUserDataDatabase(@ApplicationContext context: Context): UserDataDatabase {
+            return Room.databaseBuilder(
+                context,
+                UserDataDatabase::class.java,
+                UserDataDatabase.DATABASE_NAME
+            ).fallbackToDestructiveMigration(dropAllTables = true).build()
+        }
+
+        @Provides
+        fun provideUserDataDao(database: UserDataDatabase): UserDataDao = database.userDataDao()
+
         @Provides
         @Singleton
         /**
