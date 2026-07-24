@@ -1,4 +1,19 @@
+> ## ⚠️ INACTIVE — MÃ NGUỒN CHẾT (DEAD CODE)
+>
+> Thư mục `backend/` **không còn được sử dụng** bởi ứng dụng Android Vocab Master và hiện ở trạng thái **INACTIVE**.
+>
+> - Không có mã nguồn Kotlin nào trong app import `com.google.firebase`, `retrofit2`, `okhttp3`, hay các thư viện identity/credentials (xác nhận qua `rg` over `*.kt`).
+> - Ứng dụng đã chuyển sang kiến trúc **offline-first** (quyết định MEM001): bài kiểm tra Placement chạy hoàn toàn trên engine IRT cục bộ, không cần backend hay Firebase.
+> - Thư mục này được **giữ lại** (không xoá) để lịch sử git bảo tồn bản tham chiếu IRT (FastAPI) và các mẫu xác thực (auth patterns) phục vụ nhu cầu di trữ dữ liệu trong tương lai.
+> - **Đừng** re-introduce (tái đưa vào) backend/network dependencies vào build Android dựa trên thư mục này.
+>
+> Tài liệu thiết lập bên dưới chỉ được lưu giữ làm tham khảo lịch sử, không phản ánh trạng thái hiện tại của app.
+
+---
+
 # Hướng dẫn thiết lập Vocab Master Backend
+
+> **Lưu ý:** Hướng dẫn bên dưới dành cho server Python cũ đã ngưng hoạt động (INACTIVE). Chỉ đọc khi cần tham khảo lịch sử.
 
 Dự án này sử dụng Python (FastAPI) và cơ sở dữ liệu SQLite cực kỳ nhẹ.
 
