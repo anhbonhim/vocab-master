@@ -54,14 +54,16 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.nhimz.vocabmaster.audio.CDNAudioPlayer
-import com.nhimz.vocabmaster.data.database.VocabDao
-import com.nhimz.vocabmaster.data.database.VocabDatabase
+import com.nhimz.vocabmaster.data.database.CurriculumDao
+import com.nhimz.vocabmaster.data.database.UserDataDao
 import com.nhimz.vocabmaster.data.database.entity.FlaggedItemEntity
+import com.nhimz.vocabmaster.data.database.entity.QuestionEntity
 import com.nhimz.vocabmaster.domain.fsrs.v6.State
 import com.nhimz.vocabmaster.domain.model.BackupRepository
 import com.nhimz.vocabmaster.domain.model.ReviewRepository
 import com.nhimz.vocabmaster.domain.model.SettingsRepository
 import com.nhimz.vocabmaster.domain.model.VocabularyRepository
+import com.nhimz.vocabmaster.ui.viewmodel.MainViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -77,7 +79,8 @@ import java.io.FileWriter
 fun DebugPanelScreen(
     onBack: () -> Unit,
     cdnAudioPlayer: CDNAudioPlayer,
-    vocabDatabase: VocabDatabase,
+    curriculumDao: CurriculumDao,
+    userDataDao: UserDataDao,
     vocabularyRepository: VocabularyRepository,
     reviewRepository: ReviewRepository,
     settingsRepository: SettingsRepository,
@@ -124,11 +127,11 @@ fun DebugPanelScreen(
             ) {
                 when (selectedTabIndex) {
                     0 -> AudioCacheTab(cdnAudioPlayer)
-                    1 -> DatabaseFsrsTab(vocabDatabase.vocabDao())
+                    1 -> DatabaseFsrsTab(userDataDao)
                     2 -> LogsTab()
-                    3 -> DatasetQATab(vocabDatabase.vocabDao())
-                    4 -> AudioQAStudioTab(vocabDatabase.vocabDao(), cdnAudioPlayer, settingsRepository)
-                    5 -> FlaggedItemsTab(vocabDatabase.vocabDao())
+                    3 -> DatasetQATab(curriculumDao)
+                    4 -> AudioQAStudioTab(curriculumDao, userDataDao, cdnAudioPlayer, settingsRepository)
+                    5 -> FlaggedItemsTab(userDataDao)
                 }
             }
         }
@@ -188,18 +191,18 @@ fun AudioCacheTab(cdnAudioPlayer: CDNAudioPlayer) {
 }
 
 @Composable
-fun DatabaseFsrsTab(vocabDao: VocabDao) {
+fun DatabaseFsrsTab(userDataDao: UserDataDao) {
     val scope = rememberCoroutineScope()
     var statsMap by remember { mutableStateOf<Map<String, Int>>(emptyMap()) }
     var totalCards by remember { mutableIntStateOf(0) }
 
     LaunchedEffect(Unit) {
         scope.launch(Dispatchers.IO) {
-            totalCards = vocabDao.getCardCount()
-            val newCards = vocabDao.getCardCountByState(State.New.value)
-            val learningCards = vocabDao.getCardCountByState(State.Learning.value)
-            val reviewCards = vocabDao.getCardCountByState(State.Review.value)
-            val relearningCards = vocabDao.getCardCountByState(State.Relearning.value)
+            totalCards = userDataDao.getCardCount()
+            val newCards = userDataDao.getCardCountByState(State.New.value)
+            val learningCards = userDataDao.getCardCountByState(State.Learning.value)
+            val reviewCards = userDataDao.getCardCountByState(State.Review.value)
+            val relearningCards = userDataDao.getCardCountByState(State.Relearning.value)
             
             withContext(Dispatchers.Main) {
                 statsMap = mapOf(
@@ -298,7 +301,7 @@ fun LogsTab() {
 }
 
 @Composable
-fun DatasetQATab(vocabDao: VocabDao) {
+fun DatasetQATab(curriculumDao: CurriculumDao) {
     val scope = rememberCoroutineScope()
     var isScanning by remember { mutableStateOf(false) }
     var progressText by remember { mutableStateOf("Chưa thực hiện quét") }
@@ -323,7 +326,7 @@ fun DatasetQATab(vocabDao: VocabDao) {
                     anomaliesList.clear()
                     scope.launch(Dispatchers.IO) {
                         try {
-                            val cards = vocabDao.getAllQuestions()
+                            val cards = curriculumDao.getAllQuestions()
                             val total = cards.size
                             cards.forEachIndexed { index, card ->
                                 if ((index + 1) % 100 == 0 || index == total - 1) {
@@ -406,16 +409,21 @@ fun DatasetQATab(vocabDao: VocabDao) {
 }
 
 @Composable
-fun AudioQAStudioTab(vocabDao: VocabDao, cdnAudioPlayer: CDNAudioPlayer, settingsRepository: SettingsRepository) {
+fun AudioQAStudioTab(
+    curriculumDao: CurriculumDao,
+    userDataDao: UserDataDao,
+    cdnAudioPlayer: CDNAudioPlayer,
+    settingsRepository: SettingsRepository
+) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
-    var cardsList by remember { mutableStateOf<List<com.nhimz.vocabmaster.data.database.entity.QuestionEntity>>(emptyList()) }
+    var cardsList by remember { mutableStateOf<List<QuestionEntity>>(emptyList()) }
     var currentIndex by remember { mutableIntStateOf(0) }
     var useLocalServer by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         scope.launch(Dispatchers.IO) {
-            val list = vocabDao.getAllQuestions()
+            val list = curriculumDao.getAllQuestions()
             val localSetting = settingsRepository.useLocalDevServer.first()
             withContext(Dispatchers.Main) {
                 cardsList = list
@@ -499,7 +507,6 @@ fun AudioQAStudioTab(vocabDao: VocabDao, cdnAudioPlayer: CDNAudioPlayer, setting
                             }
                         }
                     }
-                }
 
                 Spacer(modifier = Modifier.height(8.dp))
 
@@ -520,7 +527,7 @@ fun AudioQAStudioTab(vocabDao: VocabDao, cdnAudioPlayer: CDNAudioPlayer, setting
                     Button(
                         onClick = {
                             scope.launch(Dispatchers.IO) {
-                                vocabDao.insertFlaggedItem(
+                                userDataDao.insertFlaggedItem(
                                     FlaggedItemEntity(
                                         questionId = currentCard.id,
                                         word = currentCard.prompt,
@@ -559,14 +566,14 @@ fun AudioQAStudioTab(vocabDao: VocabDao, cdnAudioPlayer: CDNAudioPlayer, setting
 }
 
 @Composable
-fun FlaggedItemsTab(vocabDao: VocabDao) {
+fun FlaggedItemsTab(userDataDao: UserDataDao) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var flaggedList by remember { mutableStateOf<List<FlaggedItemEntity>>(emptyList()) }
 
     fun refreshFlagged() {
         scope.launch(Dispatchers.IO) {
-            val list = vocabDao.getAllFlaggedItems()
+            val list = userDataDao.getAllFlaggedItems()
             withContext(Dispatchers.Main) {
                 flaggedList = list
             }
@@ -612,7 +619,7 @@ fun FlaggedItemsTab(vocabDao: VocabDao) {
                 Button(
                     onClick = {
                         scope.launch(Dispatchers.IO) {
-                            vocabDao.deleteAllFlaggedItems()
+                            userDataDao.deleteAllFlaggedItems()
                             refreshFlagged()
                         }
                     },
@@ -651,7 +658,7 @@ fun FlaggedItemsTab(vocabDao: VocabDao) {
                             Button(
                                 onClick = {
                                     scope.launch(Dispatchers.IO) {
-                                        vocabDao.deleteFlaggedItem(item.questionId)
+                                        userDataDao.deleteFlaggedItem(item.questionId)
                                         refreshFlagged()
                                     }
                                 },

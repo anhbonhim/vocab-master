@@ -23,7 +23,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation3.ui.NavDisplay
 import com.nhimz.vocabmaster.audio.CDNAudioPlayer
-import com.nhimz.vocabmaster.data.database.VocabDatabase
+import com.nhimz.vocabmaster.data.database.CurriculumDao
+import com.nhimz.vocabmaster.data.database.UserDataDao
 import com.nhimz.vocabmaster.domain.model.BackupRepository
 import com.nhimz.vocabmaster.domain.model.ReviewRepository
 import com.nhimz.vocabmaster.domain.model.SettingsRepository
@@ -61,7 +62,8 @@ fun VocabMasterApp(
     settingsViewModel: SettingsViewModel,
     cdnAudioPlayer: CDNAudioPlayer,
     notificationScheduler: NotificationScheduler,
-    vocabDatabase: VocabDatabase,
+    curriculumDao: CurriculumDao,
+    userDataDao: UserDataDao,
     vocabularyRepository: VocabularyRepository,
     reviewRepository: ReviewRepository,
     settingsRepository: SettingsRepository,
@@ -103,7 +105,8 @@ fun VocabMasterApp(
                 settingsViewModel = settingsViewModel,
                 cdnAudioPlayer = cdnAudioPlayer,
                 notificationScheduler = notificationScheduler,
-                vocabDatabase = vocabDatabase,
+                curriculumDao = curriculumDao,
+                userDataDao = userDataDao,
                 vocabularyRepository = vocabularyRepository,
                 reviewRepository = reviewRepository,
                 settingsRepository = settingsRepository,
@@ -127,7 +130,8 @@ private fun VocabMasterNavScaffold(
     settingsViewModel: SettingsViewModel,
     cdnAudioPlayer: CDNAudioPlayer,
     notificationScheduler: NotificationScheduler,
-    vocabDatabase: VocabDatabase,
+    curriculumDao: CurriculumDao,
+    userDataDao: UserDataDao,
     vocabularyRepository: VocabularyRepository,
     reviewRepository: ReviewRepository,
     settingsRepository: SettingsRepository,
@@ -163,7 +167,8 @@ private fun VocabMasterNavScaffold(
                     settingsViewModel = settingsViewModel,
                     cdnAudioPlayer = cdnAudioPlayer,
                     notificationScheduler = notificationScheduler,
-                    vocabDatabase = vocabDatabase,
+                    curriculumDao = curriculumDao,
+                    userDataDao = userDataDao,
                     vocabularyRepository = vocabularyRepository,
                     reviewRepository = reviewRepository,
                     settingsRepository = settingsRepository,

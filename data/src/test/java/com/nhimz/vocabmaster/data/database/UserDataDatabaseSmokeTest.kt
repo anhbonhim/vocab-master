@@ -2,11 +2,12 @@ package com.nhimz.vocabmaster.data.database
 
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
-import com.nhimz.vocabmaster.data.database.entity.SectionEntity
-import kotlinx.coroutines.flow.first
+import com.nhimz.vocabmaster.data.database.entity.FsrsCardEntity
+import com.nhimz.vocabmaster.domain.fsrs.v6.State
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Before
 import org.junit.Ignore
 import org.junit.Test
@@ -17,19 +18,19 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
 @Ignore("Robolectric Conscrypt native library is unavailable on this Termux aarch64 environment.")
-class VocabDatabaseSmokeTest {
+class UserDataDatabaseSmokeTest {
 
-    private var database: VocabDatabase? = null
-    private var vocabDao: VocabDao? = null
+    private var database: UserDataDatabase? = null
+    private var userDataDao: UserDataDao? = null
 
     @Before
     fun setup() {
         try {
             database = Room.inMemoryDatabaseBuilder(
                 ApplicationProvider.getApplicationContext(),
-                VocabDatabase::class.java
+                UserDataDatabase::class.java
             ).allowMainThreadQueries().build()
-            vocabDao = database?.vocabDao()
+            userDataDao = database?.userDataDao()
         } catch (e: UnsatisfiedLinkError) {
             println("Skipping Room SQLite test on Termux due to UnsatisfiedLinkError: ${e.message}")
         }
@@ -41,24 +42,24 @@ class VocabDatabaseSmokeTest {
     }
 
     @Test
-    fun testInsertAndGetSection() = runTest {
-        val dao = vocabDao ?: return@runTest // Skip if initialization failed
+    fun testInsertAndGetCard() = runTest {
+        val dao = userDataDao ?: return@runTest
         try {
-            val section = SectionEntity(
-                id = "section_1",
-                index = 1,
-                name = "Test Section",
-                cefrSublevel = "A1",
-                icon = "ic_test",
-                description = "A test section"
+            val card = FsrsCardEntity(
+                questionId = "q1",
+                due = 0L,
+                stability = null,
+                difficulty = null,
+                step = 0,
+                state = State.New.value,
+                lastReview = null,
+                reps = 0,
+                lapses = 0
             )
-
-            dao.insertAllSections(listOf(section))
-
-            val sections = dao.getAllSections().first()
-            assertEquals(1, sections.size)
-            assertEquals(section.id, sections[0].id)
-            assertEquals(section.name, sections[0].name)
+            dao.insertCard(card)
+            val read = dao.getCardByQuestionId("q1")
+            assertNotNull(read)
+            assertEquals("q1", read?.questionId)
         } catch (e: UnsatisfiedLinkError) {
             println("Skipping Room SQLite test on Termux due to UnsatisfiedLinkError: ${e.message}")
         }

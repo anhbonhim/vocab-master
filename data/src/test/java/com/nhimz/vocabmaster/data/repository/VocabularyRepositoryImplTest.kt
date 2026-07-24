@@ -2,8 +2,10 @@ package com.nhimz.vocabmaster.data.repository
 
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
-import com.nhimz.vocabmaster.data.database.VocabDao
-import com.nhimz.vocabmaster.data.database.VocabDatabase
+import com.nhimz.vocabmaster.data.database.CurriculumDao
+import com.nhimz.vocabmaster.data.database.CurriculumDatabase
+import com.nhimz.vocabmaster.data.database.UserDataDao
+import com.nhimz.vocabmaster.data.database.UserDataDatabase
 import com.nhimz.vocabmaster.data.database.entity.FsrsCardEntity
 import com.nhimz.vocabmaster.data.database.entity.NodeEntity
 import com.nhimz.vocabmaster.data.database.entity.QuestionEntity
@@ -34,17 +36,25 @@ import org.robolectric.annotation.Config
 @Suppress("LabeledExpression")
 class VocabularyRepositoryImplTest {
 
-    private var database: VocabDatabase? = null
-    private var vocabDao: VocabDao? = null
+    private var curriculumDatabase: CurriculumDatabase? = null
+    private var curriculumDao: CurriculumDao? = null
+    private var userDataDatabase: UserDataDatabase? = null
+    private var userDataDao: UserDataDao? = null
 
     @Before
     fun setup() {
         try {
-            database = Room.inMemoryDatabaseBuilder(
+            curriculumDatabase = Room.inMemoryDatabaseBuilder(
                 ApplicationProvider.getApplicationContext(),
-                VocabDatabase::class.java
+                CurriculumDatabase::class.java
             ).allowMainThreadQueries().build()
-            vocabDao = database?.vocabDao()
+            curriculumDao = curriculumDatabase?.curriculumDao()
+
+            userDataDatabase = Room.inMemoryDatabaseBuilder(
+                ApplicationProvider.getApplicationContext(),
+                UserDataDatabase::class.java
+            ).allowMainThreadQueries().build()
+            userDataDao = userDataDatabase?.userDataDao()
         } catch (e: UnsatisfiedLinkError) {
             println("Skipping Room SQLite test on Termux due to UnsatisfiedLinkError: ${e.message}")
         }
@@ -52,14 +62,16 @@ class VocabularyRepositoryImplTest {
 
     @After
     fun teardown() {
-        database?.close()
+        curriculumDatabase?.close()
+        userDataDatabase?.close()
     }
 
     @Test
     fun malformedOptionsJsonFailsLoudly() = runTest {
-        val dao = vocabDao ?: return@runTest
-        seedOneQuestion(dao, options = "{not valid json")
-        val repo = VocabularyRepositoryImpl(dao, ApplicationProvider.getApplicationContext())
+        val curriculumDao = curriculumDao ?: return@runTest
+        val userDataDao = userDataDao ?: return@runTest
+        seedOneQuestion(curriculumDao, userDataDao, options = "{not valid json")
+        val repo = VocabularyRepositoryImpl(curriculumDao, userDataDao, ApplicationProvider.getApplicationContext())
 
         val result = repo.getQuestionsBySession("session_1")
 
@@ -69,9 +81,10 @@ class VocabularyRepositoryImplTest {
 
     @Test
     fun malformedMatchingPairsJsonFailsLoudly() = runTest {
-        val dao = vocabDao ?: return@runTest
-        seedOneQuestion(dao, matchingPairs = "{not valid json")
-        val repo = VocabularyRepositoryImpl(dao, ApplicationProvider.getApplicationContext())
+        val curriculumDao = curriculumDao ?: return@runTest
+        val userDataDao = userDataDao ?: return@runTest
+        seedOneQuestion(curriculumDao, userDataDao, matchingPairs = "{not valid json")
+        val repo = VocabularyRepositoryImpl(curriculumDao, userDataDao, ApplicationProvider.getApplicationContext())
 
         val result = repo.getQuestionsBySession("session_1")
 
@@ -81,8 +94,9 @@ class VocabularyRepositoryImplTest {
 
     @Test
     fun malformedGuidebookJsonReturnsFailure() = runTest {
-        val dao = vocabDao ?: return@runTest
-        seedOneQuestion(dao)
+        val curriculumDao = curriculumDao ?: return@runTest
+        val userDataDao = userDataDao ?: return@runTest
+        seedOneQuestion(curriculumDao, userDataDao)
         val guidebook = UnitGuidebookEntity(
             id = "guidebook_1",
             unitId = "unit_1",
@@ -91,8 +105,8 @@ class VocabularyRepositoryImplTest {
             storyIntro = "Intro",
             illustrationSvg = null
         )
-        dao.insertAllGuidebooks(listOf(guidebook))
-        val repo = VocabularyRepositoryImpl(dao, ApplicationProvider.getApplicationContext())
+        curriculumDao.insertAllGuidebooks(listOf(guidebook))
+        val repo = VocabularyRepositoryImpl(curriculumDao, userDataDao, ApplicationProvider.getApplicationContext())
 
         val result = repo.getGuidebook("unit_1")
 
@@ -102,8 +116,9 @@ class VocabularyRepositoryImplTest {
 
     @Test
     fun malformedSessionQuestionIdsReturnsFailure() = runTest {
-        val dao = vocabDao ?: return@runTest
-        seedMinimalCurriculum(dao)
+        val curriculumDao = curriculumDao ?: return@runTest
+        val userDataDao = userDataDao ?: return@runTest
+        seedMinimalCurriculum(curriculumDao)
         val session = SessionEntity(
             id = "session_bad",
             nodeId = "node_1",
@@ -112,8 +127,8 @@ class VocabularyRepositoryImplTest {
             durationMinutes = 5,
             questionIds = "{not valid json"
         )
-        dao.insertAllSessions(listOf(session))
-        val repo = VocabularyRepositoryImpl(dao, ApplicationProvider.getApplicationContext())
+        curriculumDao.insertAllSessions(listOf(session))
+        val repo = VocabularyRepositoryImpl(curriculumDao, userDataDao, ApplicationProvider.getApplicationContext())
 
         val result = repo.getSessionsByNode("node_1")
 
@@ -123,9 +138,10 @@ class VocabularyRepositoryImplTest {
 
     @Test
     fun validRowsStillDecode() = runTest {
-        val dao = vocabDao ?: return@runTest
-        seedOneQuestion(dao)
-        val repo = VocabularyRepositoryImpl(dao, ApplicationProvider.getApplicationContext())
+        val curriculumDao = curriculumDao ?: return@runTest
+        val userDataDao = userDataDao ?: return@runTest
+        seedOneQuestion(curriculumDao, userDataDao)
+        val repo = VocabularyRepositoryImpl(curriculumDao, userDataDao, ApplicationProvider.getApplicationContext())
 
         val sessionResult = repo.getSessionsByNode("node_1")
         assertTrue("Valid session must decode successfully", sessionResult.isSuccess)
@@ -142,9 +158,10 @@ class VocabularyRepositoryImplTest {
 
     @Test
     fun importBackupMalformedJsonReturnsFailure() = runTest {
-        val dao = vocabDao ?: return@runTest
+        val userDataDao = userDataDao ?: return@runTest
+        val userDataDatabase = userDataDatabase ?: return@runTest
         val fakeSettings = FakeSettingsRepository()
-        val repo = BackupRepositoryImpl(database!!, dao, fakeSettings)
+        val repo = BackupRepositoryImpl(userDataDatabase, userDataDao, fakeSettings)
 
         val result = repo.importBackup("{ definitely not json")
 
@@ -154,9 +171,10 @@ class VocabularyRepositoryImplTest {
 
     @Test
     fun importBackupVersion2ReturnsSuccessFalse() = runTest {
-        val dao = vocabDao ?: return@runTest
+        val userDataDao = userDataDao ?: return@runTest
+        val userDataDatabase = userDataDatabase ?: return@runTest
         val fakeSettings = FakeSettingsRepository()
-        val repo = BackupRepositoryImpl(database!!, dao, fakeSettings)
+        val repo = BackupRepositoryImpl(userDataDatabase, userDataDao, fakeSettings)
 
         val v2Payload = """
             {
@@ -186,7 +204,7 @@ class VocabularyRepositoryImplTest {
         assertFalse("Version-2 backup must be rejected (false)", result.getOrThrow())
     }
 
-    private suspend fun seedMinimalCurriculum(dao: VocabDao) {
+    private suspend fun seedMinimalCurriculum(dao: CurriculumDao) {
         val section = SectionEntity(
             id = "section_1",
             index = 0,
@@ -220,12 +238,13 @@ class VocabularyRepositoryImplTest {
     }
 
     private suspend fun seedOneQuestion(
-        dao: VocabDao,
+        curriculumDao: CurriculumDao,
+        userDataDao: UserDataDao,
         options: String = "[\"a\",\"b\",\"c\",\"d\"]",
         scrambledWords: String = "[\"word1\",\"word2\",\"word3\"]",
         matchingPairs: String = "[{\"left\":\"a\",\"right\":\"b\"}]"
     ) {
-        seedMinimalCurriculum(dao)
+        seedMinimalCurriculum(curriculumDao)
         val session = SessionEntity(
             id = "session_1",
             nodeId = "node_1",
@@ -261,9 +280,9 @@ class VocabularyRepositoryImplTest {
             reps = 0,
             lapses = 0
         )
-        dao.insertAllSessions(listOf(session))
-        dao.insertAllQuestions(listOf(question))
-        dao.insertAllFsrsCards(listOf(card))
+        curriculumDao.insertAllSessions(listOf(session))
+        curriculumDao.insertAllQuestions(listOf(question))
+        userDataDao.insertAllFsrsCards(listOf(card))
     }
 
     private class FakeSettingsRepository : SettingsRepository {

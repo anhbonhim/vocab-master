@@ -11,7 +11,8 @@ import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
 import com.nhimz.vocabmaster.audio.CDNAudioPlayer
-import com.nhimz.vocabmaster.data.database.VocabDatabase
+import com.nhimz.vocabmaster.data.database.CurriculumDao
+import com.nhimz.vocabmaster.data.database.UserDataDao
 import com.nhimz.vocabmaster.domain.model.BackupRepository
 import com.nhimz.vocabmaster.domain.model.ReviewRepository
 import com.nhimz.vocabmaster.domain.model.SettingsRepository
@@ -71,7 +72,8 @@ fun vocabMasterEntryProvider(
     settingsViewModel: SettingsViewModel,
     cdnAudioPlayer: CDNAudioPlayer,
     notificationScheduler: NotificationScheduler,
-    vocabDatabase: VocabDatabase,
+    curriculumDao: CurriculumDao,
+    userDataDao: UserDataDao,
     vocabularyRepository: VocabularyRepository,
     reviewRepository: ReviewRepository,
     settingsRepository: SettingsRepository,
@@ -179,7 +181,8 @@ fun vocabMasterEntryProvider(
         DebugPanelScreen(
             onBack = { mainViewModel.goBack() },
             cdnAudioPlayer = cdnAudioPlayer,
-            vocabDatabase = vocabDatabase,
+            curriculumDao = curriculumDao,
+            userDataDao = userDataDao,
             vocabularyRepository = vocabularyRepository,
             reviewRepository = reviewRepository,
             settingsRepository = settingsRepository,
