@@ -18,7 +18,7 @@ import kotlinx.coroutines.flow.Flow
  * Every query here touches only curriculum tables (sections, units, guidebooks, nodes, sessions,
  * questions) that live in [CurriculumDatabase]. The ID-helper queries ([getQuestionsByIds],
  * [getSessionIdsByUnit], [getSessionIdsBySection], [getQuestionsBySessionIds], [getNodeIdsByUnit],
- * [getNodeIdsBySection], [getQuestionIdsByUnit]) exist so the repository can fetch the curriculum
+ * [getNodeIdsBySection], [getQuestionIdsByUnit], [getQuestionIdsBySection]) exist so the repository can fetch the curriculum
  * side of a join and assemble [com.nhimz.vocabmaster.data.database.entity.QuestionAndFsrsCard]
  * objects in memory after querying [com.nhimz.vocabmaster.data.database.UserDataDao] for the
  * per-user FSRS side.
@@ -93,6 +93,20 @@ interface CurriculumDao {
         """
     )
     suspend fun getQuestionIdsByUnit(unitId: String): List<String>
+
+    @Query(
+        """
+        SELECT id FROM questions 
+        WHERE sessionId IN (
+            SELECT id FROM sessions 
+            WHERE nodeId IN (
+                SELECT id FROM nodes 
+                WHERE unitId IN (SELECT id FROM units WHERE sectionId = :sectionId)
+            )
+        )
+        """
+    )
+    suspend fun getQuestionIdsBySection(sectionId: String): List<String>
 
     // --- Insert (seed) queries ---
 
